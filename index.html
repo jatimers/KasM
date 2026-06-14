@@ -162,58 +162,70 @@
     }
   }
 /* =========================================================
-     PERBAIKAN TAMPILAN MOBILE: FORM PECAHAN BON/SETOR (V2)
+     PERBAIKAN TAMPILAN MOBILE: ANTI GESER KANAN-KIRI (V3 - FINAL)
      ========================================================= */
   @media screen and (max-width: 768px) {
-    /* 1. Kunci layar agar sama sekali tidak bisa digeser ke samping */
-    body, html {
-      overflow-x: hidden !important;
+    /* 1. Kunci Mati Lebar Halaman (Menghilangkan Scroll Kanan-Kiri) */
+    html, body {
       width: 100vw !important;
       max-width: 100vw !important;
-    }
-    
-    /* 2. Hapus padding berlebih & batasan lebar bawaan dari kontainer utama */
-    .main-content, .page, .form-row, .modal-content {
-      padding-left: 12px !important;
-      padding-right: 12px !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      box-sizing: border-box !important;
-      min-width: 0 !important; 
-    }
-
-    /* 3. Gunakan GRID: Label dipatok ukuran pastinya, input mengisi sisanya */
-    .form-group, .input-group {
-      display: grid !important;
-      /* Label diberi jatah 85px, sisanya (1fr) untuk kotak input */
-      grid-template-columns: 85px 1fr !important; 
-      align-items: center !important;
-      gap: 8px !important;
-      width: 100% !important;
-      margin-bottom: 10px !important;
-      min-width: 0 !important; /* Mematikan min-width: 200px dari kode asli Anda */
-    }
-
-    /* 4. Pengaturan Label (Keterangan Pecahan) agar lebih pendek & bisa turun baris */
-    .form-group label, .input-group label {
-      font-size: 11px !important; /* Huruf diperkecil */
-      white-space: normal !important; /* KUNCI: Izinkan teks turun ke baris baru jika kepanjangan */
-      word-break: break-word !important;
-      line-height: 1.2 !important;
+      overflow-x: hidden !important;
       margin: 0 !important;
-      text-transform: none !important; /* Menghindari huruf kapital semua yang memakan tempat */
+      padding: 0 !important;
     }
 
-    /* 5. Pengaturan Kotak Input agar lebih ramping */
-    .form-group input[type="number"], 
-    .form-group input[type="text"],
-    .input-group input {
+    /* 2. Paksa semua elemen patuh pada batas layar */
+    * {
+      box-sizing: border-box !important;
+      max-width: 100% !important;
+    }
+
+    /* 3. SUSUNAN ATAS-BAWAH: Label di Atas, Input di Bawah */
+    .form-row, .modal-content, .page {
+      display: flex !important;
+      flex-direction: column !important;
       width: 100% !important;
       min-width: 0 !important;
-      padding: 8px 10px !important; /* Kotak dibuat tidak terlalu gemuk */
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+    }
+
+    .form-group, .input-group {
+      display: flex !important;
+      flex-direction: column !important; /* Mengubah Kiri-Kanan jadi Atas-Bawah */
+      align-items: flex-start !important;
+      width: 100% !important;
+      min-width: 0 !important; /* Membuang paksaan lebar dari kode asli */
+      margin-bottom: 15px !important;
+    }
+
+    /* 4. Atur Tulisan Keterangan Pecahan */
+    .form-group label, .input-group label, label {
+      width: 100% !important;
+      white-space: normal !important; /* Teks otomatis turun baris jika panjang */
       font-size: 13px !important;
-      box-sizing: border-box !important;
-      height: 36px !important;
+      margin-bottom: 6px !important;
+      text-align: left !important;
+      color: #1e293b !important;
+    }
+
+    /* 5. Atur Kotak Input agar responsif penuh */
+    input[type="number"], 
+    input[type="text"],
+    select {
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      height: 42px !important; /* Area sentuh jari lebih nyaman */
+      font-size: 14px !important;
+      padding: 8px 12px !important;
+    }
+
+    /* 6. Perbaikan untuk wadah input khusus (seperti yang ada teks "Rp") */
+    div[style*="display:flex"], 
+    div[style*="display: flex"] {
+      max-width: 100% !important;
+      width: 100% !important;
     }
   }    
   </style>
