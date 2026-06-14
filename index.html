@@ -1323,64 +1323,8 @@ function loadLapPosisiHarian() {
           <div class="ttd-container">
             <div class="ttd-box">Mengetahui,<br><b>Pemimpin Bidang Operasional</b><div class="ttd-space"></div><div class="ttd-name">${namaPBO}</div><div>${nipPBO}</div></div>
             <div class="ttd-box">Dibuat Oleh,<br><b>Penyelia Operasional Dana</b><div class="ttd-space"></div><div class="ttd-name">${namaPenyelia}</div><div>${nipPenyelia}</div></div>
-          </div>
-
-      <script>
-  function paksaAtasBawahDiHP() {
-    // Hanya jalankan jika lebar layar seukuran HP (768px ke bawah)
-    if (window.innerWidth <= 768) {
-      
-      // JURUS 1: Jika form pecahan menggunakan TABEL
-      document.querySelectorAll('table').forEach(tbl => {
-        if(tbl.innerHTML.includes('type="number"')) {
-          tbl.style.setProperty('width', '100%', 'important');
-          tbl.querySelectorAll('tr').forEach(tr => {
-            tr.style.setProperty('display', 'flex', 'important');
-            tr.style.setProperty('flex-direction', 'column', 'important');
-            tr.style.setProperty('margin-bottom', '10px', 'important');
-          });
-          tbl.querySelectorAll('td').forEach(td => {
-            td.style.setProperty('display', 'block', 'important');
-            td.style.setProperty('width', '100%', 'important');
-            td.style.setProperty('text-align', 'left', 'important');
-            td.style.setProperty('padding', '2px 0', 'important');
-          });
-        }
-      });
-
-      // JURUS 2: Jika form pecahan menggunakan DIV / Bungkusan Flexbox
-      document.querySelectorAll('input[type="number"], input[type="text"]').forEach(input => {
-        // Lebarkan kotak input secara maksimal
-        input.style.setProperty('width', '100%', 'important');
-        input.style.setProperty('box-sizing', 'border-box', 'important');
+         </div>
         
-        // Cari bungkusan div-nya dan paksa jadi atas-bawah
-        let parentDiv = input.parentElement;
-        if (parentDiv) {
-          parentDiv.style.setProperty('display', 'flex', 'important');
-          parentDiv.style.setProperty('flex-direction', 'column', 'important');
-          parentDiv.style.setProperty('align-items', 'flex-start', 'important');
-          parentDiv.style.setProperty('width', '100%', 'important');
-        }
-        
-        // Cari kakek bungkusan-nya (berjaga-jaga jika dibungkus 2 kali)
-        let grandParent = parentDiv ? parentDiv.parentElement : null;
-        if (grandParent && grandParent.style.display === 'flex') {
-          grandParent.style.setProperty('flex-direction', 'column', 'important');
-        }
-      });
-    }
-  }
-
-  // Jalankan skrip ini saat halaman pertama kali dimuat
-  window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(paksaAtasBawahDiHP, 500); // Beri jeda sedikit agar form selesai dirender
-  });
-  
-  // Jalankan juga saat HP diputar / ganti orientasi layar
-  window.addEventListener('resize', paksaAtasBawahDiHP);
-</script>
-          
         </body></html>
         `;
 
@@ -3240,6 +3184,71 @@ function executePrintSingleSlip(item, pegawai, pejabat) {
          ${signatureHtml}
       </div>
     </div>
+
+<script>
+  function paksaAtasBawahDiHP() {
+    // Hanya jalankan jika diakses melalui layar HP (768px ke bawah)
+    if (window.innerWidth <= 768) {
+      
+      // JURUS 1: Jika form pecahan menggunakan TABEL
+      document.querySelectorAll('table').forEach(tbl => {
+        // Pastikan hanya memodifikasi tabel yang berisi input pecahan uang (number)
+        if(tbl.innerHTML.includes('type="number"')) {
+          tbl.style.setProperty('width', '100%', 'important');
+          tbl.querySelectorAll('tr').forEach(tr => {
+            tr.style.setProperty('display', 'flex', 'important');
+            tr.style.setProperty('flex-direction', 'column', 'important');
+            tr.style.setProperty('margin-bottom', '12px', 'important');
+          });
+          tbl.querySelectorAll('td').forEach(td => {
+            td.style.setProperty('display', 'block', 'important');
+            td.style.setProperty('width', '100%', 'important');
+            td.style.setProperty('text-align', 'left', 'important');
+            td.style.setProperty('padding', '4px 0', 'important');
+          });
+        }
+      });
+
+      // JURUS 2: Hanya sasar input="number" (Pecahan Uang Nominal)
+      // DI SINI KITA HAPUS input[type="text"] AGAR HALAMAN LOGIN KEMBALI NORMAL
+      document.querySelectorAll('input[type="number"]').forEach(input => {
+        
+        // Proteksi Tambahan: Lewati jika input ini berada di dalam area login
+        if (input.closest('#login-container') || input.closest('.login-box') || input.closest('#loginPage')) {
+          return; 
+        }
+
+        // Lebarkan kotak input pecahan secara responsif
+        input.style.setProperty('width', '100%', 'important');
+        input.style.setProperty('box-sizing', 'border-box', 'important');
+        
+        // Buat bungkusan teks pecahan & input menjadi susunan atas-bawah
+        let parentDiv = input.parentElement;
+        if (parentDiv) {
+          parentDiv.style.setProperty('display', 'flex', 'important');
+          parentDiv.style.setProperty('flex-direction', 'column', 'important');
+          parentDiv.style.setProperty('align-items', 'flex-start', 'important');
+          parentDiv.style.setProperty('width', '100%', 'important');
+        }
+        
+        // Sesuaikan container luar grid agar tidak meluber ke kanan
+        let grandParent = parentDiv ? parentDiv.parentElement : null;
+        if (grandParent && (grandParent.classList.contains('row') || grandParent.style.display === 'flex')) {
+          grandParent.style.setProperty('flex-direction', 'column', 'important');
+        }
+      });
+    }
+  }
+
+  // Jalankan fungsi saat struktur halaman selesai dimuat
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(paksaAtasBawahDiHP, 500); // Jeda 0.5 detik agar rendering form selesai sempurna
+  });
+  
+  // Jalankan jika layar HP berputar atau di-resize
+  window.addEventListener('resize', paksaAtasBawahDiHP);
+</script>
+    
   </body></html>`;
 
   let win = window.open('', '', 'width=900,height=700');
