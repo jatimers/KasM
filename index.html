@@ -160,6 +160,53 @@
       .header-page { flex-direction: column; align-items: flex-start; }
       .btn-refresh { width: 100%; }
     }
+    /* =========================================================
+     PERBAIKAN TAMPILAN MOBILE: FORM PECAHAN BON/SETOR
+     ========================================================= */
+  @media screen and (max-width: 768px) {
+    /* 1. Mencegah seluruh halaman bisa digeser ke kanan-kiri */
+    body, html {
+      overflow-x: hidden !important;
+    }
+    
+    /* 2. Membatasi container form agar pas 100% dengan layar HP */
+    .modal-content, form, .container, .wrapper-pecahan {
+      width: 100% !important;
+      max-width: 100vw !important;
+      box-sizing: border-box !important;
+      padding-left: 10px !important;
+      padding-right: 10px !important;
+    }
+
+    /* 3. Kunci Utama: Memaksa kotak input menyesuaikan sisa ruang */
+    input[type="text"], input[type="number"] {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important; /* Mencegah input memanjang keluar layar */
+      box-sizing: border-box !important;
+      font-size: 14px !important; /* Memperkecil font sedikit di HP */
+    }
+
+    /* 4. Mengatur agar Tulisan Pecahan dan Kotak Input rapi bersebelahan */
+    .form-group, .input-group, .row, .flex-row {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+      margin-bottom: 10px !important;
+    }
+
+    /* 5. Memastikan Label (Tulisan "Rp 100.000") tetap terbaca & tidak tertumpuk */
+    label, .label-pecahan {
+      flex-shrink: 0 !important; /* Mencegah teks menyusut rusak */
+      flex-basis: 35% !important; /* Tulisan mengambil 35% lebar layar */
+      font-size: 12px !important;
+      white-space: nowrap !important;
+      margin-right: 8px !important;
+    }
+  }
+    
   </style>
 </head>
 <body>
