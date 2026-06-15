@@ -3395,59 +3395,70 @@ function formatRpTab(angka) {
   return val.toLocaleString('id-ID');
 }
   </script>
-  <script>
+<script>
   function paksaAtasBawahDiHP() {
-    // 1. PROKSI KEAMANAN: Jika belum login (currentUser belum terbentuk), 
-    //    langsung hentikan skrip agar tidak merusak halaman login.
-    if (typeof currentUser === 'undefined' || !currentUser) {
-      return; 
-    }
+    // 1. PROKSI KEAMANAN: Jangan jalankan apa pun jika belum login
+    if (typeof currentUser === 'undefined' || !currentUser) return; 
     
-    // 2. Hanya berjalan jika diakses melalui layar HP (768px ke bawah)
+    // 2. Hanya berjalan di layar HP (lebar 768px ke bawah)
     if (window.innerWidth <= 768) {
       
-      // JURUS 1: Jika form pecahan menggunakan struktur TABEL
-      document.querySelectorAll('table').forEach(tbl => {
-        // Hanya sasar tabel yang berisi input angka pecahan uang
-        if(tbl.innerHTML.includes('type="number"')) {
+      // JURUS 1: Jika form input pecahan dibuat menggunakan TABEL
+      document.querySelectorAll('.main-wrapper table').forEach(tbl => {
+        // HANYA sasar tabel yang memiliki kotak input (Abaikan tabel riwayat data)
+        if (tbl.querySelector('input')) {
           tbl.style.setProperty('width', '100%', 'important');
           tbl.querySelectorAll('tr').forEach(tr => {
-            tr.style.setProperty('display', 'flex', 'important');
-            tr.style.setProperty('flex-direction', 'column', 'important');
-            tr.style.setProperty('margin-bottom', '12px', 'important');
+            if (!tr.closest('thead')) { // Abaikan header tabel
+              tr.style.setProperty('display', 'flex', 'important');
+              tr.style.setProperty('flex-direction', 'column', 'important');
+              tr.style.setProperty('margin-bottom', '15px', 'important');
+              tr.style.setProperty('border-bottom', '1px dashed #ccc', 'important');
+            }
           });
           tbl.querySelectorAll('td').forEach(td => {
             td.style.setProperty('display', 'block', 'important');
             td.style.setProperty('width', '100%', 'important');
             td.style.setProperty('text-align', 'left', 'important');
-            td.style.setProperty('padding', '4px 0', 'important');
+            td.style.setProperty('padding', '2px 0 8px 0', 'important');
           });
         }
       });
 
-      // JURUS 2: Hanya sasar input="number" (Pecahan Nominal Uang)
-      document.querySelectorAll('input[type="number"]').forEach(input => {
-        // Ubah kotak input pecahan menjadi lebar penuh responsif
+      // JURUS 2: Sasar input kotak teks nominal uang (yang formatnya "Rp...") 
+      // HANYA yang ada di dalam menu utama (.main-wrapper), login diabaikan!
+      document.querySelectorAll('.main-wrapper input[type="text"], .main-wrapper input[type="number"]').forEach(input => {
+        // Lebarkan kotak input secara maksimal
         input.style.setProperty('width', '100%', 'important');
         input.style.setProperty('box-sizing', 'border-box', 'important');
         
-        // Ubah susunan teks keterangan dan kotak input menjadi Atas-Bawah
-        let parentDiv = input.parentElement;
-        if (parentDiv) {
-          parentDiv.style.setProperty('display', 'flex', 'important');
-          parentDiv.style.setProperty('flex-direction', 'column', 'important');
-          parentDiv.style.setProperty('align-items', 'flex-start', 'important');
-          parentDiv.style.setProperty('width', '100%', 'important');
+        // Cari pembungkus terdekat dan jadikan atas-bawah
+        let fg = input.closest('.form-group');
+        if (fg) {
+          fg.style.setProperty('display', 'flex', 'important');
+          fg.style.setProperty('flex-direction', 'column', 'important');
+          fg.style.setProperty('align-items', 'flex-start', 'important');
+          fg.style.setProperty('width', '100%', 'important');
         }
+      });
+      
+      // JURUS 3: Pastikan baris div bawaan dilipat menjadi atas-bawah
+      document.querySelectorAll('.main-wrapper .form-row').forEach(row => {
+        row.style.setProperty('display', 'flex', 'important');
+        row.style.setProperty('flex-direction', 'column', 'important');
+      });
+      
+      // JURUS 4: Keterangan / Label otomatis turun baris jika kepanjangan
+      document.querySelectorAll('.main-wrapper label').forEach(lbl => {
+        lbl.style.setProperty('width', '100%', 'important');
+        lbl.style.setProperty('white-space', 'normal', 'important');
+        lbl.style.setProperty('margin-bottom', '6px', 'important');
       });
     }
   }
 
-  // Menggunakan interval berkala karena menu Bon/Setor dimuat secara dinamis 
-  // setelah login berhasil tanpa perlu memuat ulang (refresh) halaman.
+  // Lakukan scan setiap 1 detik karena form dimuat saat menu di-klik
   setInterval(paksaAtasBawahDiHP, 1000);
-  
-  // Jalankan juga saat layar HP berputar (landscape/portrait)
   window.addEventListener('resize', paksaAtasBawahDiHP);
 </script>
 </body>
