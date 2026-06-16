@@ -398,7 +398,7 @@
       }
 
       try {
-        const res = await callApiPost<{ status: boolean; user: Record<string, string>; msg?: string }>('/api/auth', { username: u, password: p });
+        const res = await callApiPost<{ status: boolean; user: Record<string, string>; msg?: string }>('/auth', { username: u, password: p });
 
         showLoader(false);
 
@@ -479,7 +479,7 @@
     async function loadUsers() {
       showLoader(true);
       try {
-        const res = await callApiGet<Array<Record<string, unknown>>>('/api/users', { kodeWilayah: currentUser.kodeWilayah || 'ALL' });
+        const res = await callApiGet<Array<Record<string, unknown>>>('/users', { kodeWilayah: currentUser.kodeWilayah || 'ALL' });
         showLoader(false);
         allUsersData = res;
         let html = "";
@@ -529,7 +529,7 @@
       };
       showLoader(true);
       try {
-        await callApiPost('/api/users', obj);
+        await callApiPost('/users', obj);
         showLoader(false);
         showToast(false);
         clearFormUser();
@@ -544,7 +544,7 @@
       if (!confirm("Hapus user ini?")) return;
       showLoader(true);
       try {
-        await callApiDelete('/api/users/' + id);
+        await callApiDelete('/users/' + id);
         showLoader(false);
         showToast(false);
         loadUsers();
@@ -565,7 +565,7 @@
     async function loadHariLibur() {
       showLoader(true);
       try {
-        const res = await callApiGet<Array<{tanggal: string; keterangan: string}>>('/api/hari-libur');
+        const res = await callApiGet<Array<{tanggal: string; keterangan: string}>>('/hari-libur');
         showLoader(false);
         let html = "";
         if (res.length === 0) {
@@ -589,7 +589,7 @@
       if (!tgl || !ket) { alert("Tanggal dan Keterangan wajib diisi!"); return; }
       showLoader(true);
       try {
-        await callApiPost('/api/hari-libur', { tanggal: tgl, keterangan: ket });
+        await callApiPost('/hari-libur', { tanggal: tgl, keterangan: ket });
         showLoader(false);
         showToast(false);
         (document.getElementById('hl-tgl') as HTMLInputElement).value = "";
@@ -605,7 +605,7 @@
       if (!confirm("Hapus hari libur ini?")) return;
       showLoader(true);
       try {
-        await callApiDelete('/api/hari-libur/' + tgl);
+        await callApiDelete('/hari-libur/' + tgl);
         showLoader(false);
         showToast(false);
         loadHariLibur();
@@ -618,7 +618,7 @@
     // ==================== NEXT WORKING DAY ====================
     async function getServerNextWorkingDay(): Promise<string> {
       try {
-        return await callApiGet<string>('/api/next-working-day');
+        return await callApiGet<string>('/next-working-day');
       } catch {
         return getLocalDateString();
       }
@@ -626,7 +626,7 @@
 
     async function getNextWorkingDayFrom(dateStr: string): Promise<string> {
       try {
-        return await callApiGet<string>('/api/next-working-day', { action: 'from', fromDate: dateStr });
+        return await callApiGet<string>('/next-working-day', { action: 'from', fromDate: dateStr });
       } catch {
         return dateStr;
       }
@@ -636,7 +636,7 @@
     async function loadDashboardTeller() {
       const tgl = getLocalDateString();
       try {
-        const res = await callApiGet<{bonMasuk: number; setorKeluar: number; penerimaan: number; pembayaran: number; saldoEstimasi: number}>('/api/bon-setor', {
+        const res = await callApiGet<{bonMasuk: number; setorKeluar: number; penerimaan: number; pembayaran: number; saldoEstimasi: number}>('/bon-setor', {
           action: 'dashboard',
           userEstim: currentUser.userEstim,
           tanggal: tgl
@@ -661,7 +661,7 @@
     async function loadDashboardHT() {
       const tgl = getLocalDateString();
       try {
-        const res = await callApiGet<{saldoAwal: number; totalBonTeller: number; totalSetorTeller: number; saldoAkhirKhasanah: number}>('/api/dashboard', {
+        const res = await callApiGet<{saldoAwal: number; totalBonTeller: number; totalSetorTeller: number; saldoAkhirKhasanah: number}>('/dashboard', {
           type: 'ht',
           tanggal: tgl,
           kodeWilayah: currentUser.kodeWilayah
@@ -687,7 +687,7 @@
       if (!tgl) return;
       showLoader(true, "Memuat Laporan Saldo Kas...");
       try {
-        const res = await callApiGet<{htRincian: Array<Record<string,unknown>>; totalHT: number; tellerList: Array<Record<string,unknown>>; totalTeller: number; grandTotal: number}>('/api/laporan-ht', {
+        const res = await callApiGet<{htRincian: Array<Record<string,unknown>>; totalHT: number; tellerList: Array<Record<string,unknown>>; totalTeller: number; grandTotal: number}>('/laporan-ht', {
           action: 'saldo-kas',
           tanggal: tgl,
           kodeWilayah: currentUser.kodeWilayah
@@ -740,7 +740,7 @@
       if (!tgl) return;
       showLoader(true, "Memuat Laporan Mutasi...");
       try {
-        const res = await callApiGet<{rincian: Array<Record<string,unknown>>; total: number; tellerList: Array<Record<string,unknown>>; totalTeller: number}>('/api/laporan-ht', {
+        const res = await callApiGet<{rincian: Array<Record<string,unknown>>; total: number; tellerList: Array<Record<string,unknown>>; totalTeller: number}>('/laporan-ht', {
           action: 'mutasi',
           tanggal: tgl,
           kodeWilayah: currentUser.kodeWilayah,
@@ -777,7 +777,7 @@
       if (!tgl) return;
       showLoader(true, "Memuat History...");
       try {
-        const res = await callApiGet<Array<Record<string,unknown>>>('/api/bon-setor', {
+        const res = await callApiGet<Array<Record<string,unknown>>>('/bon-setor', {
           action: 'history',
           userEstim: currentUser.userEstim,
           tanggal: tgl
@@ -822,7 +822,7 @@
       if (!confirm("Hapus transaksi ini beserta semua rinciannya?")) return;
       showLoader(true);
       try {
-        await callApiDelete('/api/bon-setor/' + idTrx);
+        await callApiDelete('/bon-setor/' + idTrx);
         showLoader(false);
         showToast(false);
         closeModal();
@@ -849,7 +849,7 @@
           bonPagi: number; bonTambahan: number; setorTambahan: number; setorSore: number;
           penerimaanDebet: number; pembayaranKredit: number; penerimaanAntar: number;
           pembayaranAntar: number; isSaved: boolean; selisihPembulatan: number;
-        }>('/api/bon-setor', {
+        }>('/bon-setor', {
           action: 'rekap-fisik',
           userEstim: currentUser.userEstim,
           tanggal: tgl
@@ -941,13 +941,13 @@
 
       showLoader(true, "Menyimpan Posisi Kas...");
       try {
-        await callApiPost('/api/posisi-kas', dataObj);
+        await callApiPost('/posisi-kas', dataObj);
         showLoader(false);
         showToast(false);
 
         // Send WA notification if configured
         try {
-          await callApiPost('/api/notif-fonnte', { action: 'posisi-kas', data: dataObj });
+          await callApiPost('/notif-fonnte', { action: 'posisi-kas', data: dataObj });
         } catch { /* WA notification is best-effort */ }
       } catch (e: unknown) {
         showLoader(false);
@@ -959,7 +959,7 @@
       const bulanTahun = (document.getElementById('hist-pos-bulan') as HTMLInputElement)?.value || getLocalDateString().substring(0, 7);
       showLoader(true, "Memuat History Posisi Kas...");
       try {
-        const res = await callApiGet<Array<Record<string,unknown>>>('/api/posisi-kas', {
+        const res = await callApiGet<Array<Record<string,unknown>>>('/posisi-kas', {
           action: 'history',
           userEstim: currentUser.userEstim,
           bulanTahun
@@ -1111,7 +1111,7 @@
 
       showLoader(true, "Menyimpan transaksi...");
       try {
-        await callApiPost('/api/bon-setor', batch);
+        await callApiPost('/bon-setor', batch);
         showLoader(false);
         showToast(false);
         resetTrxKas();
@@ -1138,7 +1138,7 @@
       (document.getElementById('trx-tgl-kemarin') as HTMLInputElement).value = tglKemarin;
       showLoader(true, "Menarik data kemarin...");
       try {
-        const res = await callApiGet<Array<Record<string,unknown>>>('/api/bon-setor', {
+        const res = await callApiGet<Array<Record<string,unknown>>>('/bon-setor', {
           action: 'setor-sore-kemarin',
           userEstim: currentUser.userEstim,
           tanggal: tglKemarin
@@ -1182,7 +1182,7 @@
       if (!tgl) return;
       showLoader(true, "Memuat Data...");
       try {
-        const res = await callApiGet<{p100k_setor: number; p100k_bon: number; p50k_setor: number; p50k_bon: number}>('/api/perkiraan', {
+        const res = await callApiGet<{p100k_setor: number; p100k_bon: number; p50k_setor: number; p50k_bon: number}>('/perkiraan', {
           action: 'teller',
           userEstim: currentUser.userEstim,
           tanggal: tgl
@@ -1231,7 +1231,7 @@
       };
       showLoader(true, "Menyimpan data...");
       try {
-        await callApiPost('/api/perkiraan', obj);
+        await callApiPost('/perkiraan', obj);
         showLoader(false);
         showToast(false);
       } catch (e: unknown) {
@@ -1244,7 +1244,7 @@
     async function loadFonnteSettings() {
       showLoader(true);
       try {
-        const res = await callApiGet<Record<string, string> | null>('/api/setting-fonnte');
+        const res = await callApiGet<Record<string, string> | null>('/setting-fonnte');
         showLoader(false);
         if (res) {
           (document.getElementById('fn-token') as HTMLInputElement).value = res.token || '';
@@ -1277,7 +1277,7 @@
       };
       showLoader(true, "Menyimpan pengaturan...");
       try {
-        await callApiPost('/api/setting-fonnte', obj);
+        await callApiPost('/setting-fonnte', obj);
         showLoader(false);
         showToast(false);
       } catch (e: unknown) {
