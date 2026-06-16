@@ -3397,23 +3397,23 @@ function formatRpTab(angka) {
   </script>
 <script>
   function terapkanCSSMobile() {
-    // 1. Amankan area Login: Jangan jalankan jika belum login
+    // 1. Amankan area Login
     if (typeof currentUser === 'undefined' || !currentUser) return; 
 
-    // 2. Hanya jalankan di layar HP & pastikan CSS belum terpasang
+    // 2. Hanya jalankan di layar HP & pastikan CSS belum terpasang ganda
     if (window.innerWidth <= 768 && !document.getElementById('css-antibocor')) {
       
       let style = document.createElement('style');
       style.id = 'css-antibocor';
       style.innerHTML = `
-        /* 1. KUNCI BOCORAN LAYAR: Potong paksa semua yang meluber ke kanan */
+        /* 1. KUNCI BOCORAN LAYAR KANAN-KIRI */
         html, body, .main-wrapper, .modal-content, .container, .page {
           max-width: 100vw !important;
           overflow-x: hidden !important; 
           box-sizing: border-box !important;
         }
 
-        /* 2. NETRALISIR MARGIN NEGATIF: Hilangkan efek dorong dari .row */
+        /* 2. NETRALISIR MARGIN BAWAAN FRAMEWORK */
         .row, .form-row {
           margin-left: 0 !important;
           margin-right: 0 !important;
@@ -3422,7 +3422,7 @@ function formatRpTab(angka) {
           box-sizing: border-box !important;
         }
 
-        /* 3. PAKSA ATAS-BAWAH: Hancurkan struktur menyamping pada form */
+        /* 3. PAKSA ATAS-BAWAH PADA WADAH INPUT */
         .main-wrapper .form-group, 
         .main-wrapper .input-group,
         .main-wrapper div[style*="display: flex"]:has(input) {
@@ -3434,10 +3434,16 @@ function formatRpTab(angka) {
           margin-bottom: 12px !important;
           padding: 0 !important;
           box-sizing: border-box !important;
+          /* Kunci agar anak-anaknya tidak berantakan lapisan z-indexnya */
+          position: relative !important; 
         }
 
-        /* 4. JIKA PAKAI TABEL: Pecah tabel menjadi blok biasa */
-        .main-wrapper table:has(input),
+        /* 4. JIKA MENGGUNAKAN TABEL */
+        .main-wrapper table:has(input) {
+          display: block !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+        }
         .main-wrapper table:has(input) tbody,
         .main-wrapper table:has(input) tr,
         .main-wrapper table:has(input) td {
@@ -3449,13 +3455,11 @@ function formatRpTab(angka) {
           padding: 0 !important;
           border: none !important;
         }
-
-        /* Memberi jarak antar input jika menggunakan tabel */
         .main-wrapper table:has(input) tr {
-          margin-bottom: 10px !important;
+          margin-bottom: 12px !important;
         }
 
-        /* 5. UKURAN KOTAK INPUT PAS LAYAR: Tidak meluber, tidak terlalu panjang */
+        /* 5. FIX KOTAK INPUT (MEMBUATNYA BISA DIKLIK KEMBALI) */
         .main-wrapper input[type="text"], 
         .main-wrapper input[type="number"] {
           width: 100% !important;
@@ -3463,19 +3467,23 @@ function formatRpTab(angka) {
           min-width: 0 !important;
           box-sizing: border-box !important;
           margin: 0 !important;
-          padding: 10px !important; /* Ruang lega untuk mengetik */
-          height: auto !important;
+          padding: 10px !important; 
+          height: 45px !important; /* Lebih besar agar enak disentuh */
+          
+          /* KUNCI PERBAIKAN: Selalu di depan & wajib bisa disentuh */
+          position: relative !important;
+          z-index: 99 !important;
+          pointer-events: auto !important;
         }
 
-        /* 6. LABEL KETERANGAN: Boleh turun baris jika kepanjangan */
+        /* 6. LABEL KETERANGAN (TANPA SPAN, AGAR TIDAK MENUTUPI) */
         .main-wrapper label, 
-        .main-wrapper td > strong, 
-        .main-wrapper span {
+        .main-wrapper td > strong {
           display: block !important;
           width: 100% !important;
           white-space: normal !important;
           word-wrap: break-word !important;
-          margin-bottom: 4px !important;
+          margin-bottom: 6px !important;
           box-sizing: border-box !important;
         }
       `;
@@ -3483,8 +3491,6 @@ function formatRpTab(angka) {
     }
   }
 
-  // Cek setiap detik secara diam-diam (tidak memberatkan kinerja) 
-  // karena menu Bon/Setor biasanya dimuat dinamis setelah menu ditekan.
   setInterval(terapkanCSSMobile, 1000);
 </script>
 </body>
