@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+  <script src="config.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -892,80 +893,101 @@
     // POLYFILL: google.script.run → Supabase API
     // =============================================
     const _API = "https://jwsfsczgyqphoyflpjnm.supabase.co/functions/v1";
+    // Format: [method, endpoint, ...paramNames]
     const _GAS_MAP = {
       doLogin:                    ['POST','/auth'],
       getAllUsers:                ['GET','/users'],
       saveUserData:               ['POST','/users'],
-      deleteUserData:             ['DELETE','/users'],
+      deleteUserData:             ['DELETE','/users','id'],
       getListHariLibur:           ['GET','/hari-libur'],
       saveHariLibur:              ['POST','/hari-libur'],
-      deleteHariLibur:            ['DELETE','/hari-libur'],
+      deleteHariLibur:            ['DELETE','/hari-libur','tanggal'],
       getServerNextWorkingDay:    ['GET','/next-working-day'],
-      getNextWorkingDayFrom:      ['GET','/next-working-day'],
-      getPreviousWorkingDayBackend:['GET','/next-working-day'],
+      getNextWorkingDayFrom:      ['GET','/next-working-day','?action=from','fromDate'],
+      getPreviousWorkingDayBackend:['GET','/next-working-day','?action=prev','fromDate'],
       getSettingFonnte:           ['GET','/setting-fonnte'],
       saveSettingFonnte:          ['POST','/setting-fonnte'],
-      getPerkiraanTeller:         ['GET','/perkiraan'],
+      getPerkiraanTeller:         ['GET','/perkiraan','?action=teller','tanggal','userEstim'],
       savePerkiraanTeller:        ['POST','/perkiraan'],
-      getRekapPerkiraanHT:        ['GET','/perkiraan'],
-      getDataPegawai:             ['GET','/pegawai'],
+      getRekapPerkiraanHT:        ['GET','/perkiraan','?action=rekap','tanggal','kodeWilayah','tglHariIni'],
+      getDataPegawai:             ['GET','/pegawai','userEstim'],
       saveDataPegawai:            ['POST','/pegawai'],
-      getDataPejabatHT:           ['GET','/pejabat-ht'],
+      getDataPejabatHT:           ['GET','/pejabat-ht','kodeWilayah'],
       saveDataPejabatHT:          ['POST','/pejabat-ht'],
-      getHistoryBonSetor:         ['GET','/bon-setor'],
-      deleteTransaksiFisik:       ['DELETE','/bon-setor'],
-      getRekapTrxFisikTeller:     ['GET','/bon-setor'],
-      getSetorSoreKemarin:        ['GET','/bon-setor'],
-      getSuggestedSetorSore:      ['GET','/bon-setor'],
+      getHistoryBonSetor:         ['GET','/bon-setor','?action=history','userEstim','tanggal'],
+      deleteTransaksiFisik:       ['DELETE','/bon-setor','id'],
+      getRekapTrxFisikTeller:     ['GET','/bon-setor','?action=rekap-fisik','tanggal','userEstim'],
+      getSetorSoreKemarin:        ['GET','/bon-setor','?action=setor-sore-kemarin','tanggal','userEstim'],
+      getSuggestedSetorSore:      ['GET','/bon-setor','?action=suggested-setor','tanggal','userEstim'],
       saveBonSetorBatch:          ['POST','/bon-setor'],
-      getDashboardData:           ['GET','/bon-setor'],
+      getDashboardData:           ['GET','/bon-setor','?action=dashboard','userEstim','tanggal'],
       savePosisiKas:              ['POST','/posisi-kas'],
-      getHistoryPosisiKas:        ['GET','/posisi-kas'],
-      getViewPosisiTeller:        ['GET','/posisi-kas'],
-      getRekapPosisiHarianGlobal: ['GET','/posisi-kas'],
-      getSaldoAwalHT:             ['GET','/saldo-awal-ht'],
+      getHistoryPosisiKas:        ['GET','/posisi-kas','?action=history','userEstim','bulanTahun'],
+      getViewPosisiTeller:        ['GET','/posisi-kas','?action=view-posisi','tanggal','kodeWilayah'],
+      getRekapPosisiHarianGlobal: ['GET','/posisi-kas','?action=rekap-harian-global','tanggal','kodeWilayah'],
+      getSaldoAwalHT:             ['GET','/saldo-awal-ht','tanggal','userEstim','kodeWilayah'],
       saveSaldoAwalHTBatch:       ['POST','/saldo-awal-ht'],
-      getLapSaldoKasHariIni:      ['GET','/laporan-ht'],
-      getLapMutasiKhasanah:       ['GET','/laporan-ht'],
-      getRekapHeadTeller:         ['GET','/laporan-ht'],
-      getHistoryTransaksiHT:      ['GET','/laporan-ht'],
-      getLapCluis:                ['GET','/cluis'],
+      getLapSaldoKasHariIni:      ['GET','/laporan-ht','?action=saldo-kas','tanggal','kodeWilayah'],
+      getLapMutasiKhasanah:       ['GET','/laporan-ht','?action=mutasi','tanggal','kodeWilayah','tipeLap'],
+      getRekapHeadTeller:         ['GET','/laporan-ht','?action=history-ht','tanggal','kodeWilayah'],
+      getHistoryTransaksiHT:      ['GET','/laporan-ht','?action=history-ht','tanggal','kodeWilayah'],
+      getLapCluis:                ['GET','/cluis','tanggal','kodeWilayah'],
       tutupBukuHT:                ['POST','/tutup-buku'],
-      getPesananNasabah:          ['GET','/pesanan-nasabah'],
+      getPesananNasabah:          ['GET','/pesanan-nasabah','tanggal','userEstim'],
       savePesananNasabah:         ['POST','/pesanan-nasabah'],
-      deletePesananNasabah:       ['DELETE','/pesanan-nasabah'],
+      deletePesananNasabah:       ['DELETE','/pesanan-nasabah','id'],
       recalcPerkiraanDariPesanan: ['POST','/perkiraan'],
-      getRekapGlobalMutasiTeller: ['GET','/bon-setor'],
+      getRekapGlobalMutasiTeller: ['GET','/bon-setor','?action=rekap-global','tanggal','kodeWilayah','tipeFilter'],
       testKirimFonnte:            ['POST','/notif-fonnte'],
       testKirimPerkiraanH1:       ['POST','/notif-fonnte'],
       sendNotifPosisiKasWA:       ['POST','/notif-fonnte'],
-      getTabularisData:           ['GET','/tabularis'],
+      getTabularisData:           ['GET','/tabularis','periode'],
       sendLaporanHTFonnte:        ['POST','/notif-fonnte'],
       sendSummaryPerkiraanKF:     ['POST','/notif-fonnte'],
       sendAnalisaTukabWA:         ['POST','/notif-fonnte'],
       sendSummaryPerkiraanH1WA:   ['POST','/notif-fonnte'],
-      fetchDataHT:                ['GET','/laporan-ht'],
+      fetchDataHT:                ['GET','/laporan-ht','?action=history-ht','tanggal','kodeWilayah'],
     };
 
     (function(){
       var _successCb = null, _failureCb = null;
-      function _callApi(method, endpoint, args) {
+      function _callApi(method, endpoint, paramNames, args) {
         var url = _API + endpoint;
         var headers = { 'Content-Type':'application/json' };
         var token = localStorage.getItem('kasmonitor_token') || '';
         if (token) headers['Authorization'] = 'Bearer ' + token;
 
         var options = { method: method, headers: headers };
+        var sp = new URLSearchParams();
+
+        // Add fixed params (those starting with ? in paramNames)
+        if (paramNames) {
+          for (var i = 0; i < paramNames.length; i++) {
+            if (paramNames[i].indexOf('?') === 0) {
+              var kv = paramNames[i].substring(1).split('=');
+              sp.append(kv[0], kv[1]);
+            }
+          }
+        }
+
         if (method === 'DELETE' && args && args.length > 0) {
           url += '/' + encodeURIComponent(args[0]);
         } else if (method === 'POST' && args && args.length > 0) {
           options.body = JSON.stringify(args[0]);
         } else if (method === 'GET' && args && args.length > 0) {
-          var sp = new URLSearchParams();
-          // Pass args as action params with generic names
-          args.forEach(function(a,i){ sp.append('arg' + i, a); });
-          url += '?' + sp.toString();
+          // Map positional args to named params (skip fixed params)
+          var argIdx = 0;
+          for (var j = 0; paramNames && j < paramNames.length; j++) {
+            if (paramNames[j].indexOf('?') === 0) continue; // skip fixed
+            if (argIdx < args.length && args[argIdx] !== undefined && args[argIdx] !== null) {
+              sp.append(paramNames[j], args[argIdx]);
+            }
+            argIdx++;
+          }
         }
+
+        var qs = sp.toString();
+        if (qs) url += '?' + qs;
 
         return fetch(url, options).then(function(r){
           return r.json().then(function(j){
@@ -980,10 +1002,14 @@
           return function() {
             var args = Array.prototype.slice.call(arguments);
             var entry = _GAS_MAP[name];
-            if (!entry) { console.warn('GAS function not mapped:', name); return { withSuccessHandler:function(cb){ _successCb=cb; return {withFailureHandler:function(fcb){ _failureCb=fcb; }}; } }; }
-            var promise = _callApi(entry[0], entry[1], args);
+            if (!entry) { console.warn('GAS function not mapped:', name);
+              var dummy = { withSuccessHandler:function(cb){ _successCb=cb; return dummy; }, withFailureHandler:function(cb){ _failureCb=cb; return dummy; } };
+              return dummy;
+            }
+            var method = entry[0], endpoint = entry[1];
+            var paramNames = entry.slice(2);
+            var promise = _callApi(method, endpoint, paramNames, args);
             var obj = { withSuccessHandler: function(cb) { _successCb = cb; return obj; }, withFailureHandler: function(cb) { _failureCb = cb; return obj; } };
-            // Delay execution to allow withSuccessHandler/withFailureHandler to be called first
             setTimeout(function(){
               promise.then(function(data){ if(_successCb) _successCb(data); })
                      .catch(function(err){ if(_failureCb) _failureCb(err); else console.error('API Error:', err); });
