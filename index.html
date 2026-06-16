@@ -895,7 +895,7 @@
     const _API = "https://jwsfsczgyqphoyflpjnm.supabase.co/functions/v1";
     // Format: [method, endpoint, ...paramNames]
     const _GAS_MAP = {
-      doLogin:                    ['POST','/auth'],
+      doLogin:                    ['POST','/auth','username','password'],
       getAllUsers:                ['GET','/users'],
       saveUserData:               ['POST','/users'],
       deleteUserData:             ['DELETE','/users','id'],
@@ -971,7 +971,23 @@
         if (method === 'DELETE' && args && args.length > 0) {
           url += '/' + encodeURIComponent(args[0]);
         } else if (method === 'POST' && args && args.length > 0) {
-          options.body = JSON.stringify(args[0]);
+          // If multiple named args, build object; otherwise send first arg directly
+          var hasNamedParams = false;
+          for (var pi = 0; paramNames && pi < paramNames.length; pi++) {
+            if (paramNames[pi].indexOf('?') !== 0) { hasNamedParams = true; break; }
+          }
+          if (hasNamedParams && args.length >= 1) {
+            var body = {};
+            var ai = 0;
+            for (var pj = 0; paramNames && pj < paramNames.length; pj++) {
+              if (paramNames[pj].indexOf('?') === 0) continue;
+              if (ai < args.length) body[paramNames[pj]] = args[ai];
+              ai++;
+            }
+            options.body = JSON.stringify(body);
+          } else {
+            options.body = JSON.stringify(args[0]);
+          }
         } else if (method === 'GET' && args && args.length > 0) {
           var argIdx = 0;
           for (var j = 0; paramNames && j < paramNames.length; j++) {
