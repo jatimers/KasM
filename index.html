@@ -553,9 +553,10 @@
     </div>
     <div class="form-group">
       <button class="btn-primary" onclick="loadTabularis()" style="padding: 8px 16px; background: var(--primary-red); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Muat Data</button>
-    </div>
-    <div class="form-group">
-      <button onclick="exportTabularisExcel()" style="padding: 8px 16px; background: #16a34a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Excel</button>      <button onclick="exportTabularisPDF()" style="padding: 8px 16px; background: #1e293b; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-left: 5px;">PDF</button>
+	    </div>
+	    <div class="form-group">
+	      <button onclick="exportTabularisExcel()" style="padding: 8px 16px; background: #16a34a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Excel</button>
+	      <button onclick="exportTabularisPDF()" style="padding: 8px 16px; background: #1e293b; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-left: 5px;">PDF</button>
     </div>
   </div>
 
@@ -818,13 +819,7 @@
         <div class="form-row" style="align-items: flex-end;">
           <div class="form-group"><label>Tanggal Laporan</label><input type="date" id="lph-tgl" onchange="loadLapPosisiHarian()" style="background:var(--input-yellow);"></div>
           <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadLapPosisiHarian()">🔄 Muat Data</button></div>
-    <div class="form-group">
-      <button onclick="exportTabularisExcel()" style="padding: 8px 16px; background: #16a34a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Excel</button>      <button onclick="exportTabularisPDF()" style="padding: 8px 16px; background: #1e293b; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-left: 5px;">PDF</button>
-    </div>
           <div class="form-group"><button class="btn-reset" style="margin-bottom:0; width:100%; background-color:#1e293b; padding:14px;" onclick="cetakPosisiHarianKas()">🖨️ Cetak PDF / Print</button></div>
-    <div class="form-group">
-      <button onclick="exportTabularisExcel()" style="padding: 8px 16px; background: #16a34a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Excel</button>      <button onclick="exportTabularisPDF()" style="padding: 8px 16px; background: #1e293b; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-left: 5px;">PDF</button>
-    </div>
         </div>
         
         <div class="summary-box" style="background:#fefce8; border-left-color:#eab308; padding:15px; margin-bottom:20px;">
@@ -857,13 +852,7 @@
         <div class="form-row" style="align-items: flex-end;">
           <div class="form-group"><label>Tanggal Laporan</label><input type="date" id="cluis-tgl" onchange="loadLapCluis()" style="background:var(--input-yellow);"></div>
           <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadLapCluis()">🔄 Muat Data</button></div>
-    <div class="form-group">
-      <button onclick="exportTabularisExcel()" style="padding: 8px 16px; background: #16a34a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Excel</button>      <button onclick="exportTabularisPDF()" style="padding: 8px 16px; background: #1e293b; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-left: 5px;">PDF</button>
-    </div>
           <div class="form-group"><button class="btn-reset" style="margin-bottom:0; width:100%; background-color:#1e293b; padding:14px;" onclick="cetakLapCluis()">🖨️ Cetak PDF / Print</button></div>
-    <div class="form-group">
-      <button onclick="exportTabularisExcel()" style="padding: 8px 16px; background: #16a34a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Excel</button>      <button onclick="exportTabularisPDF()" style="padding: 8px 16px; background: #1e293b; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-left: 5px;">PDF</button>
-    </div>
         </div>
         <div class="table-responsive">
           <table style="min-width:750px;">
@@ -3449,9 +3438,7 @@ function renderBodyTabularis(data) {
 
       // Penggabungan Baris Tanggal Efektif (Hanya dicetak di baris paling atas/SALDO AWAL)
       if (idx === 0) {
-        var parts = row.tanggal.split('-');
-        var tglFmt = parts[2] + '-' + parts[1] + '-' + parts[0].substring(2);
-        bodyHTML += `<td rowspan="5" style="position: sticky; left: 0; background: #ffffff; z-index: 10; text-align: center; font-weight: bold; border: 1px solid var(--border-color); vertical-align: middle;">${tglFmt}</td>`;
+        var parts = row.tanggal.split("-"); var tglFmt = parts[2] + "-" + parts[1] + "-" + parts[0].substring(2); bodyHTML += `<td rowspan="5" style="position: sticky; left: 0; background: #ffffff; z-index: 10; text-align: center; font-weight: bold; border: 1px solid var(--border-color); vertical-align: middle;">${tglFmt}</td>`;
       }
 
       // Kolom Keterangan dengan posisi mengambang (sticky left) saat horizontal-scroll dilakukan
@@ -3507,38 +3494,37 @@ function formatRpTab(angka) {
   let val = Number(angka);
   if (!val || val === 0) return '-';
   return val.toLocaleString('id-ID');
-
-// Export Laporan Tabularis ke Excel
+}
+  
 function exportTabularisExcel() {
-  var table = document.getElementById('table-tabularis-data');
+  var table = document.getElementById("table-tabularis-data");
   if (!table) return;
-  var periode = document.getElementById('filter-bulan-tabularis').value || 'data';
+  var periode = document.getElementById("filter-bulan-tabularis").value || "data";
   var html = table.outerHTML;
-  var blob = new Blob(['﻿' + html], {type: 'application/vnd.ms-excel'});
-  var a = document.createElement('a');
+  var blob = new Blob(["﻿" + html], {type: "application/vnd.ms-excel"});
+  var a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = 'Laporan_Tabularis_' + periode + '.xls';
+  a.download = "Laporan_Tabularis_" + periode + ".xls";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
 }
 
-// Export Laporan Tabularis ke PDF (print)
 function exportTabularisPDF() {
-  var table = document.getElementById('table-tabularis-data');
+  var table = document.getElementById("table-tabularis-data");
   if (!table) return;
-  var periode = document.getElementById('filter-bulan-tabularis').value || '';
-  var w = window.open('','','width=1300,height=800');
-  w.document.write('<html><head><title>Laporan Tabularis ' + periode + '</title>');
-  w.document.write('<style>@page{size:A3 landscape;margin:6mm}body{font-family:Arial;font-size:7pt}table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:2px 4px;text-align:right}th{background:#f0f0f0!important;font-weight:bold}h3{text-align:center;margin:0 0 5px;font-size:11pt}</style>');
-  w.document.write('</head><body><h3>LAPORAN TABULARIS - Periode: ' + periode + '</h3>');
+  var periode = document.getElementById("filter-bulan-tabularis").value || "";
+  var w = window.open("", "", "width=1300,height=800");
+  w.document.write("<html><head><title>Laporan Tabularis " + periode + "</title>");
+  w.document.write("<style>@page{size:A3 landscape;margin:6mm}body{font-family:Arial;font-size:7pt}table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:2px 4px;text-align:right}th{background:#f0f0f0!important;font-weight:bold}h3{text-align:center;margin:0 0 5px;font-size:11pt}</style>");
+  w.document.write("</head><body><h3>LAPORAN TABULARIS - Periode: " + periode + "</h3>");
   w.document.write(table.outerHTML);
-  w.document.write('</body></html>');
+  w.document.write("</body></html>");
   w.document.close();
   w.focus();
   setTimeout(function(){ w.print(); }, 500);
 }
-  </script>
+</script>
 
 <script>
   function terapkanCSSMobile() {
