@@ -90,28 +90,36 @@ Deno.serve(async (req: Request) => {
 
       // getRekapPosisiHarianGlobal
       if (action === "rekap-harian-global") {
+        // Helper: paginated fetch
+        async function fetchAll(queryBuilder: any): Promise<any[]> {
+          let all: any[] = [], start = 0, size = 900;
+          while (true) {
+            const { data, error } = await queryBuilder.range(start, start + size - 1);
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+            all = all.concat(data);
+            if (data.length < size) break;
+            start += size;
+          }
+          return all;
+        }
+
         // Find previous working day with data
         let prevDate = "";
-        const { data: allPos } = await supabase
-          .from("posisi_kas")
-          .select("tanggal, kode_wilayah")
-          .lt("tanggal", tgl)
-          .order("tanggal", { ascending: false });
-
-        for (const row of (allPos || [])) {
+        const allPos = await fetchAll(
+          supabase.from("posisi_kas").select("tanggal, kode_wilayah").lt("tanggal", tgl).order("tanggal", { ascending: false })
+        );
+        for (const row of allPos) {
           if (kodeWilayah === "ALL" || cleanStr(row.kode_wilayah) === kodeWilayah) {
             if (row.tanggal > prevDate) prevDate = row.tanggal;
           }
         }
 
         // Also check saldo_awal_ht for dates
-        const { data: htData } = await supabase
-          .from("saldo_awal_ht")
-          .select("tanggal, kode_wilayah")
-          .lt("tanggal", tgl)
-          .order("tanggal", { ascending: false });
-
-        for (const row of (htData || [])) {
+        const htData = await fetchAll(
+          supabase.from("saldo_awal_ht").select("tanggal, kode_wilayah").lt("tanggal", tgl).order("tanggal", { ascending: false })
+        );
+        for (const row of htData) {
           if (kodeWilayah === "ALL" || cleanStr(row.kode_wilayah) === kodeWilayah) {
             if (row.tanggal > prevDate) prevDate = row.tanggal;
           }
@@ -123,27 +131,35 @@ Deno.serve(async (req: Request) => {
           saldoFisik: 0, selisih: 0, userTerdata: 0,
         };
 
-        // Get saldoKemarin from grandTotal of previous working day
+        // Get saldoKemarin from previous working day: query laporan-ht for grandTotal
         if (prevDate) {
-          // Simplified: query saldo_hari_ini sum from previous date
-          const { data: prevPos } = await supabase
-            .from("posisi_kas")
-            .select("saldo_hari_ini")
-            .eq("tanggal", prevDate);
-
-          let prevSaldo = 0;
-          for (const row of (prevPos || [])) {
-            prevSaldo += parseFloat(String(row.saldo_hari_ini)) || 0;
+          try {
+            const laporRes = await fetch(
+              `${Deno.env.get("SB_URL")}/functions/v1/laporan-ht?action=saldo-kas&tanggal=${prevDate}&kodeWilayah=${kodeWilayah}`,
+              { headers: { Authorization: `Bearer ${Deno.env.get("SB_SERVICE_ROLE_KEY")}` } }
+            );
+            const laporJson = await laporRes.json();
+            if (laporJson?.success) {
+              rekap.saldoKemarin = laporJson.data?.grandTotal || 0;
+            }
+          } catch (_) { /* fallback: use simplified calculation below */ }
+          // Fallback: sum saldo_hari_ini from posisi_kas
+          if (rekap.saldoKemarin === 0) {
+            let prevQuery = supabase.from("posisi_kas").select("saldo_hari_ini").eq("tanggal", prevDate);
+            if (kodeWilayah !== "ALL") prevQuery = prevQuery.eq("kode_wilayah", kodeWilayah);
+            const prevPos = await fetchAll(prevQuery);
+            for (const row of prevPos) {
+              rekap.saldoKemarin += parseFloat(String(row.saldo_hari_ini)) || 0;
+            }
           }
-          rekap.saldoKemarin = prevSaldo;
         }
 
-        // Current day mutations
+        // Current day mutations (paginated)
         let query = supabase.from("posisi_kas").select("*").eq("tanggal", tgl);
         if (kodeWilayah !== "ALL") query = query.eq("kode_wilayah", kodeWilayah);
 
-        const { data: currPos } = await query;
-        for (const row of (currPos || [])) {
+        const currPos = await fetchAll(query);
+        for (const row of currPos) {
           rekap.penerimaanDebet += parseFloat(String(row.penerimaan_debet)) || 0;
           rekap.penerimaanAntar += parseFloat(String(row.penerimaan_antar_teller)) || 0;
           rekap.pembayaranKredit += parseFloat(String(row.pembayaran_kredit)) || 0;
@@ -152,7 +168,27 @@ Deno.serve(async (req: Request) => {
         }
 
         rekap.saldoHariIni = rekap.saldoKemarin + rekap.penerimaanDebet + rekap.penerimaanAntar - rekap.pembayaranKredit - rekap.pembayaranAntar;
-        rekap.saldoFisik = 0; // Will be populated by LaporanHT grand total later
+
+        // Compute saldoFisik = call laporan-ht to get grandTotal (vault + teller cashboxes)
+        try {
+          const laporRes = await fetch(
+            `${Deno.env.get("SB_URL")}/functions/v1/laporan-ht?action=saldo-kas&tanggal=${tgl}&kodeWilayah=${kodeWilayah}`,
+            { headers: { Authorization: `Bearer ${Deno.env.get("SB_SERVICE_ROLE_KEY")}` } }
+          );
+          const laporJson = await laporRes.json();
+          if (laporJson?.success) {
+            rekap.saldoFisik = laporJson.data?.grandTotal || 0;
+          }
+        } catch (_) {
+          // Fallback: sum SETOR SORE only
+          let fisikQuery = supabase.from("bon_setor").select("nominal").eq("tanggal", tgl).eq("tipe", "SETOR SORE");
+          if (kodeWilayah !== "ALL") fisikQuery = fisikQuery.eq("kode_wilayah", kodeWilayah);
+          const setorSoreData = await fetchAll(fisikQuery);
+          for (const row of setorSoreData) {
+            rekap.saldoFisik += parseFloat(String(row.nominal)) || 0;
+          }
+        }
+
         rekap.selisih = rekap.saldoFisik - rekap.saldoHariIni;
 
         return successResponse(rekap);
