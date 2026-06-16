@@ -1419,7 +1419,7 @@ function loadLapPosisiHarian() {
             <thead>
               <tr>
                 <th style="text-align:left; width:60%;">URAIAN POSISI KAS</th>
-                <th style="text-align:right; width:40%;">JUMLAH NOMINAL (RP)</th>
+                <th style="text-align:right; width:40%;">NOMINAL (RP)</th>
               </tr>
             </thead>
             <tbody>
@@ -2243,7 +2243,7 @@ function loadPerkiraanHT() {
            if (hasil100 > 0) msgPecahan += `<br>- Kekurangan pecahan 100.000 sebesar Rp ${hasil100.toLocaleString('id-ID')}`;
            if (hasil50 > 0) msgPecahan += `<br>- Kekurangan pecahan 50.000 sebesar Rp ${hasil50.toLocaleString('id-ID')}`;
            
-           statusEl.innerHTML = `<div style="color:#b45309; padding:12px; border-radius:8px; background:#fef3c7; border:1px solid #fde68a;">⚠️ <b>PERHATIAN:</b> Dari jumlah nominal keseluruhan kebutuhan kas tercukupi, namun jika dipilah berdasarkan pecahan terdapat kekurangan: ${msgPecahan}</div>`;
+           statusEl.innerHTML = `<div style="color:#b45309; padding:12px; border-radius:8px; background:#fef3c7; border:1px solid #fde68a;">⚠️ <b>PERHATIAN:</b> Dari NOMINAL keseluruhan kebutuhan kas tercukupi, namun jika dipilah berdasarkan pecahan terdapat kekurangan: ${msgPecahan}</div>`;
         } else {
            statusEl.innerHTML = `<div style="color:#dc2626; padding:12px; border-radius:8px; background:#fef2f2; border:1px solid #fecaca;">🚨 <b>PERLU TUKAB:</b> Saldo Khasanah tidak mencukupi, butuh tambahan fisik keseluruhan sejumlah Rp ${grandTukab.toLocaleString('id-ID')}</div>`;
         }
@@ -2478,7 +2478,7 @@ function loadPerkiraanHT() {
         if (kategori === 'ULE Campuran' && role !== 'kf' && role !== 'teller') continue;
         if (kategori === 'UTLE Campuran' && role !== 'kf') continue;
         let catId = kategori.replace(/ /g,'');
-        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:25px; margin-bottom:10px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;"><h4 style="margin:0; color:var(--text-main); font-weight:700;">${kategori}</h4><span style="font-weight:700; color:var(--primary-red); background:var(--light-red); padding:4px 12px; border-radius:6px; font-size:0.95rem;" id="subtotal_trx_${catId}">Rp 0</span></div><div class="table-responsive"><table><tr><th style="text-align:right;">Pecahan/Keterangan</th><th style="display:none;">Lembar</th><th style="text-align:right;">Jumlah Nominal</th></tr>`;
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:25px; margin-bottom:10px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;"><h4 style="margin:0; color:var(--text-main); font-weight:700;">${kategori}</h4><span style="font-weight:700; color:var(--primary-red); background:var(--light-red); padding:4px 12px; border-radius:6px; font-size:0.95rem;" id="subtotal_trx_${catId}">Rp 0</span></div><div class="table-responsive"><table><tr><th style="text-align:right;">PECAHAN</th><th style="display:none;">Lembar</th><th style="text-align:right;">NOMINAL</th></tr>`;
         pecahanArr.forEach(p => { 
           let safePecahan = String(p).replace(/ /g,''); let id = `trx_${catId}_${safePecahan}`; let labelPecahan = isNaN(p) ? p : formatRpAlign(p);
           html += `<tr><td style="font-weight:600; max-width:45%; word-break:break-word;">${labelPecahan}</td><td style="display:none;"><input type="hidden" id="lembar_${id}" value="0"></td><td style="max-width:100%;"><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#475569; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="jumlah_${id}" data-val="0" oninput="formatRupiahNominal(this, '${kategori}', '${p}', 'trx')" placeholder="0" style="flex:1; min-width:0; max-width:100%; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:12px 0; font-size:1rem; font-family:inherit; box-sizing:border-box;"></div></td></tr>`;
@@ -2570,7 +2570,7 @@ function loadPerkiraanHT() {
         if (kategori === 'ULE Campuran' || kategori === 'UTLE Campuran' || kategori === 'Lainnya') continue;
         
         let catId = kategori.replace(/ /g,'');
-        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:25px; margin-bottom:10px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;"><h4 style="margin:0; color:var(--primary-red); font-weight:700;">${kategori}</h4><span style="font-weight:700; color:var(--primary-red); background:var(--light-red); padding:4px 12px; border-radius:6px; font-size:0.95rem;" id="subtotal_ht_${catId}">Rp 0</span></div><div class="table-responsive"><table><tr><th style="text-align:right;">Pecahan/Keterangan</th><th style="display:none;">Lembar</th><th style="text-align:right;">Nominal Fisik</th></tr>`;
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:25px; margin-bottom:10px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;"><h4 style="margin:0; color:var(--primary-red); font-weight:700;">${kategori}</h4><span style="font-weight:700; color:var(--primary-red); background:var(--light-red); padding:4px 12px; border-radius:6px; font-size:0.95rem;" id="subtotal_ht_${catId}">Rp 0</span></div><div class="table-responsive"><table><tr><th style="text-align:right;">PECAHAN</th><th style="display:none;">Lembar</th><th style="text-align:right;">Nominal Fisik</th></tr>`;
         pecahanArr.forEach(p => { 
           let safePecahan = String(p).replace(/ /g,''); let id = `ht_${catId}_${safePecahan}`; let labelPecahan = isNaN(p) ? p : formatRpAlign(p);
           html += `<tr><td style="font-weight:600; max-width:45%; word-break:break-word;">${labelPecahan}</td><td style="display:none;"><input type="hidden" id="ht-lembar_${id}" value="0"></td><td style="max-width:100%;"><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#475569; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="ht-jumlah_${id}" data-val="0" oninput="formatRupiahNominal(this, '${kategori}', '${p}', 'ht')" placeholder="0" style="flex:1; min-width:0; max-width:100%; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:12px 0; font-size:1rem; font-family:inherit; box-sizing:border-box;"></div></td></tr>`;
