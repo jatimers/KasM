@@ -37,13 +37,19 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Get snapshot data
-    const { data: snapshots } = await supabase
-      .from("saldo_awal_ht")
-      .select("*")
-      .lte("tanggal", tgl);
+    // Get snapshot data (paginated)
+    let snapshots: any[] = [];
+    let spStart = 0, spSize = 900;
+    while (true) {
+      const { data: page } = await supabase.from("saldo_awal_ht").select("*")
+        .lte("tanggal", tgl).range(spStart, spStart + spSize - 1);
+      if (!page || page.length === 0) break;
+      snapshots = snapshots.concat(page);
+      if (page.length < spSize) break;
+      spStart += spSize;
+    }
 
-    const filteredSnapshots = (snapshots || []).filter(
+    const filteredSnapshots = snapshots.filter(
       (s) => kodeWilayah === "ALL" || cleanStr(s.kode_wilayah as string) === kodeWilayah
     );
     filteredSnapshots.sort((a, b) => String(b.tanggal).localeCompare(String(a.tanggal)));
@@ -61,9 +67,17 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Get bon_setor mutations
-    const { data: bonData } = await supabase.from("bon_setor").select("*")
-    .limit(100000);
+    // Get bon_setor mutations (paginated to bypass 1000-row limit)
+    let bonData: any[] = [];
+    let bsStart = 0, bsSize = 900;
+    while (true) {
+      const { data: page } = await supabase.from("bon_setor").select("*")
+        .range(bsStart, bsStart + bsSize - 1).order("tanggal");
+      if (!page || page.length === 0) break;
+      bonData = bonData.concat(page);
+      if (page.length < bsSize) break;
+      bsStart += bsSize;
+    }
 
     for (const row of (bonData || [])) {
       const rowWilayah = cleanStr(row.kode_wilayah);
@@ -104,9 +118,9 @@ Deno.serve(async (req: Request) => {
       if (nomSebelumnya > 0 || nomPengeluaran > 0 || nomCluis !== 0) {
         const pecNum = parseInt(p[1], 10);
         const isStr = isNaN(pecNum);
-        const lemSebelumnya = isStr ? (nomSebelumnya > 0 ? 1 : 0) : Math.floor(nomSebelumnya / pecNum);
-        const lemPengeluaran = isStr ? (nomPengeluaran > 0 ? 1 : 0) : Math.floor(nomPengeluaran / pecNum);
-        const lemCluis = isStr ? (nomCluis > 0 ? 1 : 0) : Math.floor(nomCluis / pecNum);
+        const lembarSebelumnya = isStr ? (nomSebelumnya > 0 ? 1 : 0) : Math.floor(nomSebelumnya / pecNum);
+        const lembarPengeluaran = isStr ? (nomPengeluaran > 0 ? 1 : 0) : Math.floor(nomPengeluaran / pecNum);
+        const lembarCluis = isStr ? (nomCluis > 0 ? 1 : 0) : Math.floor(nomCluis / pecNum);
 
         totalHariSebelumnya += nomSebelumnya;
         totalPengeluaran += nomPengeluaran;

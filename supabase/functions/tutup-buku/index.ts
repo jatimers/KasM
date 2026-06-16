@@ -22,11 +22,17 @@ Deno.serve(async (req: Request) => {
 
     if (!tglHariIni) return errorResponse("Missing tanggal parameter");
 
-    // Get snapshots
-    const { data: htData } = await supabase
-      .from("saldo_awal_ht")
-      .select("*")
-      .lte("tanggal", tglHariIni);
+    // Get snapshots (paginated)
+    let htData: any[] = [];
+    let sStart = 0, sSize = 900;
+    while (true) {
+      const { data: page } = await supabase.from("saldo_awal_ht").select("*")
+        .lte("tanggal", tglHariIni).range(sStart, sStart + sSize - 1);
+      if (!page || page.length === 0) break;
+      htData = htData.concat(page);
+      if (page.length < sSize) break;
+      sStart += sSize;
+    }
 
     const snapshots = (htData || []).filter(
       (s) => kodeWilayah === "ALL" || cleanStr(s.kode_wilayah as string) === kodeWilayah
@@ -46,9 +52,17 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Get bon_setor data
-    const { data: bonData } = await supabase.from("bon_setor").select("*")
-    .limit(100000);
+    // Get bon_setor data (paginated to bypass 1000-row limit)
+    let bonData: any[] = [];
+    let bStart = 0, bSize = 900;
+    while (true) {
+      const { data: page } = await supabase.from("bon_setor").select("*")
+        .range(bStart, bStart + bSize - 1).order("tanggal");
+      if (!page || page.length === 0) break;
+      bonData = bonData.concat(page);
+      if (page.length < bSize) break;
+      bStart += bSize;
+    }
 
     const rowsToArchive: Record<string, unknown>[] = [];
     const idsToDelete: string[] = [];
