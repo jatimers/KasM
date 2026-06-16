@@ -1,0 +1,206 @@
+// Edge Function: /api/posisi-kas
+// Ported from: savePosisiKas(), getHistoryPosisiKas(),
+//   getViewPosisiTeller(), getRekapPosisiHarianGlobal() in Code.gs
+
+import { corsHeaders, successResponse, errorResponse } from "../_shared/cors.ts";
+import { getSupabaseClient } from "../_shared/supabase.ts";
+import { cleanStr, normalizeUnit, formatSafeString } from "../_shared/utils.ts";
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const supabase = getSupabaseClient(req);
+    const url = new URL(req.url);
+    const action = url.searchParams.get("action");
+    const userEstim = url.searchParams.get("userEstim") ?? "";
+    const tgl = url.searchParams.get("tanggal") ?? "";
+    const kodeWilayah = url.searchParams.get("kodeWilayah") ?? "ALL";
+    const bulanTahun = url.searchParams.get("bulanTahun") ?? "";
+
+    // GET
+    if (req.method === "GET") {
+      // getHistoryPosisiKas
+      if (action === "history") {
+        const { data, error } = await supabase
+          .from("posisi_kas")
+          .select("*")
+          .eq("user_estim", userEstim)
+          .order("tanggal", { ascending: false });
+
+        if (error) throw error;
+
+        const result = [];
+        for (const row of (data || [])) {
+          const dTgl = formatSafeString(row.tanggal);
+          if (bulanTahun && !dTgl.startsWith(bulanTahun)) continue;
+
+          result.push({
+            tanggal: dTgl,
+            saldoKemarin: parseFloat(String(row.saldo_kemarin)) || 0,
+            penerimaanTotal: (parseFloat(String(row.penerimaan_debet)) || 0) + (parseFloat(String(row.penerimaan_antar_teller)) || 0),
+            pembayaranTotal: (parseFloat(String(row.pembayaran_kredit)) || 0) + (parseFloat(String(row.pembayaran_antar_teller)) || 0),
+            saldoHariIni: parseFloat(String(row.saldo_hari_ini)) || 0,
+            saldoFisik: parseFloat(String(row.saldo_fisik)) || 0,
+            selisih: parseFloat(String(row.selisih)) || 0,
+            selisihPembulatan: parseFloat(String(row.selisih_pembulatan)) || 0,
+          });
+        }
+
+        return successResponse(result);
+      }
+
+      // getViewPosisiTeller
+      if (action === "view-posisi") {
+        const { data: users } = await supabase.from("users").select("*");
+        const userMap: Record<string, { namaUnit: string; kodeCabang: string }> = {};
+        for (const u of (users || [])) {
+          userMap[normalizeUnit(u.user_estim)] = {
+            namaUnit: u.nama_unit,
+            kodeCabang: cleanStr(u.kode_cabang),
+          };
+        }
+
+        let query = supabase.from("posisi_kas").select("*").eq("tanggal", tgl);
+        if (kodeWilayah !== "ALL") {
+          query = query.eq("kode_wilayah", kodeWilayah);
+        }
+
+        const { data: posData, error } = await query;
+        if (error) throw error;
+
+        const result = [];
+        for (const row of (posData || [])) {
+          const originalUe = cleanStr(row.user_estim);
+          const unitInfo = userMap[normalizeUnit(originalUe)] || { namaUnit: "UNKNOWN", kodeCabang: "UNKNOWN" };
+          result.push({
+            userEstim: originalUe,
+            namaUnit: unitInfo.namaUnit,
+            kodeCabang: unitInfo.kodeCabang,
+            saldoHariIni: parseFloat(String(row.saldo_hari_ini)) || 0,
+            saldoFisik: parseFloat(String(row.saldo_fisik)) || 0,
+            selisih: parseFloat(String(row.selisih)) || 0,
+          });
+        }
+
+        return successResponse(result);
+      }
+
+      // getRekapPosisiHarianGlobal
+      if (action === "rekap-harian-global") {
+        // Find previous working day with data
+        let prevDate = "";
+        const { data: allPos } = await supabase
+          .from("posisi_kas")
+          .select("tanggal, kode_wilayah")
+          .lt("tanggal", tgl)
+          .order("tanggal", { ascending: false });
+
+        for (const row of (allPos || [])) {
+          if (kodeWilayah === "ALL" || cleanStr(row.kode_wilayah) === kodeWilayah) {
+            if (row.tanggal > prevDate) prevDate = row.tanggal;
+          }
+        }
+
+        // Also check saldo_awal_ht for dates
+        const { data: htData } = await supabase
+          .from("saldo_awal_ht")
+          .select("tanggal, kode_wilayah")
+          .lt("tanggal", tgl)
+          .order("tanggal", { ascending: false });
+
+        for (const row of (htData || [])) {
+          if (kodeWilayah === "ALL" || cleanStr(row.kode_wilayah) === kodeWilayah) {
+            if (row.tanggal > prevDate) prevDate = row.tanggal;
+          }
+        }
+
+        const rekap = {
+          saldoKemarin: 0, penerimaanDebet: 0, penerimaanAntar: 0,
+          pembayaranKredit: 0, pembayaranAntar: 0, saldoHariIni: 0,
+          saldoFisik: 0, selisih: 0, userTerdata: 0,
+        };
+
+        // Get saldoKemarin from grandTotal of previous working day
+        if (prevDate) {
+          // Simplified: query saldo_hari_ini sum from previous date
+          const { data: prevPos } = await supabase
+            .from("posisi_kas")
+            .select("saldo_hari_ini")
+            .eq("tanggal", prevDate);
+
+          let prevSaldo = 0;
+          for (const row of (prevPos || [])) {
+            prevSaldo += parseFloat(String(row.saldo_hari_ini)) || 0;
+          }
+          rekap.saldoKemarin = prevSaldo;
+        }
+
+        // Current day mutations
+        let query = supabase.from("posisi_kas").select("*").eq("tanggal", tgl);
+        if (kodeWilayah !== "ALL") query = query.eq("kode_wilayah", kodeWilayah);
+
+        const { data: currPos } = await query;
+        for (const row of (currPos || [])) {
+          rekap.penerimaanDebet += parseFloat(String(row.penerimaan_debet)) || 0;
+          rekap.penerimaanAntar += parseFloat(String(row.penerimaan_antar_teller)) || 0;
+          rekap.pembayaranKredit += parseFloat(String(row.pembayaran_kredit)) || 0;
+          rekap.pembayaranAntar += parseFloat(String(row.pembayaran_antar_teller)) || 0;
+          rekap.userTerdata++;
+        }
+
+        rekap.saldoHariIni = rekap.saldoKemarin + rekap.penerimaanDebet + rekap.penerimaanAntar - rekap.pembayaranKredit - rekap.pembayaranAntar;
+        rekap.saldoFisik = 0; // Will be populated by LaporanHT grand total later
+        rekap.selisih = rekap.saldoFisik - rekap.saldoHariIni;
+
+        return successResponse(rekap);
+      }
+
+      // Default: simple query
+      const { data, error } = await supabase
+        .from("posisi_kas")
+        .select("*")
+        .eq("tanggal", tgl)
+        .eq("user_estim", userEstim)
+        .maybeSingle();
+
+      if (error) throw error;
+      return successResponse(data || null);
+    }
+
+    // POST - Save posisi kas
+    if (req.method === "POST") {
+      const dataObj = await req.json();
+
+      const record = {
+        tanggal: dataObj.Tanggal || dataObj.tanggal,
+        user_estim: dataObj.UserEstim || dataObj.userEstim,
+        saldo_kemarin: dataObj.SaldoKemarin || 0,
+        penerimaan_debet: dataObj.PenerimaanDebet || 0,
+        penerimaan_antar_teller: dataObj.PenerimaanAntarTeller || 0,
+        pembayaran_kredit: dataObj.PembayaranKredit || 0,
+        pembayaran_antar_teller: dataObj.PembayaranAntarTeller || 0,
+        saldo_hari_ini: dataObj.SaldoHariIni || 0,
+        saldo_fisik: dataObj.SaldoFisik || 0,
+        selisih: dataObj.Selisih || 0,
+        kode_cabang: dataObj.KodeCabang || dataObj.kodeCabang || "",
+        kode_wilayah: dataObj.KodeWilayah || dataObj.kodeWilayah || "",
+        selisih_pembulatan: dataObj.SelisihPembulatan || 0,
+      };
+
+      const { error } = await supabase.from("posisi_kas").upsert(record, {
+        onConflict: "tanggal, user_estim",
+      });
+
+      if (error) throw error;
+      return successResponse("Saved");
+    }
+
+    return errorResponse("Method not allowed", 405);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    return errorResponse("ERROR: " + msg, 500);
+  }
+});
