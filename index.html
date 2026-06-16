@@ -3395,6 +3395,7 @@ function formatRpTab(angka) {
   return val.toLocaleString('id-ID');
 }
   </script>
+// Fungsi Paksa Responsive HP
 <script>
   function terapkanCSSMobile() {
     // 1. Amankan area Login
@@ -3406,14 +3407,24 @@ function formatRpTab(angka) {
       let style = document.createElement('style');
       style.id = 'css-antibocor';
       style.innerHTML = `
-        /* 1. KUNCI BOCORAN LAYAR KANAN-KIRI */
-        html, body, .main-wrapper, .modal-content, .container, .page {
-          max-width: 100vw !important;
+        /* 1. KUNCI BOCORAN: Ganti 100vw menjadi 100% agar kebal terhadap scrollbar vertikal */
+        html, body {
+          width: 100% !important;
+          max-width: 100% !important;
           overflow-x: hidden !important; 
-          box-sizing: border-box !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
 
-        /* 2. NETRALISIR MARGIN BAWAAN FRAMEWORK */
+        /* Batasi semua wadah utama agar tidak lebih dari layar */
+        .main-wrapper, .modal-content, .container, .page {
+          width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+          overflow-x: hidden !important;
+        }
+
+        /* 2. NETRALISIR MARGIN BAWAAN FRAMEWORK (.row) */
         .row, .form-row {
           margin-left: 0 !important;
           margin-right: 0 !important;
@@ -3425,65 +3436,63 @@ function formatRpTab(angka) {
         /* 3. PAKSA ATAS-BAWAH PADA WADAH INPUT */
         .main-wrapper .form-group, 
         .main-wrapper .input-group,
-        .main-wrapper div[style*="display: flex"]:has(input) {
+        .main-wrapper div[style*="display: flex"]:has(input),
+        .main-wrapper div[style*="display:flex"]:has(input) {
           display: flex !important;
           flex-direction: column !important;
           width: 100% !important;
           max-width: 100% !important;
-          min-width: 0 !important;
           margin-bottom: 12px !important;
-          padding: 0 !important;
+          /* Sedikit padding kiri-kanan agar tidak menempel ke casing HP */
+          padding-left: 8px !important; 
+          padding-right: 8px !important;
           box-sizing: border-box !important;
-          /* Kunci agar anak-anaknya tidak berantakan lapisan z-indexnya */
           position: relative !important; 
         }
 
-        /* 4. JIKA MENGGUNAKAN TABEL */
-        .main-wrapper table:has(input) {
-          display: block !important;
-          width: 100% !important;
-          box-sizing: border-box !important;
-        }
+        /* 4. JIKA MENGGUNAKAN TABEL: Batasi lebar ketat 100% */
+        .main-wrapper table:has(input),
         .main-wrapper table:has(input) tbody,
         .main-wrapper table:has(input) tr,
         .main-wrapper table:has(input) td {
           display: block !important;
           width: 100% !important;
           max-width: 100% !important;
-          min-width: 0 !important;
           box-sizing: border-box !important;
           padding: 0 !important;
           border: none !important;
         }
         .main-wrapper table:has(input) tr {
           margin-bottom: 12px !important;
+          padding: 0 8px !important; /* Jarak aman tepi HP */
         }
 
-        /* 5. FIX KOTAK INPUT (MEMBUATNYA BISA DIKLIK KEMBALI) */
+        /* 5. FIX KOTAK INPUT (AMAN DIKLIK & TIDAK MELUBER) */
         .main-wrapper input[type="text"], 
         .main-wrapper input[type="number"] {
           width: 100% !important;
           max-width: 100% !important;
-          min-width: 0 !important;
           box-sizing: border-box !important;
           margin: 0 !important;
-          padding: 10px !important; 
-          height: 45px !important; /* Lebih besar agar enak disentuh */
+          padding: 10px 12px !important; 
+          height: 45px !important; 
           
-          /* KUNCI PERBAIKAN: Selalu di depan & wajib bisa disentuh */
+          /* KUNCI: Tetap di lapisan depan agar bisa diklik */
           position: relative !important;
           z-index: 99 !important;
           pointer-events: auto !important;
         }
 
-        /* 6. LABEL KETERANGAN (TANPA SPAN, AGAR TIDAK MENUTUPI) */
+        /* 6. LABEL KETERANGAN (TEKS OTOMATIS TURUN BARIS) */
         .main-wrapper label, 
-        .main-wrapper td > strong {
+        .main-wrapper td > strong,
+        .main-wrapper span {
           display: block !important;
           width: 100% !important;
+          max-width: 100% !important;
           white-space: normal !important;
           word-wrap: break-word !important;
-          margin-bottom: 6px !important;
+          margin-bottom: 4px !important;
           box-sizing: border-box !important;
         }
       `;
@@ -3491,6 +3500,7 @@ function formatRpTab(angka) {
     }
   }
 
+  // Cek setiap 1 detik untuk menyuntikkan CSS (hanya jalan jika belum ada)
   setInterval(terapkanCSSMobile, 1000);
 </script>
 </body>
