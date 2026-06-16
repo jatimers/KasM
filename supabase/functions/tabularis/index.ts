@@ -80,11 +80,21 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Get all bon_setor
-    const { data: bonData } = await supabase
-      .from("bon_setor")
-      .select("*").limit(100000)
-      .order("tanggal");
+    // Get all bon_setor (paginated to bypass 1000-row limit)
+    let bonData: any[] = [];
+    let pageStart = 0;
+    const pageSize = 900;
+    while (true) {
+      const { data: page } = await supabase
+        .from("bon_setor")
+        .select("*")
+        .range(pageStart, pageStart + pageSize - 1)
+        .order("tanggal");
+      if (!page || page.length === 0) break;
+      bonData = bonData.concat(page);
+      if (page.length < pageSize) break;
+      pageStart += pageSize;
+    }
 
     // Process pre-period mutations
     const currentMonthTrans: Array<Record<string, unknown>> = [];
