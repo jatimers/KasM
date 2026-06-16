@@ -114,67 +114,78 @@
      PERBAIKAN TAMPILAN MOBILE: SAPU JAGAT LEVEL 4 (V4)
      ========================================================= */
   @media screen and (max-width: 768px) {
-    /* 1. Kunci Mati Lebar Halaman (Anti-Scroll Kanan-Kiri) */
-    html, body { 
-      overflow-x: hidden !important; 
-      width: 100vw !important; 
+    html, body {
+      overflow-x: hidden !important;
+      width: 100vw !important;
     }
 
-    /* 2. JIKA FORM PECAHAN MENGGUNAKAN TABEL */
-    /* Target khusus baris tabel (tr) yang HANYA memiliki input angka */
-    table:has(input[type="number"]) tr, 
-    tbody:has(input[type="number"]) tr {
+    /* Table responsive: stack rows vertically, labels on top */
+    .table-responsive table,
+    #trx-container table,
+    #ht-input-container table,
+    #posisi table {
+      min-width: 0 !important;
+      width: 100% !important;
+    }
+    .table-responsive table tr,
+    #trx-container table tr,
+    #ht-input-container table tr,
+    #posisi table tr {
       display: flex !important;
       flex-direction: column !important;
       width: 100% !important;
-      margin-bottom: 12px !important;
+      margin-bottom: 10px !important;
       border-bottom: 1px dashed var(--border-color, #ccc) !important;
       padding-bottom: 8px !important;
     }
-    table:has(input[type="number"]) td {
+    .table-responsive table td,
+    #trx-container table td,
+    #ht-input-container table td,
+    #posisi table td {
       display: block !important;
       width: 100% !important;
-      padding: 2px 0 !important;
+      padding: 3px 0 !important;
       text-align: left !important;
       border: none !important;
     }
 
-    /* 3. JIKA FORM PECAHAN MENGGUNAKAN DIV / INLINE FLEXBOX */
-    /* Deteksi div yang membungkus input secara otomatis */
-    div:has(> input[type="number"]),
-    .row:has(input[type="number"]),
-    div[style*="display: flex"]:has(input),
-    div[style*="display:flex"]:has(input) {
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: flex-start !important;
-      width: 100% !important;
-      height: auto !important;
-      margin-bottom: 10px !important;
+    /* Position label above input on mobile */
+    .table-responsive table td:first-child,
+    #trx-container table td:first-child,
+    #posisi table td:first-child {
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      margin-bottom: 2px !important;
+      white-space: normal !important;
+      word-break: break-word !important;
     }
 
-    /* 4. PAKSA LABEL / KETERANGAN NAIK KE ATAS */
-    label, span, td > strong, div:has(> input) > span {
-      display: block !important;
-      width: 100% !important;
-      text-align: left !important;
-      margin-bottom: 6px !important;
-      font-size: 13px !important;
-      white-space: normal !important; /* Teks otomatis turun jika panjang */
-    }
-
-    /* 5. PAKSA KOTAK INPUT MENGISI PENUH BAGIAN BAWAH */
-    input[type="number"], 
-    input[type="text"] {
-      display: block !important;
+    /* Input fields full width, taller for touch */
+    .table-responsive table input[type="text"],
+    .table-responsive table input[type="number"],
+    #trx-container table input[type="text"],
+    #posisi table input[type="text"],
+    #posisi table input[type="number"] {
       width: 100% !important;
       max-width: 100% !important;
-      min-width: 100% !important;
       box-sizing: border-box !important;
-      height: 45px !important; /* Dibuat lebih tinggi agar enak diketik di layar sentuh */
+      height: 42px !important;
+      font-size: 16px !important;
       margin: 0 !important;
+      padding: 8px 12px !important;
     }
-  }   
+
+    /* Rp prefix inline with input on same row */
+    .table-responsive table td div[style*="flex"],
+    #posisi table td div[style*="flex"] {
+      display: flex !important;
+      width: 100% !important;
+    }
+
+    /* Summary boxes on mobile */
+    .summary-box { padding: 15px !important; }
+    .summary-box h2 { font-size: 1.3rem !important; }
+  }
   </style>
 </head>
 <body>
