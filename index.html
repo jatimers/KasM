@@ -67,7 +67,7 @@
     input:focus, select:focus { outline: none; border-color: var(--primary-red); }
     
     .table-responsive { overflow-x: auto; width: 100%; margin-bottom: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
-    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; min-width: 500px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; min-width: 0; }
     th, td { border-bottom: 1px solid var(--border-color); padding: 14px 16px; text-align: left; }
     th { background-color: #f8fafc; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; white-space: nowrap; }
     tbody tr:hover { background-color: #f1f5f9; }
@@ -97,6 +97,9 @@
 
     .clickable-row { cursor: pointer; transition: 0.2s; }
 
+    @media (min-width: 769px) {
+      table { min-width: 500px; }
+    }
     @media (max-width: 768px) {
       body { flex-direction: column; }
       .mobile-header { display: flex; }
