@@ -72,12 +72,23 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // Get bon_setor mutations
-      const { data: bonData } = await supabase
-        .from("bon_setor")
-        .select("*")
-        .gte("tanggal", latestSnapshotDate || tgl)
-        .lte("tanggal", tgl);
+      // Get bon_setor mutations (paginated to avoid 1000-row limit)
+      let bonData: any[] = [];
+      let pageStart = 0;
+      const pageSize = 900;
+      while (true) {
+        const { data: page } = await supabase
+          .from("bon_setor")
+          .select("*")
+          .gte("tanggal", latestSnapshotDate || tgl)
+          .lte("tanggal", tgl)
+          .range(pageStart, pageStart + pageSize - 1)
+          .order("tanggal");
+        if (!page || page.length === 0) break;
+        bonData = bonData.concat(page);
+        if (page.length < pageSize) break;
+        pageStart += pageSize;
+      }
 
       const tellerCashboxes: Record<string, number> = {};
 
@@ -99,9 +110,10 @@ Deno.serve(async (req: Request) => {
         }
 
         // Track teller cashboxes (SETOR SORE only)
-        if (formatSafeString(row.tanggal) === tgl && row.tipe === "SETOR SORE") {
+        if (row.tipe === "SETOR SORE" && formatSafeString(row.tanggal) === tgl) {
           const uEstim = cleanStr(row.user_estim);
-          tellerCashboxes[uEstim] = (tellerCashboxes[uEstim] || 0) + (parseFloat(String(row.nominal)) || 0);
+          const nom = parseFloat(String(row.nominal)) || 0;
+          tellerCashboxes[uEstim] = (tellerCashboxes[uEstim] || 0) + nom;
         }
       }
 
@@ -171,7 +183,8 @@ Deno.serve(async (req: Request) => {
       const { data: bonData } = await supabase
         .from("bon_setor")
         .select("*")
-        .eq("tanggal", tgl);
+        .eq("tanggal", tgl)
+        .limit(100000);
 
       const rincian: Record<string, { kategori: string; pecahan: number | string; lembar: number; nominal: number; order: number }> = {};
       let total = 0;
@@ -259,7 +272,8 @@ Deno.serve(async (req: Request) => {
       const { data: bonData } = await supabase
         .from("bon_setor")
         .select("*")
-        .eq("tanggal", tgl);
+        .eq("tanggal", tgl)
+        .limit(100000);
 
       const filtered = (bonData || []).filter((row: Record<string, unknown>) => {
         if (kodeWilayah !== "ALL" && cleanStr(row.kode_wilayah as string) !== kodeWilayah) return false;

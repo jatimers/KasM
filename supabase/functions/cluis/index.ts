@@ -62,7 +62,8 @@ Deno.serve(async (req: Request) => {
     }
 
     // Get bon_setor mutations
-    const { data: bonData } = await supabase.from("bon_setor").select("*");
+    const { data: bonData } = await supabase.from("bon_setor").select("*")
+    .limit(100000);
 
     for (const row of (bonData || [])) {
       const rowWilayah = cleanStr(row.kode_wilayah);

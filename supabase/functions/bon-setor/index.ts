@@ -45,7 +45,8 @@ Deno.serve(async (req: Request) => {
       if (action === "history") {
         let query = supabase.from("bon_setor").select("*")
           .eq("user_estim", userEstim)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(100000);
 
         if (tgl) {
           query = query.eq("tanggal", tgl);

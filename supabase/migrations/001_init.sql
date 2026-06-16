@@ -16,9 +16,10 @@ CREATE TABLE users (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- 2. bon_setor
+-- 2. bon_setor (id_transaksi NOT unique — one txn can have multiple pecahan rows)
 CREATE TABLE bon_setor (
-  id_transaksi TEXT PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
+  id_transaksi TEXT NOT NULL,
   tanggal DATE NOT NULL,
   user_estim TEXT NOT NULL,
   tipe TEXT NOT NULL,
@@ -29,7 +30,8 @@ CREATE TABLE bon_setor (
   kode_cabang TEXT,
   kode_wilayah TEXT,
   scope TEXT NOT NULL DEFAULT 'KHASANAH',
-  created_at TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(id_transaksi, kategori, pecahan)
 );
 
 CREATE INDEX idx_bon_setor_tanggal ON bon_setor(tanggal);
@@ -38,9 +40,22 @@ CREATE INDEX idx_bon_setor_kode_wilayah ON bon_setor(kode_wilayah);
 CREATE INDEX idx_bon_setor_tipe ON bon_setor(tipe);
 CREATE INDEX idx_bon_setor_scope ON bon_setor(scope);
 
--- 3. arsip_bon_setor
+-- 3. arsip_bon_setor (same structure as bon_setor)
 CREATE TABLE arsip_bon_setor (
-  LIKE bon_setor INCLUDING ALL
+  id SERIAL PRIMARY KEY,
+  id_transaksi TEXT NOT NULL,
+  tanggal DATE NOT NULL,
+  user_estim TEXT NOT NULL,
+  tipe TEXT NOT NULL,
+  kategori TEXT NOT NULL,
+  pecahan TEXT NOT NULL,
+  lembar INTEGER NOT NULL DEFAULT 0,
+  nominal BIGINT NOT NULL DEFAULT 0,
+  kode_cabang TEXT,
+  kode_wilayah TEXT,
+  scope TEXT NOT NULL DEFAULT 'KHASANAH',
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(id_transaksi, kategori, pecahan)
 );
 
 -- 4. posisi_kas

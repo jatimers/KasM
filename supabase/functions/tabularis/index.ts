@@ -37,7 +37,7 @@ Deno.serve(async (req: Request) => {
     if (!periode) return errorResponse("Missing periode parameter (YYYY-MM)");
 
     // Get users
-    const { data: users } = await supabase.from("users").select("*");
+    const { data: users } = await supabase.from("users").select("*").limit(100000);
     const listTeller: string[] = [];
     const listKF: string[] = [];
     const userMap: Record<string, string> = {};
@@ -63,7 +63,7 @@ Deno.serve(async (req: Request) => {
     // Running saldo init from saldo_awal_ht
     const runningSaldo = createBlankSchema(listTeller, listKF);
 
-    const { data: htData } = await supabase.from("saldo_awal_ht").select("*");
+    const { data: htData } = await supabase.from("saldo_awal_ht").select("*").limit(100000);
     for (const row of (htData || [])) {
       const jenisUang = String(row.kategori).toUpperCase().trim();
       const pcn = String(row.pecahan).trim();
@@ -83,7 +83,7 @@ Deno.serve(async (req: Request) => {
     // Get all bon_setor
     const { data: bonData } = await supabase
       .from("bon_setor")
-      .select("*")
+      .select("*").limit(100000)
       .order("tanggal");
 
     // Process pre-period mutations

@@ -47,7 +47,8 @@ Deno.serve(async (req: Request) => {
     }
 
     // Get bon_setor data
-    const { data: bonData } = await supabase.from("bon_setor").select("*");
+    const { data: bonData } = await supabase.from("bon_setor").select("*")
+    .limit(100000);
 
     const rowsToArchive: Record<string, unknown>[] = [];
     const idsToDelete: string[] = [];
