@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <title>Aplikasi Kas Monitor | Operasional</title>
-  <style>
+  Aplikasi Kas Monitor | Operasional</title>
+  
     :root {
       --primary-red: #dc2626;
       --primary-hover: #b91c1c;
@@ -111,7 +111,7 @@
     }
   </style>
 </head>
-<body>
+
 
   <div id="global-loader"><div class="spinner"></div><h3 style="color: var(--primary-red);" id="loader-msg">Memproses Data...</h3></div>
 
@@ -121,8 +121,8 @@
       <div class="login-icon"><svg width="32" height="40" viewBox="0 0 24 32" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="28" rx="4" ry="4"></rect><line x1="12" y1="23" x2="12.01" y2="23"></line></svg></div>
       <h2 style="color: #1e293b; margin: 0 0 8px 0; font-weight: 800; font-size: 1.6rem;">Aplikasi Kas Monitor</h2>
       <p style="color: #64748b; font-size: 0.95rem; margin-top: 0; margin-bottom: 30px;">Unit Operasional Dana</p>
-      <div style="text-align: left;"><label>Kode User</label><input type="text" id="username"></div>
-      <div style="text-align: left;"><label>Password</label><input type="password" id="password"></div>
+      <div style="text-align: left;">Kode User</label><input type="text" id="username"></div>
+      <div style="text-align: left;">Password</label><input type="password" id="password"></div>
       <button onclick="login()">LOGIN</button>
       <p id="login-msg" style="color: #ef4444; font-size: 0.85rem; display: none; font-weight:600; margin-top:15px;"></p>
       <div class="footer-login">2026 by PN99</div>
@@ -137,9 +137,9 @@
 
   <!-- SIDEBAR -->
   <div class="sidebar" id="sidebar">
-    <h2>
-      <span id="unit-name" style="font-size:0.9rem; font-weight:700; color:var(--text-main);"></span><br>
-      <span id="user-role-name" style="font-size:0.8rem; color:var(--text-muted); font-weight:500;"></span><br>
+    
+      <span id="unit-name" style="font-size:0.9rem; font-weight:700; color:var(--text-main);"></span>
+      <span id="user-role-name" style="font-size:0.8rem; color:var(--text-muted); font-weight:500;"></span>
       <span id="user-kode-wilayah" style="font-size:0.75rem; display:block; margin-top:8px; font-weight:600; color:var(--primary-red);"></span>
       <span id="user-kode-cabang" style="font-size:0.75rem; display:block; color:var(--text-muted);"></span>
     </h2>
@@ -250,21 +250,21 @@
   <!-- SCRIPTS -->
   <!-- ============================================= -->
   <script src="config.js"></script>
-  <script>
+  
     // ==================== GLOBAL STATE ====================
-    let currentUser: Record<string, string> = {};
-    let globalHistoryData: unknown[] = [];
-    let allUsersData: unknown[] = [];
-    let globalPosisiHT: unknown[] = [];
-    let globalHistoryPosisi: unknown[] = [];
+    let currentUser = {};
+    let globalHistoryData[] = [];
+    let allUsersData[] = [];
+    let globalPosisiHT[] = [];
+    let globalHistoryPosisi[] = [];
     let currentRekapFisik = { bonPagi: 0, bonTambahan: 0, setorTambahan: 0, setorSore: 0, penerimaanDebet: 0, pembayaranKredit: 0, penerimaanAntar: 0, pembayaranAntar: 0 };
-    let dataPosisiHarianTemp: Record<string, unknown> | null = null;
-    let globalCluisData: Record<string, unknown> | null = null;
-    (window as any).currentLapMutasiType = 'SETOR';
-    (window as any).currentCetakKFType = 'setorbon';
+    let dataPosisiHarianTemp | null = null;
+    let globalCluisData | null = null;
+    (window).currentLapMutasiType = 'SETOR';
+    (window).currentCetakKFType = 'setorbon';
 
     // ==================== UTILITY FUNCTIONS ====================
-    const configUang: Record<string, (number | string)[]> = {
+    const configUang = {
       "ULE": [100000, 75000, 50000, 20000, 10000, 5000, 2000, 1000],
       "ULE Campuran": [100000, 75000, 50000, 20000, 10000, 5000, 2000, 1000],
       "HCS": [100000, 75000, 50000, 20000, 10000, 5000, 2000, 1000],
@@ -274,7 +274,7 @@
       "Lainnya": ["UTLE Jadi", "Uang Lacak", "Bon Samsat", "Lain-lain"]
     };
 
-    function terbilang(angka: number): string {
+    function terbilang(angka) {
       if (angka < 0) return "Minus " + terbilang(Math.abs(angka));
       var bilangan = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
       if (angka < 12) return bilangan[angka];
@@ -289,7 +289,7 @@
       return "";
     }
 
-    function getLocalDateString(d?: Date): string {
+    function getLocalDateString(d) {
       const date = d || new Date();
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -297,7 +297,7 @@
       return `${year}-${month}-${day}`;
     }
 
-    function showLoader(show: boolean, msg = "Memproses...") {
+    function showLoader(show, msg = "Memproses...") {
       const el = document.getElementById('loader-msg');
       if (el) el.innerText = msg;
       const loader = document.getElementById('global-loader');
@@ -310,15 +310,15 @@
       if (toast) { toast.style.display = 'block'; setTimeout(() => { toast.style.display = 'none'; }, 3000); }
     }
 
-    function generateIdTrx(): string { return "TRX-" + Date.now(); }
+    function generateIdTrx() { return "TRX-" + Date.now(); }
 
-    function formatRpAlign(value: number | string): string {
+    function formatRpAlign(value | string) {
       const val = parseInt(String(value));
       if (isNaN(val)) return String(value);
       return `<div style="display:flex; justify-content:space-between; align-items:center; width:100%; min-width:80px;"><span style="color:#64748b; margin-right:15px; font-weight:500;">Rp</span><span style="text-align:right; flex-grow:1;">${val.toLocaleString('id-ID')}</span></div>`;
     }
 
-    function formatTglIndo(dateStr: string): string {
+    function formatTglIndo(dateStr) {
       if (!dateStr || dateStr === "-") return "-";
       const bulanIndo = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
       const parts = dateStr.split('-');
@@ -330,15 +330,15 @@
       const today = getLocalDateString();
       ['trx-tanggal','pk-tanggal','ht-tanggal','lap-sk-tgl','lap-mutasi-tgl','hist-tgl','cetak-kf-tgl'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) (el as HTMLInputElement).value = today;
+        if (el) (el).value = today;
       });
       const monthStr = today.substring(0, 7);
       const histPosBulan = document.getElementById('hist-pos-bulan');
-      if (histPosBulan) (histPosBulan as HTMLInputElement).value = monthStr;
+      if (histPosBulan) (histPosBulan).value = monthStr;
     }
 
-    function getDefaultH1(): string {
-      const tglSkrg = (document.getElementById('trx-tanggal') as HTMLInputElement)?.value;
+    function getDefaultH1() {
+      const tglSkrg = (document.getElementById('trx-tanggal'))?.value;
       let dateObj = new Date();
       if (tglSkrg) { const parts = tglSkrg.split('-'); dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])); }
       dateObj.setDate(dateObj.getDate() - 1);
@@ -347,10 +347,10 @@
 
     function toggleSidebar() { document.getElementById('sidebar')?.classList.toggle('open'); }
     function closeSidebarIfOpen() { if (window.innerWidth <= 768) { document.getElementById('sidebar')?.classList.remove('open'); } }
-    function toggleSubmenu(id: string) { document.getElementById(id)?.classList.toggle('open'); }
+    function toggleSubmenu(id) { document.getElementById(id)?.classList.toggle('open'); }
     function closeModal() { const modal = document.getElementById('detail-modal'); if (modal) modal.style.display = 'none'; }
 
-    function nav(pageId: string, el?: Element | null) {
+    function nav(pageId, el) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
       const page = document.getElementById(pageId);
@@ -363,8 +363,8 @@
     function logout() {
       currentUser = {};
       clearToken();
-      const usernameEl = document.getElementById('username') as HTMLInputElement;
-      const passwordEl = document.getElementById('password') as HTMLInputElement;
+      const usernameEl = document.getElementById('username');
+      const passwordEl = document.getElementById('password');
       if (usernameEl) usernameEl.value = '';
       if (passwordEl) passwordEl.value = '';
       const loginMsg = document.getElementById('login-msg');
@@ -378,8 +378,8 @@
     }
 
     async function login() {
-      const usernameEl = document.getElementById('username') as HTMLInputElement;
-      const passwordEl = document.getElementById('password') as HTMLInputElement;
+      const usernameEl = document.getElementById('username');
+      const passwordEl = document.getElementById('password');
       const u = usernameEl?.value?.trim() || '';
       const p = passwordEl?.value?.trim() || '';
       const msgLabel = document.getElementById('login-msg');
@@ -398,7 +398,7 @@
       }
 
       try {
-        const res = await callApiPost<{ status: boolean; user: Record<string, string>; msg?: string }>('/auth', { username: u, password: p });
+        const res = await callApiPost('/auth', { username: u, password: p });
 
         showLoader(false);
 
@@ -425,24 +425,24 @@
 
           setTodayDates();
           const trxIdTrx = document.getElementById('trx-idtrx');
-          if (trxIdTrx) (trxIdTrx as HTMLInputElement).value = generateIdTrx();
+          if (trxIdTrx) (trxIdTrx).value = generateIdTrx();
 
           const role = (currentUser.role || '').toLowerCase();
-          document.querySelectorAll('.role-menu').forEach(el => (el as HTMLElement).style.display = 'none');
+          document.querySelectorAll('.role-menu').forEach(el => (el).style.display = 'none');
 
           if (role === 'admin') {
-            const menuAdmin = document.querySelector('.menu-admin') as HTMLElement;
+            const menuAdmin = document.querySelector('.menu-admin');
             if (menuAdmin) menuAdmin.style.display = 'block';
             nav('kelola-user', document.querySelector('.menu-admin .menu-item'));
             loadUsers();
           } else if (role === 'headteller') {
-            const menuHt = document.querySelector('.menu-ht') as HTMLElement;
+            const menuHt = document.querySelector('.menu-ht');
             if (menuHt) menuHt.style.display = 'block';
             renderInputKhasanah();
             nav('dashboard-ht', document.querySelector('.menu-ht .menu-item'));
             loadDashboardHT();
           } else if (role === 'kf') {
-            const menuKf = document.querySelector('.menu-kf') as HTMLElement;
+            const menuKf = document.querySelector('.menu-kf');
             if (menuKf) menuKf.style.display = 'block';
             const trBon = document.getElementById('tr-bontambahan');
             const trSetor = document.getElementById('tr-setortambahan');
@@ -452,12 +452,12 @@
             nav('dashboard', document.querySelector('.menu-kf .menu-item'));
             loadDashboardTeller();
           } else if (role === 'capem') {
-            const menuCapem = document.querySelector('.menu-capem') as HTMLElement;
+            const menuCapem = document.querySelector('.menu-capem');
             if (menuCapem) menuCapem.style.display = 'block';
             nav('perkiraan-teller', document.querySelector('.menu-capem .menu-item'));
             initPerkiraanTeller();
           } else {
-            const menuTeller = document.querySelector('.menu-teller') as HTMLElement;
+            const menuTeller = document.querySelector('.menu-teller');
             if (menuTeller) menuTeller.style.display = 'block';
             renderTrxKas();
             nav('dashboard', document.querySelector('.menu-teller .menu-item'));
@@ -467,7 +467,7 @@
           msgLabel.innerText = res.msg || "Login gagal";
           msgLabel.style.color = '#ef4444';
         }
-      } catch (err: unknown) {
+      } catch (err) {
         showLoader(false);
         const errMsg = err instanceof Error ? err.message : "Unknown error";
         msgLabel.innerText = "ERROR: " + errMsg;
@@ -479,53 +479,53 @@
     async function loadUsers() {
       showLoader(true);
       try {
-        const res = await callApiGet<Array<Record<string, unknown>>>('/users', { kodeWilayah: currentUser.kodeWilayah || 'ALL' });
+        const res = await callApiGet('/users', { kodeWilayah: currentUser.kodeWilayah || 'ALL' });
         showLoader(false);
         allUsersData = res;
         let html = "";
         if (res.length === 0) {
-          html = '<tr><td colspan="7" style="text-align:center;">Tidak ada data user.</td></tr>';
+          html = '<td colspan="7" style="text-align:center;">Tidak ada data user.</td></tr>';
         } else {
-          res.forEach((u: Record<string, unknown>) => {
-            html += `<tr>
-              <td>${u.kodeWilayah}</td><td>${u.kodeCabang}</td><td>${u.namaUnit}</td>
-              <td>${u.namaUser}</td><td>${u.role}</td><td>${u.userEstim}</td>
-              <td><button class="btn-action btn-edit" onclick="editUser('${u.id}')">Edit</button><button class="btn-action btn-delete" onclick="hapusUser('${u.id}')">Hapus</button></td>
+          res.forEach((u) => {
+            html += `
+              ${u.kodeWilayah}</td>${u.kodeCabang}</td>${u.namaUnit}</td>
+              ${u.namaUser}</td>${u.role}</td>${u.userEstim}</td>
+              <button class="btn-action btn-edit" onclick="editUser('${u.id}')">Edit</button><button class="btn-action btn-delete" onclick="hapusUser('${u.id}')">Hapus</button></td>
             </tr>`;
           });
         }
         const userBody = document.getElementById('user-body');
         if (userBody) userBody.innerHTML = html;
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         const msg = e instanceof Error ? e.message : "Unknown error";
         alert("Gagal memuat user: " + msg);
       }
     }
 
-    function editUser(id: string) {
-      const user = allUsersData.find((u: any) => u.id == id);
+    function editUser(id) {
+      const user = allUsersData.find((u) => u.id == id);
       if (!user) return;
-      (document.getElementById('u-id') as HTMLInputElement).value = user.id;
-      (document.getElementById('u-wilayah') as HTMLInputElement).value = user.kodeWilayah;
-      (document.getElementById('u-kode') as HTMLInputElement).value = user.kodeCabang;
-      (document.getElementById('u-unit') as HTMLInputElement).value = user.namaUnit;
-      (document.getElementById('u-user') as HTMLInputElement).value = user.namaUser;
-      (document.getElementById('u-pass') as HTMLInputElement).value = user.password;
-      (document.getElementById('u-role') as HTMLSelectElement).value = user.role;
-      (document.getElementById('u-estim') as HTMLInputElement).value = user.userEstim;
+      (document.getElementById('u-id')).value = user.id;
+      (document.getElementById('u-wilayah')).value = user.kodeWilayah;
+      (document.getElementById('u-kode')).value = user.kodeCabang;
+      (document.getElementById('u-unit')).value = user.namaUnit;
+      (document.getElementById('u-user')).value = user.namaUser;
+      (document.getElementById('u-pass')).value = user.password;
+      (document.getElementById('u-role')).value = user.role;
+      (document.getElementById('u-estim')).value = user.userEstim;
     }
 
     async function simpanUser() {
       const obj = {
-        id: (document.getElementById('u-id') as HTMLInputElement).value,
-        kodeWilayah: (document.getElementById('u-wilayah') as HTMLInputElement).value,
-        kodeCabang: (document.getElementById('u-kode') as HTMLInputElement).value,
-        namaUnit: (document.getElementById('u-unit') as HTMLInputElement).value,
-        namaUser: (document.getElementById('u-user') as HTMLInputElement).value,
-        role: (document.getElementById('u-role') as HTMLSelectElement).value,
-        userEstim: (document.getElementById('u-estim') as HTMLInputElement).value,
-        password: (document.getElementById('u-pass') as HTMLInputElement).value,
+        id: (document.getElementById('u-id')).value,
+        kodeWilayah: (document.getElementById('u-wilayah')).value,
+        kodeCabang: (document.getElementById('u-kode')).value,
+        namaUnit: (document.getElementById('u-unit')).value,
+        namaUser: (document.getElementById('u-user')).value,
+        role: (document.getElementById('u-role')).value,
+        userEstim: (document.getElementById('u-estim')).value,
+        password: (document.getElementById('u-pass')).value,
       };
       showLoader(true);
       try {
@@ -534,13 +534,13 @@
         showToast(false);
         clearFormUser();
         loadUsers();
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         showToast(true);
       }
     }
 
-    async function hapusUser(id: string) {
+    async function hapusUser(id) {
       if (!confirm("Hapus user ini?")) return;
       showLoader(true);
       try {
@@ -548,7 +548,7 @@
         showLoader(false);
         showToast(false);
         loadUsers();
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         showToast(true);
       }
@@ -556,7 +556,7 @@
 
     function clearFormUser() {
       ['u-id','u-wilayah','u-kode','u-unit','u-user','u-pass','u-estim'].forEach(id => {
-        const el = document.getElementById(id) as HTMLInputElement;
+        const el = document.getElementById(id);
         if (el) el.value = '';
       });
     }
@@ -565,43 +565,43 @@
     async function loadHariLibur() {
       showLoader(true);
       try {
-        const res = await callApiGet<Array<{tanggal: string; keterangan: string}>>('/hari-libur');
+        const res = await callApiGet('/hari-libur');
         showLoader(false);
         let html = "";
         if (res.length === 0) {
-          html = '<tr><td colspan="3" style="text-align:center;">Tidak ada data hari libur.</td></tr>';
+          html = '<td colspan="3" style="text-align:center;">Tidak ada data hari libur.</td></tr>';
         } else {
           res.forEach(d => {
-            html += `<tr><td style="font-weight:700; color:var(--primary-red);">${d.tanggal}</td><td>${d.keterangan}</td><td><button class="btn-action btn-delete" onclick="hapusHariLibur('${d.tanggal}')">Hapus</button></td></tr>`;
+            html += `<td style="font-weight:700; color:var(--primary-red);">${d.tanggal}</td>${d.keterangan}</td><button class="btn-action btn-delete" onclick="hapusHariLibur('${d.tanggal}')">Hapus</button></td></tr>`;
           });
         }
         const hlBody = document.getElementById('hl-body');
         if (hlBody) hlBody.innerHTML = html;
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         console.error("Error loadHariLibur:", e);
       }
     }
 
     async function simpanHariLibur() {
-      const tgl = (document.getElementById('hl-tgl') as HTMLInputElement).value;
-      const ket = (document.getElementById('hl-ket') as HTMLInputElement).value;
+      const tgl = (document.getElementById('hl-tgl')).value;
+      const ket = (document.getElementById('hl-ket')).value;
       if (!tgl || !ket) { alert("Tanggal dan Keterangan wajib diisi!"); return; }
       showLoader(true);
       try {
         await callApiPost('/hari-libur', { tanggal: tgl, keterangan: ket });
         showLoader(false);
         showToast(false);
-        (document.getElementById('hl-tgl') as HTMLInputElement).value = "";
-        (document.getElementById('hl-ket') as HTMLInputElement).value = "";
+        (document.getElementById('hl-tgl')).value = "";
+        (document.getElementById('hl-ket')).value = "";
         loadHariLibur();
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         showToast(true);
       }
     }
 
-    async function hapusHariLibur(tgl: string) {
+    async function hapusHariLibur(tgl) {
       if (!confirm("Hapus hari libur ini?")) return;
       showLoader(true);
       try {
@@ -609,24 +609,24 @@
         showLoader(false);
         showToast(false);
         loadHariLibur();
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         showToast(true);
       }
     }
 
     // ==================== NEXT WORKING DAY ====================
-    async function getServerNextWorkingDay(): Promise<string> {
+    async function getServerNextWorkingDay() {
       try {
-        return await callApiGet<string>('/next-working-day');
+        return await callApiGet('/next-working-day');
       } catch {
         return getLocalDateString();
       }
     }
 
-    async function getNextWorkingDayFrom(dateStr: string): Promise<string> {
+    async function getNextWorkingDayFrom(dateStr) {
       try {
-        return await callApiGet<string>('/next-working-day', { action: 'from', fromDate: dateStr });
+        return await callApiGet('/next-working-day', { action: 'from', fromDate: dateStr });
       } catch {
         return dateStr;
       }
@@ -636,7 +636,7 @@
     async function loadDashboardTeller() {
       const tgl = getLocalDateString();
       try {
-        const res = await callApiGet<{bonMasuk: number; setorKeluar: number; penerimaan: number; pembayaran: number; saldoEstimasi: number}>('/bon-setor', {
+        const res = await callApiGet('/bon-setor', {
           action: 'dashboard',
           userEstim: currentUser.userEstim,
           tanggal: tgl
@@ -653,7 +653,7 @@
         if (dashBayar) dashBayar.innerText = "Rp " + res.pembayaran.toLocaleString('id-ID');
         if (dashSetor) dashSetor.innerText = "Rp " + res.setorKeluar.toLocaleString('id-ID');
         if (dashSaldo) dashSaldo.innerText = "Rp " + res.saldoEstimasi.toLocaleString('id-ID');
-      } catch (e: unknown) {
+      } catch (e) {
         console.error("Error loadDashboardTeller:", e);
       }
     }
@@ -661,7 +661,7 @@
     async function loadDashboardHT() {
       const tgl = getLocalDateString();
       try {
-        const res = await callApiGet<{saldoAwal: number; totalBonTeller: number; totalSetorTeller: number; saldoAkhirKhasanah: number}>('/dashboard', {
+        const res = await callApiGet('/dashboard', {
           type: 'ht',
           tanggal: tgl,
           kodeWilayah: currentUser.kodeWilayah
@@ -676,18 +676,18 @@
         if (htAkhir) htAkhir.innerText = "Rp " + res.saldoAkhirKhasanah.toLocaleString('id-ID');
         if (htTotBon) htTotBon.innerText = "Rp " + res.totalBonTeller.toLocaleString('id-ID');
         if (htTotSetor) htTotSetor.innerText = "Rp " + res.totalSetorTeller.toLocaleString('id-ID');
-      } catch (e: unknown) {
+      } catch (e) {
         console.error("Error loadDashboardHT:", e);
       }
     }
 
     // ==================== LAPORAN HT ====================
     async function loadLapSaldoKas() {
-      const tgl = (document.getElementById('lap-sk-tgl') as HTMLInputElement)?.value;
+      const tgl = (document.getElementById('lap-sk-tgl'))?.value;
       if (!tgl) return;
       showLoader(true, "Memuat Laporan Saldo Kas...");
       try {
-        const res = await callApiGet<{htRincian: Array<Record<string,unknown>>; totalHT: number; tellerList: Array<Record<string,unknown>>; totalTeller: number; grandTotal: number}>('/laporan-ht', {
+        const res = await callApiGet('/laporan-ht', {
           action: 'saldo-kas',
           tanggal: tgl,
           kodeWilayah: currentUser.kodeWilayah
@@ -696,10 +696,10 @@
         // Render HT rincian table
         let htHtml = "";
         if (res.htRincian.length === 0) {
-          htHtml = '<tr><td colspan="4" style="text-align:center;">Pilih tanggal.</td></tr>';
+          htHtml = '<td colspan="4" style="text-align:center;">Pilih tanggal.</td></tr>';
         } else {
           res.htRincian.forEach(r => {
-            htHtml += `<tr><td>${r.kategori}</td><td style="text-align:right;">${r.pecahan}</td><td style="text-align:right;">${(r.lembar as number).toLocaleString('id-ID')}</td><td style="text-align:right;">${(r.nominal as number).toLocaleString('id-ID')}</td></tr>`;
+            htHtml += `${r.kategori}</td><td style="text-align:right;">${r.pecahan}</td><td style="text-align:right;">${(r.lembar).toLocaleString('id-ID')}</td><td style="text-align:right;">${(r.nominal).toLocaleString('id-ID')}</td></tr>`;
           });
         }
         const htBody = document.getElementById('lap-sk-ht-body');
@@ -710,10 +710,10 @@
         // Render teller list
         let tellerHtml = "";
         if (res.tellerList.length === 0) {
-          tellerHtml = '<tr><td colspan="3" style="text-align:center;">Pilih tanggal.</td></tr>';
+          tellerHtml = '<td colspan="3" style="text-align:center;">Pilih tanggal.</td></tr>';
         } else {
-          res.tellerList.forEach((t: any) => {
-            tellerHtml += `<tr><td>${t.namaUnit}</td><td>${t.userEstim}</td><td style="text-align:right;">Rp ${t.total.toLocaleString('id-ID')}</td></tr>`;
+          res.tellerList.forEach((t) => {
+            tellerHtml += `${t.namaUnit}</td>${t.userEstim}</td><td style="text-align:right;">Rp ${t.total.toLocaleString('id-ID')}</td></tr>`;
           });
         }
         const tellerBody = document.getElementById('lap-sk-teller-body');
@@ -723,24 +723,24 @@
 
         const grandTotal = document.getElementById('lap-sk-grandtotal');
         if (grandTotal) { grandTotal.innerText = "Rp. " + res.grandTotal.toLocaleString('id-ID'); grandTotal.setAttribute('data-val', String(res.grandTotal)); }
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         console.error("Error loadLapSaldoKas:", e);
       }
     }
 
-    async function loadLapMutasi(tipeLap: string) {
-      (window as any).currentLapMutasiType = tipeLap;
+    async function loadLapMutasi(tipeLap) {
+      (window).currentLapMutasiType = tipeLap;
       const titleEl = document.getElementById('lap-mutasi-title');
       const descEl = document.getElementById('lap-mutasi-desc');
       if (titleEl) titleEl.innerText = tipeLap === 'SETOR' ? 'Laporan Setoran Khasanah' : 'Laporan Pengeluaran Khasanah';
       if (descEl) descEl.innerText = tipeLap === 'SETOR' ? 'Rincian uang masuk ke Khasanah dari para Teller.' : 'Rincian uang keluar dari Khasanah ke para Teller.';
 
-      const tgl = (document.getElementById('lap-mutasi-tgl') as HTMLInputElement)?.value;
+      const tgl = (document.getElementById('lap-mutasi-tgl'))?.value;
       if (!tgl) return;
       showLoader(true, "Memuat Laporan Mutasi...");
       try {
-        const res = await callApiGet<{rincian: Array<Record<string,unknown>>; total: number; tellerList: Array<Record<string,unknown>>; totalTeller: number}>('/laporan-ht', {
+        const res = await callApiGet('/laporan-ht', {
           action: 'mutasi',
           tanggal: tgl,
           kodeWilayah: currentUser.kodeWilayah,
@@ -748,24 +748,24 @@
         });
         showLoader(false);
 
-        let bodyHtml = res.rincian.length === 0 ? '<tr><td colspan="4" style="text-align:center;">Pilih tanggal.</td></tr>' : '';
+        let bodyHtml = res.rincian.length === 0 ? '<td colspan="4" style="text-align:center;">Pilih tanggal.</td></tr>' : '';
         res.rincian.forEach(r => {
-          bodyHtml += `<tr><td>${r.kategori}</td><td style="text-align:right;">${r.pecahan}</td><td style="text-align:right;">${(r.lembar as number).toLocaleString('id-ID')}</td><td style="text-align:right;">${(r.nominal as number).toLocaleString('id-ID')}</td></tr>`;
+          bodyHtml += `${r.kategori}</td><td style="text-align:right;">${r.pecahan}</td><td style="text-align:right;">${(r.lembar).toLocaleString('id-ID')}</td><td style="text-align:right;">${(r.nominal).toLocaleString('id-ID')}</td></tr>`;
         });
         const mutBody = document.getElementById('lap-mutasi-body');
         const mutTotal = document.getElementById('lap-mutasi-total');
         if (mutBody) mutBody.innerHTML = bodyHtml;
         if (mutTotal) { mutTotal.innerText = "Rp " + res.total.toLocaleString('id-ID'); mutTotal.setAttribute('data-val', String(res.total)); }
 
-        let tellerHtml = res.tellerList.length === 0 ? '<tr><td colspan="3" style="text-align:center;">Pilih tanggal.</td></tr>' : '';
-        res.tellerList.forEach((t: any) => {
-          tellerHtml += `<tr><td>${t.namaUnit}</td><td>${t.userEstim}</td><td style="text-align:right;">Rp ${t.total.toLocaleString('id-ID')}</td></tr>`;
+        let tellerHtml = res.tellerList.length === 0 ? '<td colspan="3" style="text-align:center;">Pilih tanggal.</td></tr>' : '';
+        res.tellerList.forEach((t) => {
+          tellerHtml += `${t.namaUnit}</td>${t.userEstim}</td><td style="text-align:right;">Rp ${t.total.toLocaleString('id-ID')}</td></tr>`;
         });
         const mutTellerBody = document.getElementById('lap-mutasi-teller-body');
         const mutTellerTotal = document.getElementById('lap-mutasi-teller-total');
         if (mutTellerBody) mutTellerBody.innerHTML = tellerHtml;
         if (mutTellerTotal) mutTellerTotal.innerText = "Rp " + res.totalTeller.toLocaleString('id-ID');
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         console.error("Error loadLapMutasi:", e);
       }
@@ -773,11 +773,11 @@
 
     // ==================== HISTORY BON SETOR ====================
     async function loadHistoryBonSetor() {
-      const tgl = (document.getElementById('hist-tgl') as HTMLInputElement)?.value;
+      const tgl = (document.getElementById('hist-tgl'))?.value;
       if (!tgl) return;
       showLoader(true, "Memuat History...");
       try {
-        const res = await callApiGet<Array<Record<string,unknown>>>('/bon-setor', {
+        const res = await callApiGet('/bon-setor', {
           action: 'history',
           userEstim: currentUser.userEstim,
           tanggal: tgl
@@ -786,39 +786,39 @@
         globalHistoryData = res;
         let html = "";
         if (res.length === 0) {
-          html = '<tr><td colspan="4" style="text-align:center;">Tidak ada data transaksi.</td></tr>';
+          html = '<td colspan="4" style="text-align:center;">Tidak ada data transaksi.</td></tr>';
         } else {
-          res.forEach((item: any) => {
-            html += `<tr class="clickable-row" onclick="showDetailModal('${item.idTransaksi}')"><td style="font-family:monospace;">${item.idTransaksi}</td><td>${item.tanggal}</td><td>${item.tipe}</td><td style="text-align:right;">${formatRpAlign(item.total)}</td></tr>`;
+          res.forEach((item) => {
+            html += `<tr class="clickable-row" onclick="showDetailModal('${item.idTransaksi}')"><td style="font-family:monospace;">${item.idTransaksi}</td>${item.tanggal}</td>${item.tipe}</td><td style="text-align:right;">${formatRpAlign(item.total)}</td></tr>`;
           });
         }
         const historyBody = document.getElementById('history-body');
         if (historyBody) historyBody.innerHTML = html;
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         console.error("Error loadHistoryBonSetor:", e);
       }
     }
 
-    function showDetailModal(idTrx: string) {
-      const item = globalHistoryData.find((d: any) => d.idTransaksi === idTrx);
+    function showDetailModal(idTrx) {
+      const item = globalHistoryData.find((d) => d.idTransaksi === idTrx);
       if (!item) return;
       const modalIdtrx = document.getElementById('modal-idtrx');
       const modalBody = document.getElementById('modal-body');
       if (!modalIdtrx || !modalBody) return;
 
       modalIdtrx.innerText = idTrx;
-      let html = `<div style="background:#f8fafc; padding:12px; border-radius:8px; margin-bottom:15px;"><p style="margin:0;"><b>Tanggal:</b> ${(item as any).tanggal} | <b>Tipe:</b> ${(item as any).tipe} | <b>Scope:</b> ${(item as any).scope}</p></div><table><thead><tr><th>Kategori</th><th>Pecahan</th><th style="text-align:right;">Lembar</th><th style="text-align:right;">Nominal</th></tr></thead><tbody>`;
-      (item as any).details.forEach((d: any) => {
-        html += `<tr><td>${d.kategori}</td><td style="text-align:right;">${d.pecahan}</td><td style="text-align:right;">${d.lembar.toLocaleString('id-ID')}</td><td style="text-align:right;">${d.nominal.toLocaleString('id-ID')}</td></tr>`;
+      let html = `<div style="background:#f8fafc; padding:12px; border-radius:8px; margin-bottom:15px;"><p style="margin:0;">Tanggal:</b> ${(item).tanggal} | Tipe:</b> ${(item).tipe} | Scope:</b> ${(item).scope}</p></div>Kategori</th>Pecahan</th><th style="text-align:right;">Lembar</th><th style="text-align:right;">Nominal</th></tr></thead>`;
+      (item).details.forEach((d) => {
+        html += `${d.kategori}</td><td style="text-align:right;">${d.pecahan}</td><td style="text-align:right;">${d.lembar.toLocaleString('id-ID')}</td><td style="text-align:right;">${d.nominal.toLocaleString('id-ID')}</td></tr>`;
       });
-      html += `</tbody><tfoot><tr><td colspan="3" style="text-align:right;">Total:</td><td style="text-align:right; font-weight:700;">${formatRpAlign((item as any).total)}</td></tr></tfoot></table><div style="margin-top:15px; text-align:right;"><button class="btn-action btn-delete" style="font-size:1rem; padding:10px 20px;" onclick="hapusTransaksi('${idTrx}')">🗑️ Hapus Transaksi Ini</button></div>`;
+      html += `</tbody><td colspan="3" style="text-align:right;">Total:</td><td style="text-align:right; font-weight:700;">${formatRpAlign((item).total)}</td></tr></tfoot></table><div style="margin-top:15px; text-align:right;"><button class="btn-action btn-delete" style="font-size:1rem; padding:10px 20px;" onclick="hapusTransaksi('${idTrx}')">🗑️ Hapus Transaksi Ini</button></div>`;
       modalBody.innerHTML = html;
       const modal = document.getElementById('detail-modal');
       if (modal) modal.style.display = 'flex';
     }
 
-    async function hapusTransaksi(idTrx: string) {
+    async function hapusTransaksi(idTrx) {
       if (!confirm("Hapus transaksi ini beserta semua rinciannya?")) return;
       showLoader(true);
       try {
@@ -827,7 +827,7 @@
         showToast(false);
         closeModal();
         loadHistoryBonSetor();
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         showToast(true);
       }
@@ -835,21 +835,17 @@
 
     // ==================== POSISI KAS ====================
     async function initPosisiKasTeller() {
-      const pkTanggal = document.getElementById('pk-tanggal') as HTMLInputElement;
+      const pkTanggal = document.getElementById('pk-tanggal');
       if (pkTanggal) pkTanggal.value = getLocalDateString();
       await loadDataPosisiKas();
     }
 
     async function loadDataPosisiKas() {
-      const tgl = (document.getElementById('pk-tanggal') as HTMLInputElement)?.value;
+      const tgl = (document.getElementById('pk-tanggal'))?.value;
       if (!tgl) return;
       showLoader(true, "Menghitung Posisi Kas...");
       try {
-        const rekap = await callApiGet<{
-          bonPagi: number; bonTambahan: number; setorTambahan: number; setorSore: number;
-          penerimaanDebet: number; pembayaranKredit: number; penerimaanAntar: number;
-          pembayaranAntar: number; isSaved: boolean; selisihPembulatan: number;
-        }>('/bon-setor', {
+        const rekap = await callApiGet('/bon-setor', {
           action: 'rekap-fisik',
           userEstim: currentUser.userEstim,
           tanggal: tgl
@@ -857,8 +853,8 @@
         showLoader(false);
         currentRekapFisik = rekap;
 
-        const setField = (id: string, val: number) => {
-          const el = document.getElementById(id) as HTMLInputElement;
+        const setField = (id, val) => {
+          const el = document.getElementById(id);
           if (el) { el.value = val.toLocaleString('id-ID'); el.setAttribute('data-val', String(val)); }
         };
         setField('pk-bonpagi', rekap.bonPagi);
@@ -866,11 +862,11 @@
         setField('pk-setortambahan', rekap.setorTambahan);
         setField('pk-setorsore', rekap.setorSore);
 
-        const penerimaanDebetEl = document.getElementById('pk-penerimaandebet') as HTMLInputElement;
-        const penerimaanAntarEl = document.getElementById('pk-penerimaanantar') as HTMLInputElement;
-        const pembayaranKreditEl = document.getElementById('pk-pembayarankredit') as HTMLInputElement;
-        const pembayaranAntarEl = document.getElementById('pk-pembayaranantar') as HTMLInputElement;
-        const selisihPembulatanEl = document.getElementById('pk-selisih-pembulatan') as HTMLInputElement;
+        const penerimaanDebetEl = document.getElementById('pk-penerimaandebet');
+        const penerimaanAntarEl = document.getElementById('pk-penerimaanantar');
+        const pembayaranKreditEl = document.getElementById('pk-pembayarankredit');
+        const pembayaranAntarEl = document.getElementById('pk-pembayaranantar');
+        const selisihPembulatanEl = document.getElementById('pk-selisih-pembulatan');
 
         if (penerimaanDebetEl) { penerimaanDebetEl.value = rekap.penerimaanDebet > 0 ? rekap.penerimaanDebet.toLocaleString('id-ID') : ''; penerimaanDebetEl.setAttribute('data-val', String(rekap.penerimaanDebet)); }
         if (penerimaanAntarEl) { penerimaanAntarEl.value = rekap.penerimaanAntar > 0 ? rekap.penerimaanAntar.toLocaleString('id-ID') : ''; penerimaanAntarEl.setAttribute('data-val', String(rekap.penerimaanAntar)); }
@@ -879,14 +875,14 @@
         if (selisihPembulatanEl) selisihPembulatanEl.value = String(rekap.selisihPembulatan);
 
         calcPosisi();
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         console.error("Error loadDataPosisiKas:", e);
       }
     }
 
     function calcPosisi() {
-      const getVal = (id: string): number => {
+      const getVal = (id) => {
         const el = document.getElementById(id);
         return el ? parseInt(el.getAttribute('data-val') || '0') || 0 : 0;
       };
@@ -898,18 +894,18 @@
       const penerimaanAntar = getVal('pk-penerimaanantar');
       const pembayaranKredit = getVal('pk-pembayarankredit');
       const pembayaranAntar = getVal('pk-pembayaranantar');
-      const selisihPembulatan = parseInt((document.getElementById('pk-selisih-pembulatan') as HTMLInputElement)?.value || '0') || 0;
+      const selisihPembulatan = parseInt((document.getElementById('pk-selisih-pembulatan'))?.value || '0') || 0;
 
       const saldoHariIni = bonPagi + bonTambahan + penerimaanDebet + penerimaanAntar - setorTambahan - pembayaranKredit - pembayaranAntar;
       const selisih = saldoHariIni - setorSore + selisihPembulatan;
 
-      const setDisplay = (id: string, val: number) => {
-        const el = document.getElementById(id) as HTMLInputElement;
+      const setDisplay = (id, val) => {
+        const el = document.getElementById(id);
         if (el) { el.value = val.toLocaleString('id-ID'); el.setAttribute('data-val', String(val)); }
       };
       setDisplay('pk-saldohariini', saldoHariIni);
 
-      const selisihTeksEl = document.getElementById('pk-selisih-teks') as HTMLInputElement;
+      const selisihTeksEl = document.getElementById('pk-selisih-teks');
       if (selisihTeksEl) {
         selisihTeksEl.value = selisih === 0 ? "BALANCE ✓" : (selisih > 0 ? "LEBIH Rp " + selisih.toLocaleString('id-ID') : "KURANG Rp " + Math.abs(selisih).toLocaleString('id-ID'));
         selisihTeksEl.style.color = selisih === 0 ? '#059669' : '#dc2626';
@@ -917,13 +913,13 @@
     }
 
     async function simpanPosisiManual() {
-      const getVal = (id: string): number => {
+      const getVal = (id) => {
         const el = document.getElementById(id);
         return el ? parseInt(el.getAttribute('data-val') || '0') || 0 : 0;
       };
 
       const dataObj = {
-        Tanggal: (document.getElementById('pk-tanggal') as HTMLInputElement).value,
+        Tanggal: (document.getElementById('pk-tanggal')).value,
         UserEstim: currentUser.userEstim,
         KodeCabang: currentUser.kodeCabang,
         KodeWilayah: currentUser.kodeWilayah,
@@ -934,8 +930,8 @@
         PembayaranAntarTeller: getVal('pk-pembayaranantar'),
         SaldoHariIni: getVal('pk-saldohariini'),
         SaldoFisik: getVal('pk-setorsore'),
-        Selisih: parseInt((document.getElementById('pk-selisih-teks') as HTMLInputElement)?.value?.replace(/[^0-9-]/g, '') || '0') || 0,
-        SelisihPembulatan: parseInt((document.getElementById('pk-selisih-pembulatan') as HTMLInputElement)?.value || '0') || 0,
+        Selisih: parseInt((document.getElementById('pk-selisih-teks'))?.value?.replace(/[^0-9-]/g, '') || '0') || 0,
+        SelisihPembulatan: parseInt((document.getElementById('pk-selisih-pembulatan'))?.value || '0') || 0,
         NamaUnit: currentUser.namaUnit,
       };
 
@@ -949,17 +945,17 @@
         try {
           await callApiPost('/notif-fonnte', { action: 'posisi-kas', data: dataObj });
         } catch { /* WA notification is best-effort */ }
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         showToast(true);
       }
     }
 
     async function loadHistoryPosisiKas() {
-      const bulanTahun = (document.getElementById('hist-pos-bulan') as HTMLInputElement)?.value || getLocalDateString().substring(0, 7);
+      const bulanTahun = (document.getElementById('hist-pos-bulan'))?.value || getLocalDateString().substring(0, 7);
       showLoader(true, "Memuat History Posisi Kas...");
       try {
-        const res = await callApiGet<Array<Record<string,unknown>>>('/posisi-kas', {
+        const res = await callApiGet('/posisi-kas', {
           action: 'history',
           userEstim: currentUser.userEstim,
           bulanTahun
@@ -968,15 +964,15 @@
         globalHistoryPosisi = res;
         let html = "";
         if (res.length === 0) {
-          html = '<tr><td colspan="8" style="text-align:center;">Tidak ada data history.</td></tr>';
+          html = '<td colspan="8" style="text-align:center;">Tidak ada data history.</td></tr>';
         } else {
-          res.forEach((r: any) => {
-            html += `<tr><td>${r.tanggal}</td><td style="text-align:right;">${r.saldoKemarin.toLocaleString('id-ID')}</td><td style="text-align:right;">${r.penerimaanTotal.toLocaleString('id-ID')}</td><td style="text-align:right;">${r.pembayaranTotal.toLocaleString('id-ID')}</td><td style="text-align:right;">${(r.selisihPembulatan || 0).toLocaleString('id-ID')}</td><td style="text-align:right;">${r.saldoHariIni.toLocaleString('id-ID')}</td><td style="text-align:right;">${r.saldoFisik.toLocaleString('id-ID')}</td><td style="text-align:right;">${r.selisih.toLocaleString('id-ID')}</td></tr>`;
+          res.forEach((r) => {
+            html += `${r.tanggal}</td><td style="text-align:right;">${r.saldoKemarin.toLocaleString('id-ID')}</td><td style="text-align:right;">${r.penerimaanTotal.toLocaleString('id-ID')}</td><td style="text-align:right;">${r.pembayaranTotal.toLocaleString('id-ID')}</td><td style="text-align:right;">${(r.selisihPembulatan || 0).toLocaleString('id-ID')}</td><td style="text-align:right;">${r.saldoHariIni.toLocaleString('id-ID')}</td><td style="text-align:right;">${r.saldoFisik.toLocaleString('id-ID')}</td><td style="text-align:right;">${r.selisih.toLocaleString('id-ID')}</td></tr>`;
           });
         }
         const histPosBody = document.getElementById('history-posisi-body');
         if (histPosBody) histPosBody.innerHTML = html;
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         console.error("Error loadHistoryPosisiKas:", e);
       }
@@ -986,7 +982,7 @@
     let currentTrxType = 'BON PAGI';
     let currentTrxScope = 'HEAD TELLER';
 
-    function bukaTrx(jenis: string, el: Element) {
+    function bukaTrx(jenis, ) {
       currentTrxType = jenis;
       if (jenis === 'TAMBAHAN') { currentTrxType = 'BON TAMBAHAN'; }
       nav('trx-kas', el);
@@ -998,7 +994,7 @@
       if (!titleEl) return;
       titleEl.innerText = 'Input Transaksi: ' + currentTrxType;
 
-      const tipeSelect = document.getElementById('trx-tipe') as HTMLSelectElement;
+      const tipeSelect = document.getElementById('trx-tipe');
       if (tipeSelect) {
         if (currentTrxType === 'TAMBAHAN' || currentTrxType === 'BON TAMBAHAN') {
           tipeSelect.innerHTML = '<option value="BON TAMBAHAN" selected>BON TAMBAHAN</option><option value="SETOR TAMBAHAN">SETOR TAMBAHAN</option>';
@@ -1012,11 +1008,11 @@
 
       setTodayDates();
       const trxIdTrx = document.getElementById('trx-idtrx');
-      if (trxIdTrx) (trxIdTrx as HTMLInputElement).value = generateIdTrx();
+      if (trxIdTrx) (trxIdTrx).value = generateIdTrx();
 
       // Generate input form for all pecahan
       let html = '<div style="display:flex; gap:20px; flex-wrap:wrap;">';
-      const pecahanList: Array<{kategori: string; pecahan: number|string}> = [];
+      const pecahanList = [];
       for (const cat in configUang) {
         if (cat === 'Lainnya') continue;
         for (const pec of configUang[cat]) {
@@ -1024,7 +1020,7 @@
         }
       }
       // Deduplicate
-      const seen = new Set<string>();
+      const seen = new Set();
       const uniquePecahan = pecahanList.filter(p => {
         const key = p.kategori + '_' + p.pecahan;
         if (seen.has(key)) return false;
@@ -1049,7 +1045,7 @@
       kalkulasiTotal('trx');
     }
 
-    function formatRupiahNominal(el: HTMLInputElement, kategori: string, pecahan: string, type: string) {
+    function formatRupiahNominal(, kategori, pecahan, type) {
       const raw = el.value.replace(/[^0-9]/g, '');
       el.setAttribute('data-val', raw || '0');
       el.value = raw ? parseInt(raw, 10).toLocaleString('id-ID') : '';
@@ -1063,7 +1059,7 @@
       kalkulasiTotal(type);
     }
 
-    function kalkulasiTotal(type: string) {
+    function kalkulasiTotal(type) {
       let total = 0;
       document.querySelectorAll('[id^="nominal_' + type + '_"]').forEach(el => {
         total += parseInt(el.getAttribute('data-val') || '0') || 0;
@@ -1075,11 +1071,11 @@
     }
 
     async function simpanTrxKas() {
-      const batch: Array<Record<string, unknown>> = [];
-      const idTrx = (document.getElementById('trx-idtrx') as HTMLInputElement).value;
-      const tanggal = (document.getElementById('trx-tanggal') as HTMLInputElement).value;
-      const tipe = (document.getElementById('trx-tipe') as HTMLSelectElement).value;
-      const scope = (document.getElementById('trx-scope') as HTMLSelectElement)?.value || 'HEAD TELLER';
+      const batch = [];
+      const idTrx = (document.getElementById('trx-idtrx')).value;
+      const tanggal = (document.getElementById('trx-tanggal')).value;
+      const tipe = (document.getElementById('trx-tipe')).value;
+      const scope = (document.getElementById('trx-scope'))?.value || 'HEAD TELLER';
 
       document.querySelectorAll('[id^="nominal_trx_"]').forEach(el => {
         const nominal = parseInt(el.getAttribute('data-val') || '0') || 0;
@@ -1115,7 +1111,7 @@
         showLoader(false);
         showToast(false);
         resetTrxKas();
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         showToast(true);
       }
@@ -1123,10 +1119,10 @@
 
     function resetTrxKas() {
       const trxIdTrx = document.getElementById('trx-idtrx');
-      if (trxIdTrx) (trxIdTrx as HTMLInputElement).value = generateIdTrx();
+      if (trxIdTrx) (trxIdTrx).value = generateIdTrx();
       setTodayDates();
       document.querySelectorAll('[id^="nominal_trx_"]').forEach(el => {
-        (el as HTMLInputElement).value = '';
+        (el).value = '';
         el.setAttribute('data-val', '0');
       });
       document.querySelectorAll('[id^="lembar_trx_"]').forEach(el => { el.innerHTML = '0'; });
@@ -1135,10 +1131,10 @@
 
     async function loadSetorSoreKemarin() {
       const tglKemarin = getDefaultH1();
-      (document.getElementById('trx-tgl-kemarin') as HTMLInputElement).value = tglKemarin;
+      (document.getElementById('trx-tgl-kemarin')).value = tglKemarin;
       showLoader(true, "Menarik data kemarin...");
       try {
-        const res = await callApiGet<Array<Record<string,unknown>>>('/bon-setor', {
+        const res = await callApiGet('/bon-setor', {
           action: 'setor-sore-kemarin',
           userEstim: currentUser.userEstim,
           tanggal: tglKemarin
@@ -1146,20 +1142,20 @@
         showLoader(false);
         if (res.length === 0) { alert("Tidak ada data SETOR SORE kemarin."); return; }
         // Pre-fill form fields
-        document.querySelectorAll('[id^="nominal_trx_"]').forEach(el => { (el as HTMLInputElement).value = ''; el.setAttribute('data-val', '0'); });
+        document.querySelectorAll('[id^="nominal_trx_"]').forEach(el => { (el).value = ''; el.setAttribute('data-val', '0'); });
         res.forEach(r => {
           const safePecahan = String(r.pecahan).replace(/ /g, '');
-          const idSuffix = `${(r.kategori as string).replace(/ /g, '')}_${safePecahan}`;
-          const inputEl = document.getElementById('nominal_trx_' + idSuffix) as HTMLInputElement;
+          const idSuffix = `${(r.kategori).replace(/ /g, '')}_${safePecahan}`;
+          const inputEl = document.getElementById('nominal_trx_' + idSuffix);
           if (inputEl) {
-            inputEl.value = (r.nominal as number).toLocaleString('id-ID');
+            inputEl.value = (r.nominal).toLocaleString('id-ID');
             inputEl.setAttribute('data-val', String(r.nominal));
           }
           const lembarEl = document.getElementById('lembar_trx_' + idSuffix);
           if (lembarEl) lembarEl.innerText = String(r.lembar);
         });
         kalkulasiTotal('trx');
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         console.error("Error loadSetorSoreKemarin:", e);
       }
@@ -1167,7 +1163,7 @@
 
     // ==================== PERKIRAAN ====================
     async function initPerkiraanTeller() {
-      const tglEl = document.getElementById('pt-tgl') as HTMLInputElement;
+      const tglEl = document.getElementById('pt-tgl');
       if (!tglEl?.value) {
         showLoader(true, "Mengecek Hari Kerja...");
         const dateStr = await getServerNextWorkingDay();
@@ -1178,18 +1174,18 @@
     }
 
     async function loadPerkiraanTeller() {
-      const tgl = (document.getElementById('pt-tgl') as HTMLInputElement)?.value;
+      const tgl = (document.getElementById('pt-tgl'))?.value;
       if (!tgl) return;
       showLoader(true, "Memuat Data...");
       try {
-        const res = await callApiGet<{p100k_setor: number; p100k_bon: number; p50k_setor: number; p50k_bon: number}>('/perkiraan', {
+        const res = await callApiGet('/perkiraan', {
           action: 'teller',
           userEstim: currentUser.userEstim,
           tanggal: tgl
         });
         showLoader(false);
-        const setField = (id: string, val: number) => {
-          const el = document.getElementById(id) as HTMLInputElement;
+        const setField = (id, val) => {
+          const el = document.getElementById(id);
           if (el) { el.value = val ? val.toLocaleString('id-ID') : ''; el.setAttribute('data-val', String(val)); }
         };
         setField('pt-100-setor', res.p100k_setor);
@@ -1197,14 +1193,14 @@
         setField('pt-50-setor', res.p50k_setor);
         setField('pt-50-bon', res.p50k_bon);
         calcPerkiraanTeller();
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         console.error("Error loadPerkiraanTeller:", e);
       }
     }
 
     function calcPerkiraanTeller() {
-      const getVal = (id: string): number => parseInt(document.getElementById(id)?.getAttribute('data-val') || '0') || 0;
+      const getVal = (id) => parseInt(document.getElementById(id)?.getAttribute('data-val') || '0') || 0;
       const s100 = getVal('pt-100-setor'), b100 = getVal('pt-100-bon'), s50 = getVal('pt-50-setor'), b50 = getVal('pt-50-bon');
       const totSetor = s100 + s50, totBon = b100 + b50;
 
@@ -1220,7 +1216,7 @@
 
     async function simpanPerkiraanTeller() {
       const obj = {
-        tanggal: (document.getElementById('pt-tgl') as HTMLInputElement).value,
+        tanggal: (document.getElementById('pt-tgl')).value,
         userEstim: currentUser.userEstim,
         kodeWilayah: currentUser.kodeWilayah,
         role: currentUser.role,
@@ -1234,7 +1230,7 @@
         await callApiPost('/perkiraan', obj);
         showLoader(false);
         showToast(false);
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         showToast(true);
       }
@@ -1244,20 +1240,20 @@
     async function loadFonnteSettings() {
       showLoader(true);
       try {
-        const res = await callApiGet<Record<string, string> | null>('/setting-fonnte');
+        const res = await callApiGet('/setting-fonnte');
         showLoader(false);
         if (res) {
-          (document.getElementById('fn-token') as HTMLInputElement).value = res.token || '';
-          (document.getElementById('fn-nohp') as HTMLInputElement).value = res.noHp || '';
-          (document.getElementById('fn-waktu') as HTMLInputElement).value = res.waktu || '16:00';
-          (document.getElementById('fn-kf-token') as HTMLInputElement).value = res.tokenKF || '';
-          (document.getElementById('fn-kf-target') as HTMLInputElement).value = res.targetKF || '';
-          (document.getElementById('fn-tukab-target') as HTMLInputElement).value = res.targetTukab || '';
-          (document.getElementById('fn-h1-target') as HTMLInputElement).value = res.targetPerkiraanH1 || '';
-          (document.getElementById('fn-h1-waktu') as HTMLInputElement).value = res.waktuPerkiraanH1 || '07:00';
-          (document.getElementById('fn-posisi-kf-target') as HTMLInputElement).value = res.targetPosisiKas || '';
+          (document.getElementById('fn-token')).value = res.token || '';
+          (document.getElementById('fn-nohp')).value = res.noHp || '';
+          (document.getElementById('fn-waktu')).value = res.waktu || '16:00';
+          (document.getElementById('fn-kf-token')).value = res.tokenKF || '';
+          (document.getElementById('fn-kf-target')).value = res.targetKF || '';
+          (document.getElementById('fn-tukab-target')).value = res.targetTukab || '';
+          (document.getElementById('fn-h1-target')).value = res.targetPerkiraanH1 || '';
+          (document.getElementById('fn-h1-waktu')).value = res.waktuPerkiraanH1 || '07:00';
+          (document.getElementById('fn-posisi-kf-target')).value = res.targetPosisiKas || '';
         }
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         console.error("Error loadFonnteSettings:", e);
       }
@@ -1265,22 +1261,22 @@
 
     async function simpanFonnteSettings() {
       const obj = {
-        token: (document.getElementById('fn-token') as HTMLInputElement).value,
-        noHp: (document.getElementById('fn-nohp') as HTMLInputElement).value,
-        waktu: (document.getElementById('fn-waktu') as HTMLInputElement).value,
-        tokenKF: (document.getElementById('fn-kf-token') as HTMLInputElement).value,
-        targetKF: (document.getElementById('fn-kf-target') as HTMLInputElement).value,
-        targetTukab: (document.getElementById('fn-tukab-target') as HTMLInputElement).value,
-        waktuPerkiraanH1: (document.getElementById('fn-h1-waktu') as HTMLInputElement).value,
-        targetPerkiraanH1: (document.getElementById('fn-h1-target') as HTMLInputElement).value,
-        targetPosisiKas: (document.getElementById('fn-posisi-kf-target') as HTMLInputElement).value,
+        token: (document.getElementById('fn-token')).value,
+        noHp: (document.getElementById('fn-nohp')).value,
+        waktu: (document.getElementById('fn-waktu')).value,
+        tokenKF: (document.getElementById('fn-kf-token')).value,
+        targetKF: (document.getElementById('fn-kf-target')).value,
+        targetTukab: (document.getElementById('fn-tukab-target')).value,
+        waktuPerkiraanH1: (document.getElementById('fn-h1-waktu')).value,
+        targetPerkiraanH1: (document.getElementById('fn-h1-target')).value,
+        targetPosisiKas: (document.getElementById('fn-posisi-kf-target')).value,
       };
       showLoader(true, "Menyimpan pengaturan...");
       try {
         await callApiPost('/setting-fonnte', obj);
         showLoader(false);
         showToast(false);
-      } catch (e: unknown) {
+      } catch (e) {
         showLoader(false);
         showToast(true);
       }
@@ -1298,18 +1294,18 @@
     function initViewRincianKF() { /* ... */ }
     function initHistoryHT() { /* ... */ }
     function initPesananNasabah() { /* ... */ }
-    function initCetakKF(type: string) { /* ... */ }
+    function initCetakKF(type) { /* ... */ }
     function renderInputKhasanah() { /* ... */ }
     function loadDataPegawai() { /* ... */ }
     function loadDataPejabatHT() { /* ... */ }
     function checkTrxDateChange() { /* ... */ }
-    function formatRupiahInput(el: HTMLInputElement) {
+    function formatRupiahInput() {
       const raw = el.value.replace(/[^0-9]/g, '');
       el.setAttribute('data-val', raw || '0');
       el.value = raw ? parseInt(raw, 10).toLocaleString('id-ID') : '';
       calcPerkiraanTeller();
     }
-    function formatRupiahPosisi(el: HTMLInputElement) {
+    function formatRupiahPosisi() {
       const val = el.value.replace(/[^0-9,]/g, '');
       const parts = val.split(',');
       if (parts.length > 2) parts.splice(2);
