@@ -950,8 +950,7 @@
     };
 
     (function(){
-      var _successCb = null, _failureCb = null;
-      function _callApi(method, endpoint, paramNames, args) {
+      function _callApi(method, endpoint, paramNames, args, successCb, failureCb) {
         var url = _API + endpoint;
         var headers = { 'Content-Type':'application/json' };
         var token = localStorage.getItem('kasmonitor_token') || '';
@@ -960,7 +959,6 @@
         var options = { method: method, headers: headers };
         var sp = new URLSearchParams();
 
-        // Add fixed params (those starting with ? in paramNames)
         if (paramNames) {
           for (var i = 0; i < paramNames.length; i++) {
             if (paramNames[i].indexOf('?') === 0) {
@@ -975,10 +973,9 @@
         } else if (method === 'POST' && args && args.length > 0) {
           options.body = JSON.stringify(args[0]);
         } else if (method === 'GET' && args && args.length > 0) {
-          // Map positional args to named params (skip fixed params)
           var argIdx = 0;
           for (var j = 0; paramNames && j < paramNames.length; j++) {
-            if (paramNames[j].indexOf('?') === 0) continue; // skip fixed
+            if (paramNames[j].indexOf('?') === 0) continue;
             if (argIdx < args.length && args[argIdx] !== undefined && args[argIdx] !== null) {
               sp.append(paramNames[j], args[argIdx]);
             }
@@ -989,35 +986,39 @@
         var qs = sp.toString();
         if (qs) url += '?' + qs;
 
-        return fetch(url, options).then(function(r){
-          return r.json().then(function(j){
-            if (!j.success) throw new Error(j.error || 'API Error');
-            return j.data;
-          });
+        fetch(url, options).then(function(r){
+          return r.json();
+        }).then(function(j){
+          if (!j.success) throw new Error(j.error || 'API Error');
+          if (successCb) successCb(j.data);
+        }).catch(function(err){
+          if (failureCb) failureCb(err);
+          else console.error('API Error:', err);
         });
       }
 
-      window.google = { script: { run: new Proxy({}, {
-        get: function(_, name) {
-          return function() {
-            var args = Array.prototype.slice.call(arguments);
-            var entry = _GAS_MAP[name];
-            if (!entry) { console.warn('GAS function not mapped:', name);
-              var dummy = { withSuccessHandler:function(cb){ _successCb=cb; return dummy; }, withFailureHandler:function(cb){ _failureCb=cb; return dummy; } };
-              return dummy;
-            }
-            var method = entry[0], endpoint = entry[1];
-            var paramNames = entry.slice(2);
-            var promise = _callApi(method, endpoint, paramNames, args);
-            var obj = { withSuccessHandler: function(cb) { _successCb = cb; return obj; }, withFailureHandler: function(cb) { _failureCb = cb; return obj; } };
-            setTimeout(function(){
-              promise.then(function(data){ if(_successCb) _successCb(data); })
-                     .catch(function(err){ if(_failureCb) _failureCb(err); else console.error('API Error:', err); });
-            }, 10);
-            return obj;
-          };
-        }
-      }) } };
+      // Build google.script.run with all GAS functions
+      var _run = { _scb: null, _fcb: null };
+      _run.withSuccessHandler = function(cb) { _run._scb = cb; return _run; };
+      _run.withFailureHandler = function(cb) { _run._fcb = cb; return _run; };
+
+      // Add all GAS functions as methods
+      Object.keys(_GAS_MAP).forEach(function(fnName) {
+        _run[fnName] = function() {
+          var args = Array.prototype.slice.call(arguments);
+          var entry = _GAS_MAP[fnName];
+          var method = entry[0], endpoint = entry[1];
+          var paramNames = entry.slice(2);
+          // Add delay to allow withSuccessHandler/withFailureHandler chain
+          var scb = _run._scb, fcb = _run._fcb;
+          _run._scb = null; _run._fcb = null; // reset for next call
+          setTimeout(function(){
+            _callApi(method, endpoint, paramNames, args, scb, fcb);
+          }, 10);
+        };
+      });
+
+      window.google = { script: { run: _run } };
     })();
 
     let currentUser = {}; let globalHistoryData = []; let allUsersData = []; let globalPosisiHT = []; let globalHistoryPosisi = [];
