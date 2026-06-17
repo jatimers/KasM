@@ -41,6 +41,7 @@
     .sidebar { width: 260px; min-width: 260px; background: var(--surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; overflow: hidden; transition: 0.3s; z-index: 99; height: 100vh; }
     .sidebar h2 { text-align: center; margin: 0; padding: 25px 20px; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); color: var(--primary-red); background: #f8fafc; flex-shrink: 0; }
     .sidebar-scroll { flex: 1; overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+    .sidebar-logout-top { flex-shrink: 0; padding: 8px 16px; }
     .sidebar-footer { flex-shrink: 0; border-top: 1px solid var(--border-color); }
     .menu-item { padding: 14px 20px; cursor: pointer; transition: 0.2s; font-weight: 500; border-left: 4px solid transparent; color: var(--text-muted); font-size: 0.95rem;}
     .menu-item:hover, .menu-item.active { background: var(--light-red); border-left: 4px solid var(--primary-red); color: var(--primary-red); }
@@ -229,7 +230,9 @@
       <span id="user-kode-wilayah" style="font-size:0.75rem; display:block; margin-top:8px; font-weight:600; color:var(--primary-red);"></span>
       <span id="user-kode-cabang" style="font-size:0.75rem; display:block; color:var(--text-muted);"></span>
     </h2>
-    
+    <div class="sidebar-logout-top">
+      <button onclick="logout()" style="width:100%; padding:10px; background:#dc2626; color:white; border:none; border-radius:6px; font-weight:700; font-size:0.9rem; cursor:pointer;">🚪 LOGOUT</button>
+    </div>
     <div class="sidebar-scroll">
     <div class="role-menu menu-admin">
       <div class="role-title">ADMINISTRATOR</div>
