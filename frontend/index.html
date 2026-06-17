@@ -1072,14 +1072,6 @@ function initCetakKF(type) {
 }
 
     // --- Tambahkan fungsi helper ini di bagian atas tag <script> ---
-function getLocalDateString() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = ("0" + (d.getMonth() + 1)).slice(-2);
-  const day = ("0" + d.getDate()).slice(-2);
-  return `${year}-${month}-${day}`;
-}
-
 function initLapCluis() {
       document.getElementById('cluis-tgl').value = getLocalDateString();
       loadLapCluis();

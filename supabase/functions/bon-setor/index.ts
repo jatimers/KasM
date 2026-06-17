@@ -321,8 +321,28 @@ Deno.serve(async (req: Request) => {
       const body = await req.json();
 
       if (Array.isArray(body)) {
-        // Batch save
-        for (const row of body) {
+        // Batch save — supports both array format (from legacy frontend) and object format
+        for (const rowRaw of body) {
+          let row: any;
+          if (Array.isArray(rowRaw)) {
+            // Legacy format: [idTrx, tgl, userEstim, tipe, kategori, pecahan, lembar, nominal, kodeCabang, kodeWilayah, scope]
+            row = {
+              id_transaksi: String(rowRaw[0] || ""),
+              tanggal: String(rowRaw[1] || ""),
+              user_estim: String(rowRaw[2] || ""),
+              tipe: String(rowRaw[3] || ""),
+              kategori: String(rowRaw[4] || ""),
+              pecahan: String(rowRaw[5] || ""),
+              lembar: parseInt(String(rowRaw[6])) || 0,
+              nominal: parseInt(String(rowRaw[7])) || 0,
+              kode_cabang: String(rowRaw[8] || ""),
+              kode_wilayah: String(rowRaw[9] || ""),
+              scope: String(rowRaw[10] || "KHASANAH"),
+            };
+          } else {
+            row = rowRaw;
+          }
+
           const safeRow: BonSetorRow = {
             id_transaksi: row.idTransaksi || row.id_transaksi,
             tanggal: row.tanggal,
