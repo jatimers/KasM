@@ -417,22 +417,49 @@
       <div id="perkiraan-teller" class="page">
         <div class="header-page"><div><h3>Input Perkiraan Bon / Setor</h3><p style="margin: 5px 0 0 0;">Masukkan nominal kebutuhan fisik esok hari.</p></div><button class="btn-refresh" onclick="loadPerkiraanTeller()">🔄 Refresh</button></div>
         <div class="form-row"><div class="form-group"><label>Tanggal Perkiraan (Default: Hari Kerja Berikutnya)</label><input type="date" id="pt-tgl" onchange="loadPerkiraanTeller()"></div></div>
-        <div class="table-responsive">
-          <table>
-            <thead><tr><th>Pecahan</th><th style="text-align:right;">Perkiraan Setor (Rp)</th><th style="text-align:right;">Perkiraan Bon (Rp)</th></tr></thead>
-            <tbody>
-              <tr>
-                <td style="font-weight:600; color:#0284c7; font-size:1.1rem;">100.000</td>
-                <td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 10px; width:100%;"><span style="font-weight:700; color:#475569; margin-right:8px;">Rp</span><input type="text" id="pt-100-setor" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:12px 0; font-size:1rem; min-width:0;"></div></td>
-                <td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 10px; width:100%;"><span style="font-weight:700; color:#475569; margin-right:8px;">Rp</span><input type="text" id="pt-100-bon" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:12px 0; font-size:1rem; min-width:0;"></div></td>
-              </tr>
-              <tr>
-                <td style="font-weight:600; color:#0284c7; font-size:1.1rem;">50.000</td>
-                <td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 10px; width:100%;"><span style="font-weight:700; color:#475569; margin-right:8px;">Rp</span><input type="text" id="pt-50-setor" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:12px 0; font-size:1rem; min-width:0;"></div></td>
-                <td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 10px; width:100%;"><span style="font-weight:700; color:#475569; margin-right:8px;">Rp</span><input type="text" id="pt-50-bon" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:12px 0; font-size:1rem; min-width:0;"></div></td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- FORM PERKIRAAN: Card Layout dengan warna SETOR (hijau) vs BON (merah) -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <!-- PECAHAN 100.000 -->
+          <div style="background:#fff; border:2px solid #0284c7; border-radius:12px; overflow:hidden;">
+            <div style="background:#0284c7; color:#fff; padding:10px 16px; font-weight:700; font-size:1.05rem;">💵 PECAHAN Rp 100.000</div>
+            <div style="padding:12px 16px; display:flex; flex-direction:column; gap:10px;">
+              <div>
+                <label style="display:block; font-weight:700; color:#059669; margin-bottom:4px; font-size:0.9rem;">📥 SETOR (Uang Masuk / Kelebihan)</label>
+                <div style="display:flex; align-items:center; background:#ecfdf5; border:2px solid #10b981; border-radius:8px; padding:0 12px;">
+                  <span style="font-weight:700; color:#047857; margin-right:8px;">Rp</span>
+                  <input type="text" id="pt-100-setor" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:14px 0; font-size:1.1rem; min-width:0; color:#047857;">
+                </div>
+              </div>
+              <div>
+                <label style="display:block; font-weight:700; color:#dc2626; margin-bottom:4px; font-size:0.9rem;">📤 BON (Uang Keluar / Kebutuhan)</label>
+                <div style="display:flex; align-items:center; background:#fef2f2; border:2px solid #ef4444; border-radius:8px; padding:0 12px;">
+                  <span style="font-weight:700; color:#b91c1c; margin-right:8px;">Rp</span>
+                  <input type="text" id="pt-100-bon" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:14px 0; font-size:1.1rem; min-width:0; color:#b91c1c;">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PECAHAN 50.000 -->
+          <div style="background:#fff; border:2px solid #0369a1; border-radius:12px; overflow:hidden;">
+            <div style="background:#0369a1; color:#fff; padding:10px 16px; font-weight:700; font-size:1.05rem;">💵 PECAHAN Rp 50.000</div>
+            <div style="padding:12px 16px; display:flex; flex-direction:column; gap:10px;">
+              <div>
+                <label style="display:block; font-weight:700; color:#059669; margin-bottom:4px; font-size:0.9rem;">📥 SETOR (Uang Masuk / Kelebihan)</label>
+                <div style="display:flex; align-items:center; background:#ecfdf5; border:2px solid #10b981; border-radius:8px; padding:0 12px;">
+                  <span style="font-weight:700; color:#047857; margin-right:8px;">Rp</span>
+                  <input type="text" id="pt-50-setor" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:14px 0; font-size:1.1rem; min-width:0; color:#047857;">
+                </div>
+              </div>
+              <div>
+                <label style="display:block; font-weight:700; color:#dc2626; margin-bottom:4px; font-size:0.9rem;">📤 BON (Uang Keluar / Kebutuhan)</label>
+                <div style="display:flex; align-items:center; background:#fef2f2; border:2px solid #ef4444; border-radius:8px; padding:0 12px;">
+                  <span style="font-weight:700; color:#b91c1c; margin-right:8px;">Rp</span>
+                  <input type="text" id="pt-50-bon" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:14px 0; font-size:1.1rem; min-width:0; color:#b91c1c;">
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="summary-box" style="margin-top:25px; text-align:center; background:#eff6ff; border-left-color:#3b82f6;">
           <h3 style="margin:0; border:none; color:#1e40af;">TOTAL ESTIMASI KEBUTUHAN ANDA</h3>
@@ -2093,7 +2120,21 @@ function formatRupiahPosisi(el) {
     function simpanPerkiraanTeller() {
       let obj = { tanggal: document.getElementById('pt-tgl').value, userEstim: currentUser.userEstim, kodeWilayah: currentUser.kodeWilayah, role: currentUser.role, p100k_setor: parseInt(document.getElementById('pt-100-setor').getAttribute('data-val')) || 0, p100k_bon: parseInt(document.getElementById('pt-100-bon').getAttribute('data-val')) || 0, p50k_setor: parseInt(document.getElementById('pt-50-setor').getAttribute('data-val')) || 0, p50k_bon: parseInt(document.getElementById('pt-50-bon').getAttribute('data-val')) || 0 };
       showLoader(true, "Menyimpan data...");
-      google.script.run.withSuccessHandler(() => { showLoader(false); showToast(false); }).savePerkiraanTeller(obj);
+      google.script.run.withSuccessHandler(() => {
+        showLoader(false);
+        showToast(false);
+        // Trigger notifikasi WA: kirim rekap perkiraan ke KF
+        var tglSimpan = obj.tanggal;
+        var wilSimpan = obj.kodeWilayah || 'ALL';
+        fetch('https://jwsfsczgyqphoyflpjnm.supabase.co/functions/v1/notif-fonnte', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({action: 'perkiraan-kf', tanggal: tglSimpan, kodeWilayah: wilSimpan})
+        }).then(function(r){ return r.json(); }).then(function(resp){
+          if(resp && resp.success) console.log('✅ Notif WA perkiraan-kf terkirim');
+          else console.warn('⚠️ Notif WA gagal:', resp);
+        }).catch(function(e){ console.error('❌ Notif WA error:', e); });
+      }).savePerkiraanTeller(obj);
     }
 
     function initPerkiraanHT() {
