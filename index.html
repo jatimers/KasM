@@ -38,7 +38,7 @@
     .mobile-header { display: none; background: var(--surface); color: var(--primary-red); padding: 15px 20px; justify-content: space-between; align-items: center; width: 100%; border-bottom: 1px solid var(--border-color); z-index: 100; }
     .hamburger { background: none; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; }
     
-    .sidebar { width: 260px; min-width: 260px; background: var(--surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; overflow-y: auto; transition: 0.3s; z-index: 99; }
+    .sidebar { width: 260px; min-width: 260px; background: var(--surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; overflow-y: auto; transition: 0.3s; z-index: 99; height: 100vh; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
     .sidebar h2 { text-align: center; margin: 0; padding: 25px 20px; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); color: var(--primary-red); background: #f8fafc; }
     .menu-item { padding: 14px 20px; cursor: pointer; transition: 0.2s; font-weight: 500; border-left: 4px solid transparent; color: var(--text-muted); font-size: 0.95rem;}
     .menu-item:hover, .menu-item.active { background: var(--light-red); border-left: 4px solid var(--primary-red); color: var(--primary-red); }
