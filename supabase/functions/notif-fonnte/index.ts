@@ -46,7 +46,10 @@ async function getSetting() {
 async function sendLaporanHT(tgl: string, kodeWilayah: string, setting: any): Promise<string> {
   const token = setting?.token;
   const target = cleanStr(setting?.no_hp || "");
-  if (!token || !target) return "Token/NoHP belum diatur";
+  if (!token || !target) {
+    console.error("[sendLaporanHT] GAGAL: Token/NoHP belum diatur");
+    return "ERROR: Token/NoHP belum diatur";
+  }
 
   // Query laporan-ht to get grand total
   const laporUrl = `${Deno.env.get("SB_URL")}/functions/v1/laporan-ht?action=saldo-kas&tanggal=${tgl}&kodeWilayah=${kodeWilayah}`;
@@ -84,7 +87,10 @@ async function sendLaporanHT(tgl: string, kodeWilayah: string, setting: any): Pr
 async function sendPosisiKas(dataObj: any, setting: any): Promise<string> {
   const token = setting?.token_kf;
   const target = cleanStr(setting?.target_posisi_kas || "");
-  if (!token || !target) return "Token/Target Posisi Kas belum diatur";
+  if (!token || !target) {
+    console.error("[sendPosisiKas] GAGAL: Token/Target Posisi Kas belum diatur");
+    return "ERROR: Token/Target Posisi Kas belum diatur";
+  }
 
   // Find next working day
   const liburMap = await getLiburMap();
@@ -138,7 +144,10 @@ async function sendPosisiKas(dataObj: any, setting: any): Promise<string> {
 async function sendPerkiraanKF(tgl: string, kodeWilayah: string, setting: any): Promise<string> {
   const token = setting?.token_kf;
   const target = cleanStr(setting?.target_kf || "");
-  if (!token || !target) return "Token KF/Target belum diatur";
+  if (!token || !target) {
+    console.error("[sendPerkiraanKF] GAGAL: Token KF/Target belum diatur");
+    return "ERROR: Token KF/Target belum diatur";
+  }
 
   // Get rekap perkiraan
   const perkUrl = `${Deno.env.get("SB_URL")}/functions/v1/perkiraan?action=rekap&tanggal=${tgl}&kodeWilayah=${kodeWilayah}&tglHariIni=${new Date().toISOString().split("T")[0]}`;
@@ -176,7 +185,10 @@ async function sendPerkiraanKF(tgl: string, kodeWilayah: string, setting: any): 
 async function sendAnalisaTukab(tgl: string, kodeWilayah: string, setting: any): Promise<string> {
   const token = setting?.token_kf;
   const target = cleanStr(setting?.target_tukab || "");
-  if (!token || !target) return "Token KF/Target TUKAB belum diatur";
+  if (!token || !target) {
+    console.error("[sendAnalisaTukab] GAGAL: Token KF/Target TUKAB belum diatur");
+    return "ERROR: Token KF/Target TUKAB belum diatur";
+  }
 
   const perkUrl = `${Deno.env.get("SB_URL")}/functions/v1/perkiraan?action=rekap&tanggal=${tgl}&kodeWilayah=${kodeWilayah}&tglHariIni=${new Date().toISOString().split("T")[0]}`;
   const perkResp = await fetch(perkUrl, {
@@ -239,7 +251,10 @@ async function sendAnalisaTukab(tgl: string, kodeWilayah: string, setting: any):
 async function sendPerkiraanH1(tgl: string, kodeWilayah: string, setting: any): Promise<string> {
   const token = setting?.token_kf;
   const target = cleanStr(setting?.target_perkiraan_h1 || "");
-  if (!token || !target) return "Token/Target H-1 belum diatur";
+  if (!token || !target) {
+    console.error(`[sendPerkiraanH1] GAGAL: token_kf=${!!token}, target_perkiraan_h1="${target}"`);
+    return "ERROR: Token/Target H-1 belum diatur — cek halaman Setting Fonnte";
+  }
 
   const todayISO = new Date().toISOString().split("T")[0];
   const perkUrl = `${Deno.env.get("SB_URL")}/functions/v1/perkiraan?action=rekap&tanggal=${tgl}&kodeWilayah=${kodeWilayah}&tglHariIni=${todayISO}`;
@@ -322,24 +337,42 @@ Deno.serve(async (req: Request) => {
         result = await sendPerkiraanH1(tgl, kodeWilayah, setting);
         break;
 
-      // === SCHEDULED TASKS (called by pg_cron) ===
+      // === SCHEDULED TASKS (called by GitHub Actions cron / pg_cron) ===
       case "scheduled-laporan-ht": {
+        console.log(`[scheduled-laporan-ht] Triggered at ${new Date().toISOString()}`);
         const liburMap = await getLiburMap();
         const today = new Date().toISOString().split("T")[0];
+        console.log(`[scheduled-laporan-ht] today=${today}, liburKeys=${Object.keys(liburMap).join(",") || "(none)"}`);
         if (!isWorkingDay(today, liburMap)) {
+          console.log(`[scheduled-laporan-ht] Hari libur/weekend (${today}), skip`);
           return successResponse("Hari libur/weekend, skip");
         }
+        // Pre-check settings
+        if (!setting?.token || !cleanStr(setting?.no_hp || "")) {
+          console.error("[scheduled-laporan-ht] Setting token/no_hp kosong — cek halaman Setting Fonnte");
+          return errorResponse("Setting Laporan HT belum lengkap (token/no_hp kosong)", 400);
+        }
         result = await sendLaporanHT(today, "ALL", setting);
+        console.log(`[scheduled-laporan-ht] Result: ${result.substring(0, 150)}`);
         break;
       }
 
       case "scheduled-perkiraan-h1": {
+        console.log(`[scheduled-perkiraan-h1] Triggered at ${new Date().toISOString()}`);
         const liburMap = await getLiburMap();
         const today = new Date().toISOString().split("T")[0];
+        console.log(`[scheduled-perkiraan-h1] today=${today}, liburKeys=${Object.keys(liburMap).join(",") || "(none)"}`);
         if (!isWorkingDay(today, liburMap)) {
+          console.log(`[scheduled-perkiraan-h1] Hari libur/weekend (${today}), skip`);
           return successResponse("Hari libur/weekend, skip");
         }
+        // Pre-check settings (critical: jangan silent-fail seperti sebelumnya)
+        if (!setting?.token_kf || !cleanStr(setting?.target_perkiraan_h1 || "")) {
+          console.error("[scheduled-perkiraan-h1] Setting token_kf/target_perkiraan_h1 kosong — cek halaman Setting Fonnte");
+          return errorResponse("Setting Perkiraan H-1 belum lengkap (token_kf/target_perkiraan_h1 kosong)", 400);
+        }
         result = await sendPerkiraanH1(today, "ALL", setting);
+        console.log(`[scheduled-perkiraan-h1] Fonnte response: ${result.substring(0, 150)}`);
         break;
       }
 
@@ -347,9 +380,16 @@ Deno.serve(async (req: Request) => {
         return errorResponse("Invalid action: " + action);
     }
 
+    // Jika send function mengembalikan prefix ERROR, jangan di-wrap sebagai success
+    if (typeof result === "string" && result.startsWith("ERROR:")) {
+      console.error(`[notif-fonnte] Action ${action} failed: ${result}`);
+      return errorResponse(result.replace("ERROR: ", ""), 400);
+    }
+
     return successResponse(result);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
+    console.error(`[notif-fonnte] Exception: ${msg}`);
     return errorResponse("ERROR: " + msg, 500);
   }
 });

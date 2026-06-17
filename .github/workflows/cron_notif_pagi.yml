@@ -1,0 +1,25 @@
+name: WA Notifikasi Pagi — Summary Perkiraan H-1
+
+on:
+  schedule:
+    # 07:00 WIB (00:00 UTC) setiap Senin-Jumat
+    - cron: '0 0 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  send-perkiraan-h1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Perkiraan H-1 (Bon Pagi)
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            https://jwsfsczgyqphoyflpjnm.supabase.co/functions/v1/notif-fonnte \
+            -H "Content-Type: application/json" \
+            -d '{"action":"scheduled-perkiraan-h1"}')
+          echo "Response: $RESPONSE"
+          if echo "$RESPONSE" | grep -q '"success":true'; then
+            echo "✅ Notifikasi pagi berhasil dikirim"
+          else
+            echo "❌ Notifikasi pagi gagal: $RESPONSE"
+            exit 1
+          fi

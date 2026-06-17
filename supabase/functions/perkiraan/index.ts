@@ -85,8 +85,30 @@ Deno.serve(async (req: Request) => {
           });
         }
 
-        // Get khasanah ULE saldo (simplified)
+        // Get khasanah ULE saldo dari saldo_awal_ht
         let k100 = 0, k50 = 0;
+        try {
+          // Ambil saldo ULE terbaru (tanggal <= tgl yang diminta)
+          const { data: saldoULE } = await supabase
+            .from("saldo_awal_ht")
+            .select("tanggal, pecahan, nominal")
+            .eq("kategori", "ULE")
+            .lte("tanggal", tgl)
+            .order("tanggal", { ascending: false });
+
+          if (saldoULE && saldoULE.length > 0) {
+            const latestTgl = saldoULE[0].tanggal;
+            for (const row of saldoULE) {
+              if (row.tanggal !== latestTgl) continue;
+              const pec = parseInt(String(row.pecahan));
+              if (pec === 100000) k100 += Number(row.nominal) || 0;
+              if (pec === 50000) k50 += Number(row.nominal) || 0;
+            }
+          }
+        } catch (_) {
+          // Fallback ke 0 jika query gagal
+          console.warn("[perkiraan/rekap] Gagal query saldo_awal_ht, khasanah default ke 0");
+        }
 
         return successResponse({
           list: result,

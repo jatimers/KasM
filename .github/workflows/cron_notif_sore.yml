@@ -1,0 +1,25 @@
+name: WA Notifikasi Sore — Laporan HT
+
+on:
+  schedule:
+    # 16:00 WIB (09:00 UTC) setiap Senin-Jumat
+    - cron: '0 9 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  send-laporan-ht:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Laporan HT
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            https://jwsfsczgyqphoyflpjnm.supabase.co/functions/v1/notif-fonnte \
+            -H "Content-Type: application/json" \
+            -d '{"action":"scheduled-laporan-ht"}')
+          echo "Response: $RESPONSE"
+          if echo "$RESPONSE" | grep -q '"success":true'; then
+            echo "✅ Notifikasi sore berhasil dikirim"
+          else
+            echo "❌ Notifikasi sore gagal: $RESPONSE"
+            exit 1
+          fi
