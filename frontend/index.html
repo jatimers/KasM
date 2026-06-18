@@ -2721,9 +2721,9 @@ function simpanPosisiManual() {
         showToast(false); 
         alert("Sukses!"); 
         
-        // TRIGGER WA MANDIRI: Berjalan di background setelah data sukses masuk database
+        // TRIGGER WA MANDIRI: kirim notif posisi kas via Supabase endpoint
         if (dataObj.Role && dataObj.Role.toLowerCase() === 'kf') {
-           google.script.run.sendNotifPosisiKasWA(dataObj);
+           google.script.run.sendNotifPosisiKasWA({action: "posisi-kas", data: dataObj});
         }
     })
     .withFailureHandler((err) => {
