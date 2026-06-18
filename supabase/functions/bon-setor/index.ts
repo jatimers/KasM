@@ -31,8 +31,9 @@ Deno.serve(async (req: Request) => {
     const supabase = getSupabaseClient(req);
     const url = new URL(req.url);
     const pathParts = url.pathname.split("/").filter(Boolean);
-    // Supabase memberi path relatif: /ID_TRANSACTION, bukan /functions/v1/bon-setor/ID
-    const idTrx = pathParts.length > 0 ? pathParts[0] : (url.searchParams.get("id") || null);
+    // Supabase memberi path: /bon-setor/ID_TRANSACTION (tanpa prefix /functions/v1)
+    // pathParts = ['bon-setor', 'ID_TRANSACTION'], jadi index 1 = ID
+    const idTrx = pathParts.length > 1 ? pathParts[1] : (url.searchParams.get("id") || null);
 
     // GET - Query bon_setor
     if (req.method === "GET") {
@@ -387,11 +388,31 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // DELETE - Delete transaction
+    // DELETE - Delete transaction (via REST API, bypass Supabase client bug)
     if (req.method === "DELETE" && idTrx) {
-      const { error } = await supabase.from("bon_setor").delete().eq("id_transaksi", idTrx);
-      if (error) throw error;
-      return successResponse("Deleted");
+      const SB_URL = Deno.env.get("SB_URL") ?? "";
+      const SB_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "";
+      const encodedId = encodeURIComponent(idTrx);
+      const restUrl = `${SB_URL}/rest/v1/bon_setor?id_transaksi=eq.${encodedId}`;
+
+      console.log(`[bon-setor] DELETE id_transaksi=${idTrx} → ${restUrl}`);
+
+      const delResp = await fetch(restUrl, {
+        method: "DELETE",
+        headers: {
+          "apikey": SB_KEY,
+          "Authorization": `Bearer ${SB_KEY}`,
+        },
+      });
+
+      if (!delResp.ok) {
+        const errText = await delResp.text();
+        console.error(`[bon-setor] DELETE failed: ${delResp.status} ${errText}`);
+        throw new Error(`Delete failed: ${delResp.status}`);
+      }
+
+      console.log(`[bon-setor] DELETE success for ${idTrx}`);
+      return successResponse(`Deleted: ${idTrx}`);
     }
 
     return errorResponse("Method not allowed", 405);
