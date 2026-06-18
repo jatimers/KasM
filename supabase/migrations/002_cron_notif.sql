@@ -1,6 +1,7 @@
 -- =============================================
 -- MIGRASI: Scheduled WA Notifications (pg_cron)
 -- Pengganti GAS ScriptApp.newTrigger()
+-- STATUS: AKTIF — dijalankan 2026-06-18
 -- =============================================
 
 -- Enable pg_cron extension (requires Supabase Pro/Team plan)
