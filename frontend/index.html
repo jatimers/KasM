@@ -2557,7 +2557,18 @@ function loadPerkiraanHT() {
 }
     
     function batalTransaksi(idTrx) { if(!confirm('YAKIN INGIN MEMBATALKAN?\nFisik uang di transaksi ini akan terhapus total.')) return;
-      showLoader(true, "Membatalkan..."); google.script.run.withSuccessHandler((res) => { showLoader(false); if(res) { showToast(false); closeModal(); loadHistoryBonSetor(); } else { alert("Gagal membatalkan."); } }).deleteTransaksiFisik(idTrx);
+      showLoader(true, "Membatalkan...");
+      google.script.run
+        .withSuccessHandler((res) => {
+          showLoader(false);
+          if(res) { showToast(false); closeModal(); loadHistoryBonSetor(); }
+          else { alert("Gagal membatalkan: data tidak ditemukan."); }
+        })
+        .withFailureHandler((err) => {
+          showLoader(false);
+          alert("Gagal membatalkan transaksi.\n" + (err.message || err));
+        })
+        .deleteTransaksiFisik(idTrx);
     }
 
    function renderInputKhasanah() {

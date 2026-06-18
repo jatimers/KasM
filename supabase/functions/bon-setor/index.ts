@@ -31,7 +31,8 @@ Deno.serve(async (req: Request) => {
     const supabase = getSupabaseClient(req);
     const url = new URL(req.url);
     const pathParts = url.pathname.split("/").filter(Boolean);
-    const idTrx = pathParts.length > 2 ? pathParts[2] : null;
+    // Supabase memberi path relatif: /ID_TRANSACTION, bukan /functions/v1/bon-setor/ID
+    const idTrx = pathParts.length > 0 ? pathParts[0] : (url.searchParams.get("id") || null);
 
     // GET - Query bon_setor
     if (req.method === "GET") {
