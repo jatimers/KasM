@@ -92,10 +92,9 @@ async function sendPosisiKas(dataObj: any, setting: any): Promise<string> {
     return "ERROR: Token/Target Posisi Kas belum diatur";
   }
 
-  // Find next working day
+  // Find next working day (H+1)
   const liburMap = await getLiburMap();
   const d = new Date(dataObj.Tanggal + "T00:00:00");
-  d.setDate(d.getDate() + 1);
   let tglH1 = "";
   let iter = 0;
   while (iter < 14) {

@@ -2124,8 +2124,8 @@ function formatRupiahPosisi(el) {
           body: JSON.stringify({action: 'perkiraan-kf', tanggal: tglSimpan, kodeWilayah: wilSimpan})
         }).then(function(r){ return r.json(); }).then(function(resp){
           if(resp && resp.success) console.log('✅ Notif WA perkiraan-kf terkirim');
-          else console.warn('⚠️ Notif WA gagal:', resp);
-        }).catch(function(e){ console.error('❌ Notif WA error:', e); });
+          else { console.warn('⚠️ Notif WA perkiraan-kf gagal:', resp); alert('⚠️ Notifikasi WA gagal terkirim!\n' + (resp && resp.error ? resp.error : 'Unknown error')); }
+        }).catch(function(e){ console.error('❌ Notif WA error:', e); alert('⚠️ Notifikasi WA gagal: ' + e.message); });
       }).savePerkiraanTeller(obj);
     }
 
@@ -2723,7 +2723,10 @@ function simpanPosisiManual() {
         
         // TRIGGER WA MANDIRI: kirim notif posisi kas via Supabase endpoint
         if (dataObj.Role && dataObj.Role.toLowerCase() === 'kf') {
-           google.script.run.sendNotifPosisiKasWA({action: "posisi-kas", data: dataObj});
+           google.script.run
+             .withSuccessHandler(function(r) { console.log('✅ Notif WA posisi kas terkirim'); })
+             .withFailureHandler(function(e) { alert('⚠️ Notifikasi WA gagal terkirim!\n' + e.message); console.error('❌ Notif WA error:', e); })
+             .sendNotifPosisiKasWA({action: "posisi-kas", data: dataObj});
         }
     })
     .withFailureHandler((err) => {
