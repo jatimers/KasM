@@ -32,11 +32,16 @@ Deno.serve(async (req: Request) => {
     if (req.method === "GET" && action === "rekap") {
       if (!bulan) return errorResponse("Missing bulan parameter (YYYY-MM)");
 
+      // Hitung hari terakhir bulan
+      const parts = bulan.split("-").map(Number);
+      const lastDay = new Date(parts[0], parts[1], 0).getDate();
+      const endDate = bulan + "-" + String(lastDay).padStart(2, "0");
+
       let query = supabase
         .from("db_cit_atm")
         .select("*")
         .gte("tgl_transaksi", bulan + "-01")
-        .lte("tgl_transaksi", bulan + "-31")
+        .lte("tgl_transaksi", endDate)
         .order("tgl_transaksi", { ascending: true })
         .order("id", { ascending: true });
 
@@ -117,7 +122,14 @@ Deno.serve(async (req: Request) => {
 
     return errorResponse("Method not allowed or invalid action", 405);
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
+    let msg = "Unknown error";
+    if (e instanceof Error) {
+      msg = e.message;
+    } else if (e && typeof e === "object") {
+      msg = JSON.stringify(e);
+    } else {
+      msg = String(e);
+    }
     console.error("[cit-atm] Error:", msg);
     return errorResponse("ERROR: " + msg, 500);
   }
