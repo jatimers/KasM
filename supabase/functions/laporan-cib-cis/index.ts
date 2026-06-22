@@ -77,19 +77,22 @@ Deno.serve(async (req: Request) => {
         return idxA - idxB;
       });
 
-      // Get BON PAGI for the month (KF users do bon pagi with scope='HEAD TELLER')
-      let query = supabase
-        .from("bon_setor")
-        .select("tanggal, user_estim, nominal")
-        .eq("tipe", "BON PAGI")
-        .gte("tanggal", startDate)
-        .lte("tanggal", endDate);
-
-      if (kodeWilayah !== "ALL") {
-        query = query.eq("kode_wilayah", kodeWilayah);
+      // Helper: build query with wilayah filter
+      function baseQuery() {
+        let q = supabase
+          .from("bon_setor")
+          .select("tanggal, user_estim, tipe, nominal")
+          .gte("tanggal", startDate)
+          .lte("tanggal", endDate);
+        if (kodeWilayah !== "ALL") q = q.eq("kode_wilayah", kodeWilayah);
+        return q;
       }
 
-      const { data: bonData } = await query;
+      // Get BON PAGI
+      const { data: bonPagiData } = await baseQuery().eq("tipe", "BON PAGI");
+
+      // Get BON TAMBAHAN (hanya untuk teller)
+      const { data: bonTambahanData } = await baseQuery().eq("tipe", "BON TAMBAHAN");
 
       // Build matrix: tanggal → userEstim → total
       const matrix: Record<string, Record<string, number>> = {};
@@ -100,12 +103,27 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      for (const row of (bonData || [])) {
+      // Add BON PAGI for all users
+      for (const row of (bonPagiData || [])) {
         const tgl = String(row.tanggal).substring(0, 10);
         const ue = cleanStr(row.user_estim);
         const nominal = parseFloat(String(row.nominal)) || 0;
         if (matrix[tgl] && matrix[tgl][ue] !== undefined) {
           matrix[tgl][ue] += nominal;
+        }
+      }
+
+      // Add BON TAMBAHAN for teller users only
+      for (const row of (bonTambahanData || [])) {
+        const tgl = String(row.tanggal).substring(0, 10);
+        const ue = cleanStr(row.user_estim);
+        const nominal = parseFloat(String(row.nominal)) || 0;
+        if (matrix[tgl] && matrix[tgl][ue] !== undefined) {
+          // Cek apakah user ini teller
+          const user = kfList.find(u => u.userEstim === ue);
+          if (user && user.role === "teller") {
+            matrix[tgl][ue] += nominal;
+          }
         }
       }
 
