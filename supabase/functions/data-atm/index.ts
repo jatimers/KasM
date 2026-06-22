@@ -72,9 +72,11 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // DELETE
+    // DELETE - Hapus data by ID (from path: /data-atm/123)
     if (req.method === "DELETE") {
-      const idParam = url.searchParams.get("id");
+      const pathParts = url.pathname.split("/").filter(Boolean);
+      const idFromPath = pathParts.length > 1 ? pathParts[1] : null;
+      const idParam = url.searchParams.get("id") || idFromPath;
       if (!idParam) return errorResponse("Missing id parameter");
       const { error } = await supabase.from("db_atm").delete().eq("id", parseInt(idParam));
       if (error) throw error;

@@ -18,9 +18,11 @@ Deno.serve(async (req: Request) => {
     const bulan = url.searchParams.get("bulan") ?? "";
     const userEstim = url.searchParams.get("userEstim") ?? "";
 
-    // DELETE - Hapus data by ID
+    // DELETE - Hapus data by ID (from path: /cit-atm/123)
     if (req.method === "DELETE") {
-      const idParam = url.searchParams.get("id");
+      const pathParts = url.pathname.split("/").filter(Boolean);
+      const idFromPath = pathParts.length > 1 ? pathParts[1] : null;
+      const idParam = url.searchParams.get("id") || idFromPath;
       if (!idParam) return errorResponse("Missing id parameter");
 
       const { error } = await supabase.from("db_cit_atm").delete().eq("id", parseInt(idParam));
