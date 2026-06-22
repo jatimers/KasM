@@ -272,7 +272,7 @@
         <div class="menu-item submenu" onclick="initCis()">📈 CIS</div>
         <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🏧 CIT MPP</div>
         <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🚗 CIT SAMSAT</div>
-        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🏧 CIT ATM</div>
+        <div class="menu-item submenu" onclick="initCitAtmRekap()">🏧 CIT ATM</div>
         <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🚛 CIT TUKAB</div>
         <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">👤 CIT KF</div>
       </div>
@@ -296,6 +296,7 @@
         <div class="menu-item submenu" onclick="nav('posisi', this); initPosisiKasTeller();">🧮 Kalkulator Posisi Kas</div>
         <div class="menu-item submenu" onclick="nav('history-posisi', this); loadHistoryPosisiKas();">📜 History Posisi Kas</div>
       </div>
+      <div class="menu-item" onclick="nav('cit-atm-input', this); initCitAtmInput();">🏧 Input CIT ATM</div>
     </div>
       <div class="role-menu menu-kf">
       <div class="role-title">OPERASIONAL KF</div>
@@ -319,6 +320,7 @@
         <div class="menu-item submenu" onclick="nav('cetak-kf-page', this); initCetakKF('setorbon');">🖨️ Cetak Setor & Bon</div>
         <div class="menu-item submenu" onclick="nav('cetak-kf-page', this); initCetakKF('rincian');">🖨️ Cetak Rincian Kas</div>
       </div>
+      <div class="menu-item" onclick="nav('cit-atm-input', this); initCitAtmInput();">🏧 Input CIT ATM</div>
     </div>
     <div class="role-menu menu-capem">
       <div class="role-title">OPERASIONAL CAPEM</div>
@@ -1003,6 +1005,57 @@
         </div>
       </div>
 
+      <!-- ============================================= -->
+      <!-- PAGE: Input CIT ATM (KF & Teller)              -->
+      <!-- ============================================= -->
+      <div id="cit-atm-input" class="page">
+        <div class="header-page">
+          <div>
+            <h3>Input CIT ATM</h3>
+            <p style="margin:5px 0 0 0;">Catat pengisian uang di mesin ATM.</p>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Tanggal Transaksi</label><input type="date" id="cit-atm-tgl" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><label>User ATM (8 digit)</label><input type="text" id="cit-atm-user" maxlength="8" placeholder="Contoh: ATM00123"></div>
+          <div class="form-group"><label>Nominal Pengisian (Rp)</label><input type="number" id="cit-atm-nominal" placeholder="0" style="text-align:right;"></div>
+        </div>
+        <button class="btn-refresh" style="width:100%; font-size:1.1rem; padding:16px; margin-top:10px;" onclick="saveCitAtm()">💾 SIMPAN DATA CIT ATM</button>
+        <div class="table-responsive" style="margin-top:20px;">
+          <table id="cit-atm-input-table" style="display:none;">
+            <thead><tr><th>No</th><th>Tanggal</th><th>User ATM</th><th style="text-align:right;">Nominal Pengisian</th></tr></thead>
+            <tbody id="cit-atm-input-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================= -->
+      <!-- PAGE: Rekap CIT ATM (Head Teller)             -->
+      <!-- ============================================= -->
+      <div id="cit-atm-rekap" class="page role-page-ht">
+        <div class="header-page">
+          <div>
+            <h3>CIT ATM — Rekap Pengisian ATM</h3>
+            <p style="margin:5px 0 0 0;">Rekap data pengisian ATM per bulan.</p>
+          </div>
+        </div>
+        <div class="form-row" style="align-items:flex-end;">
+          <div class="form-group"><label>Bulan</label><input type="month" id="cit-atm-bulan" onchange="loadCitAtmRekap()" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCitAtmRekap()">🔄 Muat Data</button></div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr><th style="width:40px;">No</th><th>TGL</th><th>USER ATM</th><th style="text-align:right;">NOMINAL PENGISIAN</th></tr>
+            </thead>
+            <tbody id="cit-atm-rekap-body">
+              <tr><td colspan="4" style="text-align:center;">Pilih bulan untuk melihat data CIT ATM.</td></tr>
+            </tbody>
+            <tfoot id="cit-atm-rekap-foot"></tfoot>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1073,6 +1126,8 @@
       fetchDataHT:                ['GET','/laporan-ht','?action=history-ht','tanggal','kodeWilayah'],
       getCibData:                 ['GET','/laporan-cib-cis','?action=cib','bulan','kodeWilayah'],
       getCisData:                 ['GET','/laporan-cib-cis','?action=cis','bulan','kodeWilayah'],
+      getCitAtmRekap:             ['GET','/cit-atm','?action=rekap','bulan','kodeWilayah'],
+      saveCitAtm:                 ['POST','/cit-atm'],
     };
 
     (function(){
@@ -1497,6 +1552,108 @@ function initLapCluis() {
 
       footEl.innerHTML = '<tr style="font-weight:bold; background:#f8fafc;">' +
         '<td style="font-weight:800;">TOTAL</td>' +
+        '<td style="text-align:right; font-weight:800;">Rp ' + data.grandTotal.toLocaleString('id-ID') + '</td>' +
+        '</tr>';
+    }
+
+    // =============================================
+    // CIT ATM — Input (KF & Teller)
+    // =============================================
+    function initCitAtmInput() {
+      var tglEl = document.getElementById('cit-atm-tgl');
+      if (!tglEl.value) {
+        var now = new Date();
+        tglEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      }
+      document.getElementById('cit-atm-user').value = '';
+      document.getElementById('cit-atm-nominal').value = '';
+    }
+
+    function saveCitAtm() {
+      var tgl = document.getElementById('cit-atm-tgl').value;
+      var userAtm = document.getElementById('cit-atm-user').value.trim();
+      var nominal = parseInt(document.getElementById('cit-atm-nominal').value) || 0;
+
+      if (!tgl) { alert('Tanggal harus diisi!'); return; }
+      if (!userAtm) { alert('User ATM harus diisi!'); return; }
+      if (nominal <= 0) { alert('Nominal pengisian harus > 0!'); return; }
+
+      var data = {
+        tglTransaksi: tgl,
+        userAtm: userAtm,
+        nominalPengisian: nominal,
+        kodeWilayah: currentUser.kodeWilayah || '',
+        kodeCabang: currentUser.kodeCabang || ''
+      };
+
+      showLoader(true, "Menyimpan data CIT ATM...");
+      google.script.run
+        .withSuccessHandler(function() {
+          showLoader(false);
+          alert('Data CIT ATM tersimpan!');
+          document.getElementById('cit-atm-user').value = '';
+          document.getElementById('cit-atm-nominal').value = '';
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          alert('Gagal menyimpan: ' + err.message);
+        })
+        .saveCitAtm(data);
+    }
+
+    // =============================================
+    // CIT ATM — Rekap (Head Teller)
+    // =============================================
+    function initCitAtmRekap() {
+      nav('cit-atm-rekap', document.querySelectorAll('#sub-cib-cis-cit .menu-item.submenu')[2]);
+      var bulanEl = document.getElementById('cit-atm-bulan');
+      if (!bulanEl.value) {
+        var now = new Date();
+        bulanEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+      }
+      loadCitAtmRekap();
+    }
+
+    function loadCitAtmRekap() {
+      var bulan = document.getElementById('cit-atm-bulan').value;
+      if (!bulan) return;
+      showLoader(true, "Memuat data CIT ATM...");
+      google.script.run
+        .withSuccessHandler(function(data) {
+          showLoader(false);
+          renderCitAtmRekap(data);
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          alert("Gagal memuat data CIT ATM: " + err.message);
+        })
+        .getCitAtmRekap(bulan, currentUser.kodeWilayah || 'ALL');
+    }
+
+    function renderCitAtmRekap(data) {
+      var bodyEl = document.getElementById('cit-atm-rekap-body');
+      var footEl = document.getElementById('cit-atm-rekap-foot');
+
+      if (!data.list || data.list.length === 0) {
+        bodyEl.innerHTML = '<tr><td colspan="4" style="text-align:center;">Tidak ada data CIT ATM untuk bulan ini.</td></tr>';
+        footEl.innerHTML = '';
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < data.list.length; i++) {
+        var r = data.list[i];
+        html += '<tr>';
+        html += '<td>' + r.no + '</td>';
+        html += '<td style="font-weight:600;">' + r.tglTransaksi.substring(8) + '</td>';
+        html += '<td>' + r.userAtm + '</td>';
+        html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalPengisian.toLocaleString('id-ID') + '</td>';
+        html += '</tr>';
+      }
+      bodyEl.innerHTML = html;
+
+      footEl.innerHTML = '<tr style="font-weight:bold; background:#f8fafc;">' +
+        '<td colspan="3" style="text-align:right; font-weight:800;">TOTAL</td>' +
         '<td style="text-align:right; font-weight:800;">Rp ' + data.grandTotal.toLocaleString('id-ID') + '</td>' +
         '</tr>';
     }
