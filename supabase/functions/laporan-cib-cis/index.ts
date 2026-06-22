@@ -3,7 +3,7 @@
 // Akses: headteller, pbo
 
 import { corsHeaders, successResponse, errorResponse } from "../_shared/cors.ts";
-import { getSupabaseClient, fetchAll } from "../_shared/supabase.ts";
+import { getSupabaseClient } from "../_shared/supabase.ts";
 import { cleanStr, normalizeUnit } from "../_shared/utils.ts";
 
 Deno.serve(async (req: Request) => {
@@ -146,11 +146,13 @@ Deno.serve(async (req: Request) => {
 
     // =============================================
     // CIS: Saldo Akhir Hari Khasanah (Head Teller)
-    // Formula: saldo_awal_ht + KHASANAH NET + SETOR SORE (all scopes)
-    // Menggunakan fetchAll untuk pagination
+    // Menggunakan laporan-ht saldo-kas (akurat, sudah teruji)
     // Hari libur/weekend → carry forward saldo hari kerja sebelumnya
     // =============================================
     if (action === "cis") {
+      const SB_URL = Deno.env.get("SB_URL") ?? "";
+      const SB_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "";
+
       // Fetch hari_libur
       const { data: liburData } = await supabase.from("hari_libur").select("tanggal");
       const liburSet = new Set<string>();
@@ -159,116 +161,59 @@ Deno.serve(async (req: Request) => {
         if (tgl && tgl !== "-") liburSet.add(tgl);
       }
 
-      // Step 1: Find latest snapshot date and total
-      let saldoQuery = supabase
-        .from("saldo_awal_ht")
-        .select("tanggal, nominal")
-        .lte("tanggal", endDate)
-        .order("tanggal", { ascending: false });
-      saldoQuery = filterWilayah(saldoQuery, "kode_wilayah");
-      const allSaldo = await fetchAll(saldoQuery);
-
-      let snapshotDate = "";
-      let initialSaldo = 0;
-      if (allSaldo.length > 0) {
-        snapshotDate = String(allSaldo[0].tanggal).substring(0, 10);
-        for (const s of allSaldo) {
-          if (String(s.tanggal).substring(0, 10) === snapshotDate) {
-            initialSaldo += parseFloat(String(s.nominal)) || 0;
+      // Fetch grandTotal from laporan-ht for each day (sequential, reliable)
+      const rawSaldo: Record<string, number> = {};
+      for (const tgl of allDates) {
+        try {
+          const laporUrl = `${SB_URL}/functions/v1/laporan-ht?action=saldo-kas&tanggal=${tgl}&kodeWilayah=${kodeWilayah}`;
+          const resp = await fetch(laporUrl, {
+            headers: { Authorization: `Bearer ${SB_KEY}` }
+          });
+          if (resp.ok) {
+            const json = await resp.json();
+            rawSaldo[tgl] = json?.data?.grandTotal ?? 0;
+          } else {
+            rawSaldo[tgl] = 0;
           }
+        } catch (_) {
+          rawSaldo[tgl] = 0;
         }
       }
 
-      // Step 2: Get ALL bon_setor from snapshotDate to endDate
-      const queryFrom = snapshotDate || startDate;
-      let mutQuery = supabase
-        .from("bon_setor")
-        .select("tanggal, tipe, nominal, scope")
-        .gte("tanggal", queryFrom)
-        .lte("tanggal", endDate)
-        .order("tanggal");
-      if (kodeWilayah !== "ALL") {
-        mutQuery = mutQuery.eq("kode_wilayah", kodeWilayah);
-      }
-      const allBonSetor = await fetchAll(mutQuery);
-
-      // Step 3: Compute daily net change
-      // Net(t) = +KHASANAH SETOR - KHASANAH BON + ALL SETOR SORE
-      const netByDate: Record<string, number> = {};
-      for (const row of allBonSetor) {
-        const tgl = String(row.tanggal).substring(0, 10);
-        const nom = parseFloat(String(row.nominal)) || 0;
-        const tipe = row.tipe;
-        const scope = row.scope || "KHASANAH";
-
-        if (tipe === "SETOR SORE") {
-          // ALL scopes SETOR SORE adds to daily balance
-          netByDate[tgl] = (netByDate[tgl] || 0) + nom;
-        } else if (scope === "KHASANAH") {
-          if (["SETOR TAMBAHAN", "SETOR"].includes(tipe)) {
-            netByDate[tgl] = (netByDate[tgl] || 0) + nom;
-          } else if (["BON PAGI", "BON TAMBAHAN", "BON"].includes(tipe)) {
-            netByDate[tgl] = (netByDate[tgl] || 0) - nom;
-          }
-        }
-      }
-
-      // Step 4: Generate daily balances from snapshot to endDate
-      const allDatesFromSnapshot: string[] = [];
-      const parts0 = queryFrom.split("-").map(Number);
-      const cursor = new Date(parts0[0], parts0[1] - 1, parts0[2]);
-      const edParts = endDate.split("-").map(Number);
-      const ed = new Date(edParts[0], edParts[1] - 1, edParts[2]);
-      while (cursor <= ed) {
-        allDatesFromSnapshot.push(
-          cursor.getFullYear() + "-" +
-          String(cursor.getMonth() + 1).padStart(2, "0") + "-" +
-          String(cursor.getDate()).padStart(2, "0")
-        );
-        cursor.setDate(cursor.getDate() + 1);
-      }
-
-      const dailyBalance: Record<string, number> = {};
-      let running = initialSaldo;
-      for (const tgl of allDatesFromSnapshot) {
-        running += netByDate[tgl] || 0;
-        dailyBalance[tgl] = running;
-      }
-
-      // Step 5: Extract target month + carry forward weekends/holidays
+      // Post-process: carry forward for weekends and holidays only
       const saldoPerTanggal: Record<string, number> = {};
       let lastWorkingDaySaldo = 0;
       let grandTotal = 0;
 
-      // Find first valid working day saldo for back-fill
+      // Pre-scan: find first working day with non-zero saldo to handle cold-start failures
       for (const tgl of allDates) {
         const p = tgl.split("-").map(Number);
         const d = new Date(p[0], p[1] - 1, p[2]);
         const isWeekend = d.getDay() === 0 || d.getDay() === 6;
         const isLibur = liburSet.has(tgl);
-        if (!isWeekend && !isLibur && (dailyBalance[tgl] || 0) > 0) {
-          lastWorkingDaySaldo = dailyBalance[tgl];
+        if (!isWeekend && !isLibur && (rawSaldo[tgl] || 0) > 0) {
+          lastWorkingDaySaldo = rawSaldo[tgl];
           break;
         }
       }
 
       for (const tgl of allDates) {
-        let saldo = dailyBalance[tgl] || 0;
         const p = tgl.split("-").map(Number);
         const d = new Date(p[0], p[1] - 1, p[2]);
         const isWeekend = d.getDay() === 0 || d.getDay() === 6;
         const isLibur = liburSet.has(tgl);
 
         if (isWeekend || isLibur) {
-          saldo = lastWorkingDaySaldo;
+          saldoPerTanggal[tgl] = lastWorkingDaySaldo;
         } else {
-          if (saldo === 0 && lastWorkingDaySaldo > 0) {
-            saldo = lastWorkingDaySaldo;
+          // Use laporan-ht value; if 0, keep last known good saldo
+          const val = rawSaldo[tgl] || 0;
+          if (val > 0) {
+            lastWorkingDaySaldo = val;
           }
-          lastWorkingDaySaldo = saldo;
+          saldoPerTanggal[tgl] = lastWorkingDaySaldo;
         }
-        saldoPerTanggal[tgl] = saldo;
-        grandTotal += saldo;
+        grandTotal += saldoPerTanggal[tgl];
       }
 
       return successResponse({
