@@ -266,6 +266,16 @@
         <div class="menu-item submenu" onclick="nav('lap-mutasi', this); loadLapMutasi('BON');">📤 Pengeluaran Khasanah</div>
         <div class="menu-item submenu" onclick="nav('lap-cluis', this); initLapCluis();">🔒 Sisa Dalam Khasanah</div>
         </div>
+      <div class="menu-item" onclick="toggleSubmenu('sub-cib-cis-cit')">▼ LAPORAN CIB CIS CIT</div>
+      <div id="sub-cib-cis-cit" class="submenu-container">
+        <div class="menu-item submenu" onclick="initCib()">📊 CIB</div>
+        <div class="menu-item submenu" onclick="initCis()">📈 CIS</div>
+        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🏧 CIT MPP</div>
+        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🚗 CIT SAMSAT</div>
+        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🏧 CIT ATM</div>
+        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🚛 CIT TUKAB</div>
+        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">👤 CIT KF</div>
+      </div>
       </div>
       <div class="role-menu menu-teller">
       <div class="role-title">OPERASIONAL TELLER</div>
@@ -938,6 +948,61 @@
         </div>
       </div>
 
+      <!-- ============================================= -->
+      <!-- PAGE: CIB — Bon Pagi per KF per Tanggal       -->
+      <!-- ============================================= -->
+      <div id="page-cib" class="page role-page-ht">
+        <div class="header-page">
+          <div>
+            <h3>CIB — Jumlah Uang Yang Dipertanggungkan</h3>
+            <p style="margin:5px 0 0 0;">Total Bon Pagi masing-masing KF per tanggal dalam satu bulan.</p>
+          </div>
+        </div>
+        <div class="form-row" style="align-items:flex-end;">
+          <div class="form-group"><label>Bulan</label><input type="month" id="cib-bulan" onchange="loadCib()" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCib()">🔄 Muat Data</button></div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead id="cib-head"></thead>
+            <tbody id="cib-body">
+              <tr><td style="text-align:center;">Pilih bulan untuk melihat data CIB.</td></tr>
+            </tbody>
+            <tfoot id="cib-foot"></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================= -->
+      <!-- PAGE: CIS — Saldo Khasanah Harian             -->
+      <!-- ============================================= -->
+      <div id="page-cis" class="page role-page-ht">
+        <div class="header-page">
+          <div>
+            <h3>CIS — Saldo Khasanah Harian</h3>
+            <p style="margin:5px 0 0 0;">Saldo global Khasanah per tanggal, termasuk hari libur (carry forward).</p>
+          </div>
+        </div>
+        <div class="form-row" style="align-items:flex-end;">
+          <div class="form-group"><label>Bulan</label><input type="month" id="cis-bulan" onchange="loadCis()" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCis()">🔄 Muat Data</button></div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:100px;">TGL</th>
+                <th style="text-align:right;">SALDO KHASANAH</th>
+              </tr>
+            </thead>
+            <tbody id="cis-body">
+              <tr><td colspan="2" style="text-align:center;">Pilih bulan untuk melihat data CIS.</td></tr>
+            </tbody>
+            <tfoot id="cis-foot"></tfoot>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1006,6 +1071,8 @@
       sendAnalisaTukabWA:         ['POST','/notif-fonnte'],
       sendSummaryPerkiraanH1WA:   ['POST','/notif-fonnte'],
       fetchDataHT:                ['GET','/laporan-ht','?action=history-ht','tanggal','kodeWilayah'],
+      getCibData:                 ['GET','/laporan-cib-cis','?action=cib','bulan','kodeWilayah'],
+      getCisData:                 ['GET','/laporan-cib-cis','?action=cis','bulan','kodeWilayah'],
     };
 
     (function(){
@@ -1300,6 +1367,137 @@ function initLapCluis() {
           printWindow.document.close(); printWindow.focus();
           setTimeout(() => { printWindow.print(); }, 500); 
       }).getDataPejabatHT(currentUser.kodeWilayah);
+    }
+
+    // =============================================
+    // CIB: Bon Pagi per KF per Tanggal
+    // =============================================
+    function initCib() {
+      nav('page-cib', document.querySelector('#sub-cib-cis-cit .menu-item.submenu'));
+      var bulanEl = document.getElementById('cib-bulan');
+      if (!bulanEl.value) {
+        var now = new Date();
+        bulanEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+      }
+      loadCib();
+    }
+
+    function loadCib() {
+      var bulan = document.getElementById('cib-bulan').value;
+      if (!bulan) return;
+      showLoader(true, "Memuat data CIB...");
+      google.script.run
+        .withSuccessHandler(function(data) {
+          showLoader(false);
+          renderCib(data);
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          alert("Gagal memuat data CIB: " + err.message);
+        })
+        .getCibData(bulan, currentUser.kodeWilayah || 'ALL');
+    }
+
+    function renderCib(data) {
+      var headEl = document.getElementById('cib-head');
+      var bodyEl = document.getElementById('cib-body');
+      var footEl = document.getElementById('cib-foot');
+
+      var html = '<tr><th style="width:80px;">TGL</th>';
+      for (var i = 0; i < data.kfList.length; i++) {
+        html += '<th style="text-align:right;">' + data.kfList[i].namaUnit + '<br><small>' + data.kfList[i].userEstim + '</small></th>';
+      }
+      html += '<th style="text-align:right; background:#fef2f2; color:#dc2626;">JUMLAH</th></tr>';
+      headEl.innerHTML = html;
+
+      html = '';
+      var totalsPerKf = {};
+      for (var i = 0; i < data.kfList.length; i++) {
+        totalsPerKf[data.kfList[i].userEstim] = 0;
+      }
+
+      for (var d = 0; d < data.allDates.length; d++) {
+        var tgl = data.allDates[d];
+        var row = data.matrix[tgl] || {};
+        html += '<tr>';
+        html += '<td style="font-weight:600;">' + tgl.substring(8) + '</td>';
+        var rowTotal = 0;
+        for (var k = 0; k < data.kfList.length; k++) {
+          var ue = data.kfList[k].userEstim;
+          var val = row[ue] || 0;
+          rowTotal += val;
+          totalsPerKf[ue] += val;
+          html += '<td style="text-align:right;">' + (val > 0 ? val.toLocaleString('id-ID') : '0') + '</td>';
+        }
+        html += '<td style="text-align:right; font-weight:700; background:#fef2f2;">' + (rowTotal > 0 ? rowTotal.toLocaleString('id-ID') : '0') + '</td>';
+        html += '</tr>';
+      }
+
+      html += '<tr style="font-weight:bold; background:#f8fafc;">';
+      html += '<td style="font-weight:800;">TOTAL</td>';
+      for (var j = 0; j < data.kfList.length; j++) {
+        var t = totalsPerKf[data.kfList[j].userEstim];
+        html += '<td style="text-align:right;">' + (t > 0 ? t.toLocaleString('id-ID') : '0') + '</td>';
+      }
+      html += '<td style="text-align:right; font-weight:800; background:#dc2626; color:#fff;">' + data.grandTotal.toLocaleString('id-ID') + '</td>';
+      html += '</tr>';
+
+      bodyEl.innerHTML = html;
+      footEl.innerHTML = '';
+    }
+
+    // =============================================
+    // CIS: Saldo Khasanah Harian
+    // =============================================
+    function initCis() {
+      nav('page-cis', document.querySelectorAll('#sub-cib-cis-cit .menu-item.submenu')[1]);
+      var bulanEl = document.getElementById('cis-bulan');
+      if (!bulanEl.value) {
+        var now = new Date();
+        bulanEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+      }
+      loadCis();
+    }
+
+    function loadCis() {
+      var bulan = document.getElementById('cis-bulan').value;
+      if (!bulan) return;
+      showLoader(true, "Memuat data CIS...");
+      google.script.run
+        .withSuccessHandler(function(data) {
+          showLoader(false);
+          renderCis(data);
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          alert("Gagal memuat data CIS: " + err.message);
+        })
+        .getCisData(bulan, currentUser.kodeWilayah || 'ALL');
+    }
+
+    function renderCis(data) {
+      var bodyEl = document.getElementById('cis-body');
+      var footEl = document.getElementById('cis-foot');
+
+      var html = '';
+      for (var d = 0; d < data.allDates.length; d++) {
+        var tgl = data.allDates[d];
+        var saldo = data.saldoPerTanggal[tgl] || 0;
+        var dObj = new Date(tgl + 'T00:00:00');
+        var isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
+        var rowStyle = isWeekend ? 'background:#fff7ed;' : '';
+        html += '<tr style="' + rowStyle + '">';
+        html += '<td style="font-weight:600;">' + tgl.substring(8) + ' <small style="color:#6b7280;">' + ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()] + '</small></td>';
+        html += '<td style="text-align:right; font-weight:600;">Rp ' + saldo.toLocaleString('id-ID') + '</td>';
+        html += '</tr>';
+      }
+
+      bodyEl.innerHTML = html;
+
+      footEl.innerHTML = '<tr style="font-weight:bold; background:#f8fafc;">' +
+        '<td style="font-weight:800;">TOTAL</td>' +
+        '<td style="text-align:right; font-weight:800;">Rp ' + data.grandTotal.toLocaleString('id-ID') + '</td>' +
+        '</tr>';
     }
 
   function loadRekapGlobalTeller() {
