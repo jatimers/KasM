@@ -161,22 +161,40 @@ Deno.serve(async (req: Request) => {
         if (tgl && tgl !== "-") liburSet.add(tgl);
       }
 
-      // Fetch grandTotal from laporan-ht for each day (sequential, reliable)
+      // Fetch grandTotal from laporan-ht for each day (parallel batch 5, with warm-up)
       const rawSaldo: Record<string, number> = {};
-      for (const tgl of allDates) {
+
+      // Warm-up: call first date solo to handle cold start
+      if (allDates.length > 0) {
+        const warmTgl = allDates[0];
         try {
-          const laporUrl = `${SB_URL}/functions/v1/laporan-ht?action=saldo-kas&tanggal=${tgl}&kodeWilayah=${kodeWilayah}`;
-          const resp = await fetch(laporUrl, {
-            headers: { Authorization: `Bearer ${SB_KEY}` }
-          });
-          if (resp.ok) {
-            const json = await resp.json();
-            rawSaldo[tgl] = json?.data?.grandTotal ?? 0;
-          } else {
-            rawSaldo[tgl] = 0;
+          const warmUrl = `${SB_URL}/functions/v1/laporan-ht?action=saldo-kas&tanggal=${warmTgl}&kodeWilayah=${kodeWilayah}`;
+          const warmResp = await fetch(warmUrl, { headers: { Authorization: `Bearer ${SB_KEY}` } });
+          if (warmResp.ok) {
+            const warmJson = await warmResp.json();
+            rawSaldo[warmTgl] = warmJson?.data?.grandTotal ?? 0;
           }
-        } catch (_) {
-          rawSaldo[tgl] = 0;
+        } catch (_) { rawSaldo[warmTgl] = 0; }
+      }
+
+      // Batch the rest in parallel (skip first date)
+      const BATCH = 5;
+      const rest = allDates.slice(1);
+      for (let i = 0; i < rest.length; i += BATCH) {
+        const batch = rest.slice(i, i + BATCH);
+        const results = await Promise.all(batch.map(async (tgl) => {
+          try {
+            const laporUrl = `${SB_URL}/functions/v1/laporan-ht?action=saldo-kas&tanggal=${tgl}&kodeWilayah=${kodeWilayah}`;
+            const resp = await fetch(laporUrl, { headers: { Authorization: `Bearer ${SB_KEY}` } });
+            if (resp.ok) {
+              const json = await resp.json();
+              return { tgl, gt: json?.data?.grandTotal ?? 0 };
+            }
+          } catch (_) { /* fall through */ }
+          return { tgl, gt: 0 };
+        }));
+        for (const { tgl, gt } of results) {
+          rawSaldo[tgl] = gt;
         }
       }
 
