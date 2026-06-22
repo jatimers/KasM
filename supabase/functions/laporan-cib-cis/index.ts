@@ -46,11 +46,11 @@ Deno.serve(async (req: Request) => {
     // CIB: Bon Pagi per KF per tanggal
     // =============================================
     if (action === "cib") {
-      // Get KF users
+      // Get KF and Teller users
       let kfQuery = supabase
         .from("users")
-        .select("user_estim, nama_unit")
-        .eq("role", "kf")
+        .select("user_estim, nama_unit, role")
+        .in("role", ["kf", "teller"])
         .order("user_estim");
       kfQuery = filterWilayah(kfQuery, "kode_wilayah");
       const { data: kfUsers } = await kfQuery;
@@ -58,6 +58,7 @@ Deno.serve(async (req: Request) => {
       const kfList = (kfUsers || []).map(u => ({
         userEstim: cleanStr(u.user_estim),
         namaUnit: u.nama_unit || cleanStr(u.user_estim),
+        role: u.role || "",
       }));
 
       // Get BON PAGI for the month (KF users do bon pagi with scope='HEAD TELLER')

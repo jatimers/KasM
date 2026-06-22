@@ -1356,7 +1356,8 @@ function initLapCluis() {
       // Header: TGL | KF1 | KF2 | ... | JUMLAH
       var html = '<tr><th style="width:80px;">TGL</th>';
       for (var i = 0; i < data.kfList.length; i++) {
-        html += '<th style="text-align:right;">' + data.kfList[i].namaUnit + '<br><small>' + data.kfList[i].userEstim + '</small></th>';
+        var roleBadge = data.kfList[i].role === 'kf' ? 'KF' : 'TLR';
+        html += '<th style="text-align:right;">' + data.kfList[i].namaUnit + '<br><small style="color:#6b7280;">' + data.kfList[i].userEstim + ' <b>[' + roleBadge + ']</b></small></th>';
       }
       html += '<th style="text-align:right; background:#fef2f2; color:#dc2626;">JUMLAH</th></tr>';
       headEl.innerHTML = html;
