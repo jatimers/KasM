@@ -2585,7 +2585,10 @@ function formatRupiahPosisi(el) {
 
     function initPerkiraanTeller() {
       let tglEl = document.getElementById('pt-tgl');
-      if(!tglEl.value) { 
+      // Disable pilih tanggal mundur (hanya hari ini atau setelahnya)
+      var today = new Date();
+      tglEl.min = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      if(!tglEl.value) {
           showLoader(true, "Mengecek Hari Kerja...");
           google.script.run.withSuccessHandler((dateStr) => { tglEl.value = dateStr; loadPerkiraanTeller(); }).getServerNextWorkingDay();
       } else { loadPerkiraanTeller(); }
