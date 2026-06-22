@@ -1015,16 +1015,19 @@
             <p style="margin:5px 0 0 0;">Catat pengisian uang di mesin ATM.</p>
           </div>
         </div>
+        <input type="hidden" id="cit-atm-edit-id">
         <div class="form-row">
           <div class="form-group"><label>Tanggal Transaksi</label><input type="date" id="cit-atm-tgl" style="background:var(--input-yellow);"></div>
-          <div class="form-group"><label>User ATM (8 digit)</label><input type="text" id="cit-atm-user" maxlength="8" placeholder="Contoh: ATM00123"></div>
-          <div class="form-group"><label>Nominal Pengisian (Rp)</label><input type="number" id="cit-atm-nominal" placeholder="0" style="text-align:right;"></div>
+          <div class="form-group"><label>User ATM (8 digit)</label><input type="text" id="cit-atm-user" maxlength="8" placeholder="Contoh: ATM00123" style="text-transform:uppercase;"></div>
+          <div class="form-group"><label>Nominal Pengisian (Rp)</label><input type="text" id="cit-atm-nominal" placeholder="0" style="text-align:right;" onfocus="this.select()" onblur="formatCitAtmNominal()"></div>
         </div>
-        <button class="btn-refresh" style="width:100%; font-size:1.1rem; padding:16px; margin-top:10px;" onclick="saveCitAtm()">💾 SIMPAN DATA CIT ATM</button>
+        <button class="btn-refresh" style="width:100%; font-size:1.1rem; padding:16px; margin-top:10px;" id="cit-atm-btn-save" onclick="saveCitAtm()">💾 SIMPAN DATA CIT ATM</button>
         <div class="table-responsive" style="margin-top:20px;">
-          <table id="cit-atm-input-table" style="display:none;">
-            <thead><tr><th>No</th><th>Tanggal</th><th>User ATM</th><th style="text-align:right;">Nominal Pengisian</th></tr></thead>
-            <tbody id="cit-atm-input-body"></tbody>
+          <table>
+            <thead><tr><th>No</th><th>TGL</th><th>User ATM</th><th style="text-align:right;">Nominal</th><th style="width:80px;">Aksi</th></tr></thead>
+            <tbody id="cit-atm-input-body">
+              <tr><td colspan="5" style="text-align:center;">Muat data transaksi terbaru...</td></tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -1127,7 +1130,9 @@
       getCibData:                 ['GET','/laporan-cib-cis','?action=cib','bulan','kodeWilayah'],
       getCisData:                 ['GET','/laporan-cib-cis','?action=cis','bulan','kodeWilayah'],
       getCitAtmRekap:             ['GET','/cit-atm','?action=rekap','bulan','kodeWilayah'],
+      getCitAtmHistory:           ['GET','/cit-atm','?action=history','kodeWilayah'],
       saveCitAtm:                 ['POST','/cit-atm'],
+      deleteCitAtm:               ['DELETE','/cit-atm','id'],
     };
 
     (function(){
@@ -1565,14 +1570,31 @@ function initLapCluis() {
         var now = new Date();
         tglEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
       }
+      document.getElementById('cit-atm-edit-id').value = '';
       document.getElementById('cit-atm-user').value = '';
       document.getElementById('cit-atm-nominal').value = '';
+      document.getElementById('cit-atm-btn-save').innerHTML = '💾 SIMPAN DATA CIT ATM';
+      loadCitAtmHistory();
+    }
+
+    function formatCitAtmNominal() {
+      var el = document.getElementById('cit-atm-nominal');
+      var raw = el.value.replace(/[^0-9]/g, '');
+      var num = parseInt(raw) || 0;
+      el.setAttribute('data-val', num);
+      el.value = num > 0 ? num.toLocaleString('id-ID') : '';
+    }
+
+    function getCitAtmNominal() {
+      return parseInt(document.getElementById('cit-atm-nominal').getAttribute('data-val')) || 0;
     }
 
     function saveCitAtm() {
       var tgl = document.getElementById('cit-atm-tgl').value;
       var userAtm = document.getElementById('cit-atm-user').value.trim();
-      var nominal = parseInt(document.getElementById('cit-atm-nominal').value) || 0;
+      formatCitAtmNominal();
+      var nominal = getCitAtmNominal();
+      var editId = document.getElementById('cit-atm-edit-id').value;
 
       if (!tgl) { alert('Tanggal harus diisi!'); return; }
       if (!userAtm) { alert('User ATM harus diisi!'); return; }
@@ -1585,20 +1607,87 @@ function initLapCluis() {
         kodeWilayah: currentUser.kodeWilayah || '',
         kodeCabang: currentUser.kodeCabang || ''
       };
+      if (editId) { data.id = parseInt(editId); }
 
-      showLoader(true, "Menyimpan data CIT ATM...");
+      showLoader(true, editId ? "Update data CIT ATM..." : "Menyimpan data CIT ATM...");
       google.script.run
         .withSuccessHandler(function() {
           showLoader(false);
-          alert('Data CIT ATM tersimpan!');
+          showToast(false);
+          document.getElementById('cit-atm-edit-id').value = '';
           document.getElementById('cit-atm-user').value = '';
           document.getElementById('cit-atm-nominal').value = '';
+          document.getElementById('cit-atm-btn-save').innerHTML = '💾 SIMPAN DATA CIT ATM';
+          loadCitAtmHistory();
         })
         .withFailureHandler(function(err) {
           showLoader(false);
-          alert('Gagal menyimpan: ' + err.message);
+          alert('Gagal: ' + err.message);
         })
         .saveCitAtm(data);
+    }
+
+    function loadCitAtmHistory() {
+      showLoader(true, "Memuat history...");
+      google.script.run
+        .withSuccessHandler(function(data) {
+          showLoader(false);
+          renderCitAtmHistory(data);
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          document.getElementById('cit-atm-input-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ef4444;">Gagal memuat data</td></tr>';
+        })
+        .getCitAtmHistory(currentUser.kodeWilayah || 'ALL');
+    }
+
+    function renderCitAtmHistory(data) {
+      var bodyEl = document.getElementById('cit-atm-input-body');
+      if (!data.list || data.list.length === 0) {
+        bodyEl.innerHTML = '<tr><td colspan="5" style="text-align:center;">Belum ada data transaksi CIT ATM.</td></tr>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < data.list.length; i++) {
+        var r = data.list[i];
+        html += '<tr>';
+        html += '<td>' + r.no + '</td>';
+        html += '<td style="font-weight:600;">' + r.tglTransaksi.substring(8) + ' <small style="color:#6b7280;">' + r.tglTransaksi.substring(0,7) + '</small></td>';
+        html += '<td>' + r.userAtm + '</td>';
+        html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalPengisian.toLocaleString('id-ID') + '</td>';
+        html += '<td style="white-space:nowrap;">';
+        html += '<button onclick="editCitAtm(' + r.id + ',\'' + r.tglTransaksi + '\',\'' + r.userAtm + '\',' + r.nominalPengisian + ')" style="background:#f59e0b;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;margin-right:3px;font-size:0.75rem;">✏️</button>';
+        html += '<button onclick="deleteCitAtm(' + r.id + ')" style="background:#ef4444;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.75rem;">🗑️</button>';
+        html += '</td>';
+        html += '</tr>';
+      }
+      bodyEl.innerHTML = html;
+    }
+
+    function editCitAtm(id, tgl, user, nominal) {
+      document.getElementById('cit-atm-edit-id').value = id;
+      document.getElementById('cit-atm-tgl').value = tgl;
+      document.getElementById('cit-atm-user').value = user;
+      document.getElementById('cit-atm-nominal').value = nominal.toLocaleString('id-ID');
+      document.getElementById('cit-atm-nominal').setAttribute('data-val', nominal);
+      document.getElementById('cit-atm-btn-save').innerHTML = '✏️ UPDATE DATA CIT ATM';
+      document.getElementById('cit-atm-user').focus();
+    }
+
+    function deleteCitAtm(id) {
+      if (!confirm('Yakin hapus data CIT ATM ini?')) return;
+      showLoader(true, "Menghapus...");
+      google.script.run
+        .withSuccessHandler(function() {
+          showLoader(false);
+          showToast(false);
+          loadCitAtmHistory();
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          alert('Gagal menghapus: ' + err.message);
+        })
+        .deleteCitAtm(id);
     }
 
     // =============================================
@@ -1645,7 +1734,7 @@ function initLapCluis() {
         var r = data.list[i];
         html += '<tr>';
         html += '<td>' + r.no + '</td>';
-        html += '<td style="font-weight:600;">' + r.tglTransaksi.substring(8) + '</td>';
+        html += '<td style="font-weight:600;">' + r.tglTransaksi.substring(8) + ' <small style="color:#6b7280;">' + r.tglTransaksi.substring(0,7) + '</small></td>';
         html += '<td>' + r.userAtm + '</td>';
         html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalPengisian.toLocaleString('id-ID') + '</td>';
         html += '</tr>';

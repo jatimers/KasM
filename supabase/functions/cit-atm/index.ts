@@ -1,5 +1,5 @@
 // Edge Function: /api/cit-atm
-// Input & Rekap data CIT ATM
+// Input, Rekap, Edit, Delete data CIT ATM
 
 import { corsHeaders, successResponse, errorResponse } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase.ts";
@@ -15,9 +15,20 @@ Deno.serve(async (req: Request) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action") ?? "";
     const kodeWilayah = url.searchParams.get("kodeWilayah") ?? "ALL";
-    const bulan = url.searchParams.get("bulan") ?? ""; // YYYY-MM
+    const bulan = url.searchParams.get("bulan") ?? "";
+    const userEstim = url.searchParams.get("userEstim") ?? "";
 
-    // GET - Rekap per bulan
+    // DELETE - Hapus data by ID
+    if (req.method === "DELETE") {
+      const idParam = url.searchParams.get("id");
+      if (!idParam) return errorResponse("Missing id parameter");
+
+      const { error } = await supabase.from("db_cit_atm").delete().eq("id", parseInt(idParam));
+      if (error) throw error;
+      return successResponse("Deleted");
+    }
+
+    // GET - Rekap per bulan (Head Teller)
     if (req.method === "GET" && action === "rekap") {
       if (!bulan) return errorResponse("Missing bulan parameter (YYYY-MM)");
 
@@ -37,6 +48,7 @@ Deno.serve(async (req: Request) => {
       if (error) throw error;
 
       const list = (data || []).map((row, idx) => ({
+        id: row.id,
         no: idx + 1,
         tglTransaksi: String(row.tgl_transaksi).substring(0, 10),
         userAtm: cleanStr(row.user_atm),
@@ -45,15 +57,42 @@ Deno.serve(async (req: Request) => {
       }));
 
       const grandTotal = list.reduce((sum, r) => sum + r.nominalPengisian, 0);
-
       return successResponse({ bulan, list, grandTotal });
+    }
+
+    // GET - History transaksi terbaru (untuk input page: tampil + edit/delete)
+    if (req.method === "GET" && action === "history") {
+      let query = supabase
+        .from("db_cit_atm")
+        .select("*")
+        .order("id", { ascending: false })
+        .limit(50);
+
+      if (kodeWilayah !== "ALL") {
+        query = query.eq("kode_wilayah", kodeWilayah);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const list = (data || []).map((row, idx) => ({
+        id: row.id,
+        no: idx + 1,
+        tglTransaksi: String(row.tgl_transaksi).substring(0, 10),
+        userAtm: cleanStr(row.user_atm),
+        nominalPengisian: parseInt(String(row.nominal_pengisian)) || 0,
+        kodeCabang: cleanStr(row.kode_cabang),
+      }));
+
+      return successResponse({ list });
     }
 
     // POST - Simpan data baru
     if (req.method === "POST") {
       const body = await req.json();
+      const isEdit = body.id != null;
 
-      const record = {
+      const record: Record<string, unknown> = {
         kode_wilayah: body.kodeWilayah || body.kode_wilayah || "",
         kode_cabang: body.kodeCabang || body.kode_cabang || "",
         tgl_transaksi: body.tglTransaksi || body.tgl_transaksi || getWIBDateString(),
@@ -65,15 +104,21 @@ Deno.serve(async (req: Request) => {
         return errorResponse("kodeWilayah dan userAtm wajib diisi");
       }
 
-      const { error } = await supabase.from("db_cit_atm").insert(record);
-      if (error) throw error;
-
-      return successResponse("Saved");
+      if (isEdit) {
+        const { error } = await supabase.from("db_cit_atm").update(record).eq("id", body.id);
+        if (error) throw error;
+        return successResponse("Updated");
+      } else {
+        const { error } = await supabase.from("db_cit_atm").insert(record);
+        if (error) throw error;
+        return successResponse("Saved");
+      }
     }
 
     return errorResponse("Method not allowed or invalid action", 405);
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Unknown error";
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[cit-atm] Error:", msg);
     return errorResponse("ERROR: " + msg, 500);
   }
 });
