@@ -145,96 +145,37 @@ Deno.serve(async (req: Request) => {
     }
 
     // =============================================
-    // CIS: Saldo Khasanah harian
+    // CIS: Saldo Akhir Hari Khasanah (Head Teller)
+    // Menggunakan laporan-ht saldo-kas untuk memastikan akurasi
+    // (laporan-ht sudah menghandle pagination & kategori exclusion)
     // =============================================
     if (action === "cis") {
-      // Step 1: Get initial saldo from saldo_awal_ht (latest before month start)
-      let saldoQuery = supabase
-        .from("saldo_awal_ht")
-        .select("tanggal, nominal")
-        .lt("tanggal", startDate)
-        .order("tanggal", { ascending: false });
-      saldoQuery = filterWilayah(saldoQuery, "kode_wilayah");
+      const SB_URL = Deno.env.get("SB_URL") ?? "";
+      const SB_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "";
 
-      const { data: saldoBefore } = await saldoQuery;
-
-      let runningSaldo = 0;
-      if (saldoBefore && saldoBefore.length > 0) {
-        // Sum all nominal at the latest snapshot date before month
-        const latestDate = saldoBefore[0].tanggal;
-        for (const row of saldoBefore) {
-          if (row.tanggal === latestDate) {
-            runningSaldo += parseFloat(String(row.nominal)) || 0;
-          }
-        }
-      }
-
-      // Step 2: Get all KHASANAH-scope mutations for the month + teller SETOR SORE
-      let mutQuery = supabase
-        .from("bon_setor")
-        .select("tanggal, tipe, nominal, scope")
-        .gte("tanggal", startDate)
-        .lte("tanggal", endDate);
-
-      if (kodeWilayah !== "ALL") {
-        mutQuery = mutQuery.eq("kode_wilayah", kodeWilayah);
-      }
-
-      const { data: mutData } = await mutQuery;
-
-      // Step 3: Also get saldo_awal_ht within the month (new initial balances)
-      let saldoInMonthQuery = supabase
-        .from("saldo_awal_ht")
-        .select("tanggal, nominal")
-        .gte("tanggal", startDate)
-        .lte("tanggal", endDate)
-        .order("tanggal");
-      saldoInMonthQuery = filterWilayah(saldoInMonthQuery, "kode_wilayah");
-      const { data: saldoInMonth } = await saldoInMonthQuery;
-
-      // Step 4: Compute daily balance
-      // Formula: SaldoKhasanah(t) = SaldoKhasanah(t-1) + SetorSore(all scopes) + SetorTambahan(KHASANAH scope)
-      // Group additions by date
-      const addByDate: Record<string, number> = {};
-      for (const row of (mutData || [])) {
-        const tgl = String(row.tanggal).substring(0, 10);
-        const nom = parseFloat(String(row.nominal)) || 0;
-        const tipe = row.tipe;
-        const scope = row.scope || "KHASANAH";
-
-        // SETOR SORE: any scope (teller, kf, khasanah)
-        // SETOR TAMBAHAN: KHASANAH scope only
-        if (tipe === "SETOR SORE") {
-          addByDate[tgl] = (addByDate[tgl] || 0) + nom;
-        } else if (["SETOR TAMBAHAN", "SETOR"].includes(tipe) && scope === "KHASANAH") {
-          addByDate[tgl] = (addByDate[tgl] || 0) + nom;
-        }
-      }
-
-      // Also collect saldo_awal_ht changes within the month (reset points)
-      const saldoResetByDate: Record<string, number> = {};
-      for (const row of (saldoInMonth || [])) {
-        const tgl = String(row.tanggal).substring(0, 10);
-        if (!saldoResetByDate[tgl]) saldoResetByDate[tgl] = 0;
-        saldoResetByDate[tgl] += parseFloat(String(row.nominal)) || 0;
-      }
-
-      // Build daily balance
+      // Fetch grandTotal from laporan-ht for each day (parallel, limited concurrency)
       const saldoPerTanggal: Record<string, number> = {};
-      let prevSaldo = runningSaldo;
       let grandTotal = 0;
 
-      for (const tgl of allDates) {
-        // If there's a new saldo_awal_ht for this date, reset from that
-        if (saldoResetByDate[tgl] !== undefined) {
-          runningSaldo = saldoResetByDate[tgl];
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < allDates.length; i += BATCH_SIZE) {
+        const batch = allDates.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(batch.map(async (tgl) => {
+          try {
+            const laporUrl = `${SB_URL}/functions/v1/laporan-ht?action=saldo-kas&tanggal=${tgl}&kodeWilayah=${kodeWilayah}`;
+            const laporResp = await fetch(laporUrl, {
+              headers: { Authorization: `Bearer ${SB_KEY}` }
+            });
+            const laporJson = await laporResp.json();
+            return { tgl, gt: laporJson?.data?.grandTotal ?? 0 };
+          } catch (_) {
+            return { tgl, gt: 0 };
+          }
+        }));
+        for (const { tgl, gt } of results) {
+          saldoPerTanggal[tgl] = gt;
+          grandTotal += gt;
         }
-
-        // Add SETOR SORE + SETOR TAMBAHAN for this date
-        runningSaldo += addByDate[tgl] || 0;
-
-        saldoPerTanggal[tgl] = runningSaldo;
-        grandTotal += runningSaldo;
       }
 
       return successResponse({
