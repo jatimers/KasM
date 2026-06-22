@@ -296,7 +296,8 @@
         <div class="menu-item submenu" onclick="nav('posisi', this); initPosisiKasTeller();">🧮 Kalkulator Posisi Kas</div>
         <div class="menu-item submenu" onclick="nav('history-posisi', this); loadHistoryPosisiKas();">📜 History Posisi Kas</div>
       </div>
-      <div class="menu-item" onclick="nav('cit-atm-input', this); initCitAtmInput();">🏧 Input CIT ATM</div>
+      <div class="menu-item" onclick="nav('data-atm-page', this); initDataAtm();">🏧 Data ATM</div>
+      <div class="menu-item" onclick="nav('cit-atm-input', this); initCitAtmInput();">💵 Input CIT ATM</div>
     </div>
       <div class="role-menu menu-kf">
       <div class="role-title">OPERASIONAL KF</div>
@@ -320,7 +321,8 @@
         <div class="menu-item submenu" onclick="nav('cetak-kf-page', this); initCetakKF('setorbon');">🖨️ Cetak Setor & Bon</div>
         <div class="menu-item submenu" onclick="nav('cetak-kf-page', this); initCetakKF('rincian');">🖨️ Cetak Rincian Kas</div>
       </div>
-      <div class="menu-item" onclick="nav('cit-atm-input', this); initCitAtmInput();">🏧 Input CIT ATM</div>
+      <div class="menu-item" onclick="nav('data-atm-page', this); initDataAtm();">🏧 Data ATM</div>
+      <div class="menu-item" onclick="nav('cit-atm-input', this); initCitAtmInput();">💵 Input CIT ATM</div>
     </div>
     <div class="role-menu menu-capem">
       <div class="role-title">OPERASIONAL CAPEM</div>
@@ -1006,6 +1008,32 @@
       </div>
 
       <!-- ============================================= -->
+      <!-- PAGE: Data ATM (KF & Teller)                   -->
+      <!-- ============================================= -->
+      <div id="data-atm-page" class="page">
+        <div class="header-page">
+          <div>
+            <h3>Data ATM</h3>
+            <p style="margin:5px 0 0 0;">Daftarkan ATM yang dikelola. Data ini akan muncul di dropdown Input CIT ATM.</p>
+          </div>
+        </div>
+        <input type="hidden" id="data-atm-edit-id">
+        <div class="form-row">
+          <div class="form-group"><label>Nama/ID ATM</label><input type="text" id="data-atm-nama" placeholder="Contoh: ATM001" style="text-transform:uppercase;"></div>
+          <div class="form-group"><label>Denom (Pecahan)</label><select id="data-atm-denom" style="background:var(--input-yellow); padding:14px;"><option value="100000">Rp 100.000</option><option value="50000">Rp 50.000</option></select></div>
+        </div>
+        <button class="btn-refresh" style="width:100%; font-size:1.1rem; padding:16px; margin-top:10px;" id="data-atm-btn-save" onclick="saveDataAtm()">💾 SIMPAN DATA ATM</button>
+        <div class="table-responsive" style="margin-top:20px;">
+          <table>
+            <thead><tr><th>No</th><th>Nama ATM</th><th>Denom</th><th style="width:80px;">Aksi</th></tr></thead>
+            <tbody id="data-atm-body">
+              <tr><td colspan="4" style="text-align:center;">Muat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================= -->
       <!-- PAGE: Input CIT ATM (KF & Teller)              -->
       <!-- ============================================= -->
       <div id="cit-atm-input" class="page">
@@ -1018,7 +1046,7 @@
         <input type="hidden" id="cit-atm-edit-id">
         <div class="form-row">
           <div class="form-group"><label>Tanggal Transaksi</label><input type="date" id="cit-atm-tgl" style="background:var(--input-yellow);"></div>
-          <div class="form-group"><label>User ATM (8 digit)</label><input type="text" id="cit-atm-user" maxlength="8" placeholder="Contoh: ATM00123" style="text-transform:uppercase;"></div>
+          <div class="form-group"><label>User ATM</label><select id="cit-atm-user" style="background:var(--input-yellow); padding:14px;"><option value="">-- Pilih ATM --</option></select></div>
           <div class="form-group"><label>Nominal Pengisian (Rp)</label><input type="text" id="cit-atm-nominal" placeholder="0" style="text-align:right;" onfocus="this.select()" onblur="formatCitAtmNominal()"></div>
         </div>
         <button class="btn-refresh" style="width:100%; font-size:1.1rem; padding:16px; margin-top:10px;" id="cit-atm-btn-save" onclick="saveCitAtm()">💾 SIMPAN DATA CIT ATM</button>
@@ -1133,6 +1161,10 @@
       getCitAtmHistory:           ['GET','/cit-atm','?action=history','kodeWilayah'],
       saveCitAtm:                 ['POST','/cit-atm'],
       deleteCitAtm:               ['DELETE','/cit-atm','id'],
+      getDataAtmList:             ['GET','/data-atm','userEstim','kodeWilayah'],
+      getMyDataAtm:               ['GET','/data-atm','?action=my','userEstim'],
+      saveDataAtm:                ['POST','/data-atm'],
+      deleteDataAtm:              ['DELETE','/data-atm','id'],
     };
 
     (function(){
@@ -1564,6 +1596,103 @@ function initLapCluis() {
     // =============================================
     // CIT ATM — Input (KF & Teller)
     // =============================================
+    // =============================================
+    // DATA ATM — Kelola data ATM per KF/Teller
+    // =============================================
+    function initDataAtm() {
+      document.getElementById('data-atm-edit-id').value = '';
+      document.getElementById('data-atm-nama').value = '';
+      document.getElementById('data-atm-denom').value = '100000';
+      document.getElementById('data-atm-btn-save').innerHTML = '💾 SIMPAN DATA ATM';
+      loadDataAtmList();
+    }
+
+    function loadDataAtmList() {
+      showLoader(true, "Memuat data ATM...");
+      google.script.run
+        .withSuccessHandler(function(data) {
+          showLoader(false);
+          renderDataAtmList(data);
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          document.getElementById('data-atm-body').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#ef4444;">Gagal memuat data</td></tr>';
+        })
+        .getDataAtmList(currentUser.userEstim, currentUser.kodeWilayah || 'ALL');
+    }
+
+    function renderDataAtmList(data) {
+      var bodyEl = document.getElementById('data-atm-body');
+      if (!data.list || data.list.length === 0) {
+        bodyEl.innerHTML = '<tr><td colspan="4" style="text-align:center;">Belum ada data ATM. Daftarkan ATM di form atas.</td></tr>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < data.list.length; i++) {
+        var r = data.list[i];
+        var denomLabel = r.denom === '50000' ? 'Rp 50.000' : 'Rp 100.000';
+        html += '<tr>';
+        html += '<td>' + (i + 1) + '</td>';
+        html += '<td style="font-weight:600;">' + r.namaAtm + '</td>';
+        html += '<td>' + denomLabel + '</td>';
+        html += '<td style="white-space:nowrap;">';
+        html += '<button onclick="editDataAtm(' + r.id + ',\'' + r.namaAtm + '\',\'' + r.denom + '\')" style="background:#f59e0b;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;margin-right:3px;font-size:0.75rem;">✏️</button>';
+        html += '<button onclick="deleteDataAtm(' + r.id + ')" style="background:#ef4444;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.75rem;">🗑️</button>';
+        html += '</td></tr>';
+      }
+      bodyEl.innerHTML = html;
+    }
+
+    function saveDataAtm() {
+      var nama = document.getElementById('data-atm-nama').value.trim();
+      var denom = document.getElementById('data-atm-denom').value;
+      var editId = document.getElementById('data-atm-edit-id').value;
+      if (!nama) { alert('Nama ATM harus diisi!'); return; }
+
+      var data = {
+        namaAtm: nama,
+        denom: denom,
+        userEstim: currentUser.userEstim || '',
+        kodeWilayah: currentUser.kodeWilayah || '',
+        kodeCabang: currentUser.kodeCabang || ''
+      };
+      if (editId) { data.id = parseInt(editId); }
+
+      showLoader(true, editId ? "Update data ATM..." : "Menyimpan data ATM...");
+      google.script.run
+        .withSuccessHandler(function() {
+          showLoader(false);
+          showToast(false);
+          document.getElementById('data-atm-edit-id').value = '';
+          document.getElementById('data-atm-nama').value = '';
+          document.getElementById('data-atm-denom').value = '100000';
+          document.getElementById('data-atm-btn-save').innerHTML = '💾 SIMPAN DATA ATM';
+          loadDataAtmList();
+        })
+        .withFailureHandler(function(err) { showLoader(false); alert('Gagal: ' + err.message); })
+        .saveDataAtm(data);
+    }
+
+    function editDataAtm(id, nama, denom) {
+      document.getElementById('data-atm-edit-id').value = id;
+      document.getElementById('data-atm-nama').value = nama;
+      document.getElementById('data-atm-denom').value = denom;
+      document.getElementById('data-atm-btn-save').innerHTML = '✏️ UPDATE DATA ATM';
+      document.getElementById('data-atm-nama').focus();
+    }
+
+    function deleteDataAtm(id) {
+      if (!confirm('Yakin hapus data ATM ini?')) return;
+      showLoader(true, "Menghapus...");
+      google.script.run
+        .withSuccessHandler(function() { showLoader(false); showToast(false); loadDataAtmList(); })
+        .withFailureHandler(function(err) { showLoader(false); alert('Gagal menghapus: ' + err.message); })
+        .deleteDataAtm(id);
+    }
+
+    // =============================================
+    // CIT ATM — populate dropdown from db_atm
+    // =============================================
     function initCitAtmInput() {
       var tglEl = document.getElementById('cit-atm-tgl');
       if (!tglEl.value) {
@@ -1574,7 +1703,28 @@ function initLapCluis() {
       document.getElementById('cit-atm-user').value = '';
       document.getElementById('cit-atm-nominal').value = '';
       document.getElementById('cit-atm-btn-save').innerHTML = '💾 SIMPAN DATA CIT ATM';
+      loadCitAtmDropdown();
       loadCitAtmHistory();
+    }
+
+    function loadCitAtmDropdown() {
+      var sel = document.getElementById('cit-atm-user');
+      google.script.run
+        .withSuccessHandler(function(data) {
+          sel.innerHTML = '<option value="">-- Pilih ATM --</option>';
+          for (var i = 0; i < data.list.length; i++) {
+            var r = data.list[i];
+            var denomLabel = r.denom === '50000' ? '50rb' : '100rb';
+            sel.innerHTML += '<option value="' + r.namaAtm + '">' + r.namaAtm + ' (' + denomLabel + ')</option>';
+          }
+          if (data.list.length === 0) {
+            sel.innerHTML += '<option value="" disabled>-- Daftarkan ATM di menu Data ATM --</option>';
+          }
+        })
+        .withFailureHandler(function() {
+          sel.innerHTML = '<option value="">-- Gagal memuat --</option>';
+        })
+        .getMyDataAtm(currentUser.userEstim);
     }
 
     function formatCitAtmNominal() {
@@ -1667,11 +1817,14 @@ function initLapCluis() {
     function editCitAtm(id, tgl, user, nominal) {
       document.getElementById('cit-atm-edit-id').value = id;
       document.getElementById('cit-atm-tgl').value = tgl;
-      document.getElementById('cit-atm-user').value = user;
+      var sel = document.getElementById('cit-atm-user');
+      // Pastikan dropdown sudah terisi, lalu pilih yg sesuai
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === user) { sel.selectedIndex = i; break; }
+      }
       document.getElementById('cit-atm-nominal').value = nominal.toLocaleString('id-ID');
       document.getElementById('cit-atm-nominal').setAttribute('data-val', nominal);
       document.getElementById('cit-atm-btn-save').innerHTML = '✏️ UPDATE DATA CIT ATM';
-      document.getElementById('cit-atm-user').focus();
     }
 
     function deleteCitAtm(id) {
