@@ -61,6 +61,22 @@ Deno.serve(async (req: Request) => {
         role: u.role || "",
       }));
 
+      // Sort: Teller first (IP04, IP09, IP10), then KF (Senduro, Pemkab, Klakah, Jatiroto)
+      const tellerOrder = ["JTM009IP04", "JTM009IP09", "JTM009IP10"];
+      const kfOrder = ["JTM009IP07", "JTM009IP06", "JTM009IP02", "JTM009IP05"];
+      kfList.sort((a, b) => {
+        const roleOrder = a.role === "teller" ? 0 : 1;
+        const roleOrderB = b.role === "teller" ? 0 : 1;
+        if (roleOrder !== roleOrderB) return roleOrder - roleOrderB;
+        const orderArr = a.role === "teller" ? tellerOrder : kfOrder;
+        const idxA = orderArr.indexOf(a.userEstim);
+        const idxB = orderArr.indexOf(b.userEstim);
+        if (idxA === -1 && idxB === -1) return a.userEstim.localeCompare(b.userEstim);
+        if (idxA === -1) return 1;
+        if (idxB === -1) return -1;
+        return idxA - idxB;
+      });
+
       // Get BON PAGI for the month (KF users do bon pagi with scope='HEAD TELLER')
       let query = supabase
         .from("bon_setor")
