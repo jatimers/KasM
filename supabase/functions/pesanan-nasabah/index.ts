@@ -4,7 +4,7 @@
 
 import { corsHeaders, successResponse, errorResponse } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase.ts";
-import { normalizeUnit } from "../_shared/utils.ts";
+import { normalizeUnit, getWIBISOString } from "../_shared/utils.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
     if (req.method === "POST") {
       const obj = await req.json();
       const id = obj.id || "PSN-" + Date.now();
-      const waktuNow = new Date().toISOString();
+      const waktuNow = getWIBISOString();
 
       await supabase.from("pesanan_nasabah").insert({
         id,
@@ -114,7 +114,7 @@ Deno.serve(async (req: Request) => {
         p100k_bon: total100k,
         p50k_setor: 0,
         p50k_bon: total50k,
-        waktu_input: new Date().toISOString(),
+        waktu_input: getWIBISOString(),
       }, { onConflict: "tanggal, user_estim" });
 
       return successResponse("Deleted");

@@ -3,7 +3,7 @@
 
 import { corsHeaders, successResponse, errorResponse } from "../_shared/cors.ts";
 import { getSupabaseAdmin } from "../_shared/supabase.ts";
-import { cleanStr, normalizeUnit, formatSafeString, formatTglIndo } from "../_shared/utils.ts";
+import { cleanStr, normalizeUnit, formatSafeString, formatTglIndo, getWIBDateString } from "../_shared/utils.ts";
 
 const supabase = getSupabaseAdmin();
 
@@ -149,7 +149,7 @@ async function sendPerkiraanKF(tgl: string, kodeWilayah: string, setting: any): 
   }
 
   // Get rekap perkiraan
-  const perkUrl = `${Deno.env.get("SB_URL")}/functions/v1/perkiraan?action=rekap&tanggal=${tgl}&kodeWilayah=${kodeWilayah}&tglHariIni=${new Date().toISOString().split("T")[0]}`;
+  const perkUrl = `${Deno.env.get("SB_URL")}/functions/v1/perkiraan?action=rekap&tanggal=${tgl}&kodeWilayah=${kodeWilayah}&tglHariIni=${getWIBDateString()}`;
   const perkResp = await fetch(perkUrl, {
     headers: { Authorization: `Bearer ${Deno.env.get("SB_SERVICE_ROLE_KEY")}` }
   });
@@ -189,7 +189,7 @@ async function sendAnalisaTukab(tgl: string, kodeWilayah: string, setting: any):
     return "ERROR: Token KF/Target TUKAB belum diatur";
   }
 
-  const perkUrl = `${Deno.env.get("SB_URL")}/functions/v1/perkiraan?action=rekap&tanggal=${tgl}&kodeWilayah=${kodeWilayah}&tglHariIni=${new Date().toISOString().split("T")[0]}`;
+  const perkUrl = `${Deno.env.get("SB_URL")}/functions/v1/perkiraan?action=rekap&tanggal=${tgl}&kodeWilayah=${kodeWilayah}&tglHariIni=${getWIBDateString()}`;
   const perkResp = await fetch(perkUrl, {
     headers: { Authorization: `Bearer ${Deno.env.get("SB_SERVICE_ROLE_KEY")}` }
   });
@@ -255,7 +255,7 @@ async function sendPerkiraanH1(tgl: string, kodeWilayah: string, setting: any): 
     return "ERROR: Token/Target H-1 belum diatur — cek halaman Setting Fonnte";
   }
 
-  const todayISO = new Date().toISOString().split("T")[0];
+  const todayISO = getWIBDateString();
   const perkUrl = `${Deno.env.get("SB_URL")}/functions/v1/perkiraan?action=rekap&tanggal=${tgl}&kodeWilayah=${kodeWilayah}&tglHariIni=${todayISO}`;
   const perkResp = await fetch(perkUrl, {
     headers: { Authorization: `Bearer ${Deno.env.get("SB_SERVICE_ROLE_KEY")}` }
@@ -311,7 +311,7 @@ Deno.serve(async (req: Request) => {
     if (!setting) return errorResponse("Setting Fonnte belum diatur");
 
     const kodeWilayah = body.kodeWilayah || "ALL";
-    const tgl = body.tanggal || new Date().toISOString().split("T")[0];
+    const tgl = body.tanggal || getWIBDateString();
 
     let result = "";
 
@@ -340,7 +340,7 @@ Deno.serve(async (req: Request) => {
       case "scheduled-laporan-ht": {
         console.log(`[scheduled-laporan-ht] Triggered at ${new Date().toISOString()}`);
         const liburMap = await getLiburMap();
-        const today = new Date().toISOString().split("T")[0];
+        const today = getWIBDateString();
         console.log(`[scheduled-laporan-ht] today=${today}, liburKeys=${Object.keys(liburMap).join(",") || "(none)"}`);
         if (!isWorkingDay(today, liburMap)) {
           console.log(`[scheduled-laporan-ht] Hari libur/weekend (${today}), skip`);
@@ -359,7 +359,7 @@ Deno.serve(async (req: Request) => {
       case "scheduled-perkiraan-h1": {
         console.log(`[scheduled-perkiraan-h1] Triggered at ${new Date().toISOString()}`);
         const liburMap = await getLiburMap();
-        const today = new Date().toISOString().split("T")[0];
+        const today = getWIBDateString();
         console.log(`[scheduled-perkiraan-h1] today=${today}, liburKeys=${Object.keys(liburMap).join(",") || "(none)"}`);
         if (!isWorkingDay(today, liburMap)) {
           console.log(`[scheduled-perkiraan-h1] Hari libur/weekend (${today}), skip`);

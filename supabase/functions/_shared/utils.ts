@@ -28,6 +28,20 @@ export function formatTglIndo(dateStr: string): string {
   return `${parseInt(parts[2], 10)} ${bulanIndo[parseInt(parts[1], 10) - 1]} ${parts[0]}`;
 }
 
+// WIB (GMT+7) ISO timestamp untuk waktu_input
+export function getWIBISOString(): string {
+  const now = new Date();
+  const wib = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+  return wib.toISOString().replace("Z", "+07:00");
+}
+
+// WIB (GMT+7) date string YYYY-MM-DD
+export function getWIBDateString(): string {
+  const now = new Date();
+  const wib = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+  return wib.toISOString().split("T")[0];
+}
+
 export function getLocalDateString(): string {
   const d = new Date();
   const year = d.getFullYear();

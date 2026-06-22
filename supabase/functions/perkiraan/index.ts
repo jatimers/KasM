@@ -4,7 +4,7 @@
 
 import { corsHeaders, successResponse, errorResponse } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase.ts";
-import { cleanStr, normalizeUnit, formatSafeString } from "../_shared/utils.ts";
+import { cleanStr, normalizeUnit, formatSafeString, getWIBISOString } from "../_shared/utils.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -132,7 +132,7 @@ Deno.serve(async (req: Request) => {
         p100k_bon: parseInt(String(obj.p100k_bon)) || 0,
         p50k_setor: parseInt(String(obj.p50k_setor)) || 0,
         p50k_bon: parseInt(String(obj.p50k_bon)) || 0,
-        waktu_input: new Date().toISOString(),
+        waktu_input: getWIBISOString(),
       };
 
       const { error } = await supabase
