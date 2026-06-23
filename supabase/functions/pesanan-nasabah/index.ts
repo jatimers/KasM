@@ -19,15 +19,22 @@ Deno.serve(async (req: Request) => {
 
     // GET
     if (req.method === "GET") {
+      const action = url.searchParams.get("action") ?? "";
       const userEstim = url.searchParams.get("userEstim") ?? "";
       const tgl = url.searchParams.get("tanggal") ?? "";
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("pesanan_nasabah")
         .select("*")
         .eq("tanggal", tgl)
-        .eq("user_estim", userEstim)
         .order("waktu_input");
+
+      // action=all: semua pesanan di tgl tsb (untuk rekap)
+      if (action !== "all") {
+        query = query.eq("user_estim", userEstim);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 

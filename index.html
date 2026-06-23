@@ -593,6 +593,19 @@
           </div>
         </div>
 
+        <!-- DETAIL PESANAN NASABAH -->
+        <div class="summary-box" style="margin-top:25px; background:#f0fdf4; border-left-color:#10b981;">
+          <h3 style="margin:0; border:none; color:#047857;">📋 Detail Pesanan Nasabah</h3>
+          <p style="margin-top:5px; color:#047857;">Daftar pesanan uang nasabah per teller untuk tanggal ini.</p>
+          <div class="table-responsive" style="margin-top:15px;">
+            <table style="background:white; border:1px solid #a7f3d0;">
+              <thead><tr><th style="background:#dcfce7; color:#047857;">Nama Nasabah</th><th style="text-align:right; background:#dcfce7; color:#047857;">Nominal 100k</th><th style="text-align:right; background:#dcfce7; color:#047857;">Nominal 50k</th><th style="text-align:right; background:#dcfce7; color:#047857;">Total</th><th style="background:#dcfce7; color:#047857;">User Input</th></tr></thead>
+              <tbody id="pht-pesanan-body"><tr><td colspan="5" style="text-align:center;">Memuat data pesanan...</td></tr></tbody>
+              <tfoot id="pht-pesanan-foot"></tfoot>
+            </table>
+          </div>
+        </div>
+
         <div class="summary-box" style="margin-top:25px; background:#fff7ed; border-left-color: #ea580c; text-align:center;">
           <h3 style="margin:0; border:none; color:#c2410c;">ANALISA KEBUTUHAN TUKAB</h3>
           <p style="margin-top:5px;">Perbandingan Total Estimasi Bon Teller dengan Saldo Fisik Khasanah Hari Ini</p>
@@ -1196,6 +1209,7 @@
       getLapCluis:                ['GET','/cluis','tanggal','kodeWilayah'],
       tutupBukuHT:                ['POST','/tutup-buku'],
       getPesananNasabah:          ['GET','/pesanan-nasabah','tanggal','userEstim'],
+      getPesananNasabahAll:       ['GET','/pesanan-nasabah','?action=all','tanggal'],
       savePesananNasabah:         ['POST','/pesanan-nasabah'],
       deletePesananNasabah:       ['DELETE','/pesanan-nasabah','id'],
       recalcPerkiraanDariPesanan: ['POST','/perkiraan'],
@@ -3088,6 +3102,16 @@ function loadPerkiraanHT() {
       document.getElementById('pht-terbilang-setor').innerText = grandSetor > 0 ? terbilang(grandSetor) + " Rupiah" : "-";
       document.getElementById('pht-terbilang-bon').innerText = grandBon > 0 ? terbilang(grandBon) + " Rupiah" : "-";
 
+      // --- DETAIL PESANAN NASABAH ---
+      google.script.run
+        .withSuccessHandler(function(pesananRes) {
+          renderPesananDetail(pesananRes);
+        })
+        .withFailureHandler(function() {
+          document.getElementById('pht-pesanan-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ef4444;">Gagal memuat data pesanan</td></tr>';
+        })
+        .getPesananNasabahAll(tgl);
+
       // --- ANALISA TUKAB (DENGAN ESTIMASI SETORAN) ---
       let k100 = parseFloat(res.khasanah100) || 0;
       let k50 = parseFloat(res.khasanah50) || 0;
@@ -3135,6 +3159,44 @@ function loadPerkiraanHT() {
     })
     .getRekapPerkiraanHT(tgl, currentUser.kodeWilayah, todayISO);
 }
+
+    function renderPesananDetail(data) {
+      var bodyEl = document.getElementById('pht-pesanan-body');
+      var footEl = document.getElementById('pht-pesanan-foot');
+      var list = data || [];
+
+      if (list.length === 0) {
+        bodyEl.innerHTML = '<tr><td colspan="5" style="text-align:center;">Tidak ada pesanan nasabah untuk tanggal ini.</td></tr>';
+        footEl.innerHTML = '';
+        return;
+      }
+
+      var html = '';
+      var tot100 = 0, tot50 = 0;
+      for (var i = 0; i < list.length; i++) {
+        var r = list[i];
+        var total = r.p100k + r.p50k;
+        tot100 += r.p100k;
+        tot50 += r.p50k;
+        html += '<tr>';
+        html += '<td style="font-weight:600;">' + r.namaNasabah + '</td>';
+        html += '<td style="text-align:right;">' + (r.p100k > 0 ? r.p100k.toLocaleString('id-ID') : '-') + '</td>';
+        html += '<td style="text-align:right;">' + (r.p50k > 0 ? r.p50k.toLocaleString('id-ID') : '-') + '</td>';
+        html += '<td style="text-align:right; font-weight:700;">Rp ' + total.toLocaleString('id-ID') + '</td>';
+        html += '<td><small style="color:#6b7280;">' + (r.userEstim || '-') + '</small></td>';
+        html += '</tr>';
+      }
+      bodyEl.innerHTML = html;
+
+      var grandTotal = tot100 + tot50;
+      footEl.innerHTML = '<tr style="font-weight:bold; background:#dcfce7;">' +
+        '<td style="font-weight:800; color:#047857;">TOTAL</td>' +
+        '<td style="text-align:right; color:#047857;">Rp ' + tot100.toLocaleString('id-ID') + '</td>' +
+        '<td style="text-align:right; color:#047857;">Rp ' + tot50.toLocaleString('id-ID') + '</td>' +
+        '<td style="text-align:right; font-weight:800; color:#047857;">Rp ' + grandTotal.toLocaleString('id-ID') + '</td>' +
+        '<td></td>' +
+        '</tr>';
+    }
 
     function loadDataPegawai() { 
   // 1. Isi data teller default
