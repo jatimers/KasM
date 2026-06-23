@@ -1091,10 +1091,15 @@
           <div class="form-group"><label>Nama Bank</label><input type="text" id="tukab-bank" placeholder="Contoh: BNI, BRI, Mandiri" style="text-transform:uppercase;"></div>
           <div class="form-group"><label>Nominal TUKAB (Rp)</label><input type="text" id="tukab-nominal" placeholder="0" style="text-align:right;" onfocus="this.select()" onblur="formatTukabNominal()"></div>
         </div>
+        <div class="form-row" style="align-items:center; margin-bottom:10px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600;">
+            <input type="checkbox" id="tukab-status-antar" style="width:20px; height:20px; cursor:pointer;"> ✅ Sudah diantar / Masuk CIT TUKAB
+          </label>
+        </div>
         <button class="btn-refresh" style="width:100%; font-size:1.1rem; padding:16px; margin-top:10px;" id="tukab-btn-save" onclick="saveTukab()">💾 SIMPAN DATA TUKAB</button>
         <div class="table-responsive" style="margin-top:20px;">
           <table>
-            <thead><tr><th>No</th><th>TGL</th><th>Bank</th><th style="text-align:right;">Nominal</th><th style="width:80px;">Aksi</th></tr></thead>
+            <thead><tr><th>No</th><th>TGL</th><th>Bank</th><th style="text-align:right;">Nominal</th><th style="text-align:center;width:50px;">Antar</th><th style="width:80px;">Aksi</th></tr></thead>
             <tbody id="tukab-body">
               <tr><td colspan="5" style="text-align:center;">Muat data transaksi terbaru...</td></tr>
             </tbody>
@@ -1118,9 +1123,9 @@
         </div>
         <div class="table-responsive">
           <table>
-            <thead><tr><th>No</th><th>TGL</th><th>BANK</th><th style="text-align:right;">NOMINAL TUKAB</th></tr></thead>
+            <thead><tr><th>No</th><th>TGL</th><th>BANK</th><th style="text-align:right;">NOMINAL TUKAB</th><th style="text-align:center;width:50px;">✓</th></tr></thead>
             <tbody id="cit-tukab-body">
-              <tr><td colspan="4" style="text-align:center;">Pilih bulan untuk melihat data TUKAB.</td></tr>
+              <tr><td colspan="5" style="text-align:center;">Pilih bulan untuk melihat data TUKAB.</td></tr>
             </tbody>
             <tfoot id="cit-tukab-foot"></tfoot>
           </table>
@@ -1680,6 +1685,7 @@ function initLapCluis() {
       document.getElementById('tukab-edit-id').value = '';
       document.getElementById('tukab-bank').value = '';
       document.getElementById('tukab-nominal').value = '';
+      document.getElementById('tukab-status-antar').checked = false;
       document.getElementById('tukab-btn-save').innerHTML = '💾 SIMPAN DATA TUKAB';
       loadTukabHistory();
     }
@@ -1711,6 +1717,7 @@ function initLapCluis() {
         tglTransaksi: tgl,
         bank: bank,
         nominalTukab: nominal,
+        statusAntar: document.getElementById('tukab-status-antar').checked,
         userEstim: currentUser.userEstim || '',
         kodeWilayah: currentUser.kodeWilayah || '',
         kodeCabang: currentUser.kodeCabang || ''
@@ -1741,7 +1748,7 @@ function initLapCluis() {
         })
         .withFailureHandler(function() {
           showLoader(false);
-          document.getElementById('tukab-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ef4444;">Gagal memuat data</td></tr>';
+          document.getElementById('tukab-body').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ef4444;">Gagal memuat data</td></tr>';
         })
         .getTukabHistory(document.getElementById('tukab-tgl').value, currentUser.kodeWilayah || 'ALL');
     }
@@ -1749,7 +1756,7 @@ function initLapCluis() {
     function renderTukabHistory(data) {
       var bodyEl = document.getElementById('tukab-body');
       if (!data.list || data.list.length === 0) {
-        bodyEl.innerHTML = '<tr><td colspan="5" style="text-align:center;">Belum ada data TUKAB untuk tanggal ini.</td></tr>';
+        bodyEl.innerHTML = '<tr><td colspan="6" style="text-align:center;">Belum ada data TUKAB untuk tanggal ini.</td></tr>';
         return;
       }
       var html = '';
@@ -1760,20 +1767,22 @@ function initLapCluis() {
         html += '<td style="font-weight:600;">' + r.tglTransaksi.substring(8) + '</td>';
         html += '<td>' + r.bank + '</td>';
         html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalTukab.toLocaleString('id-ID') + '</td>';
+        html += '<td style="text-align:center;">' + (r.statusAntar ? '✅' : '❌') + '</td>';
         html += '<td style="white-space:nowrap;">';
-        html += '<button onclick="editTukab(' + r.id + ',\'' + r.tglTransaksi + '\',\'' + r.bank + '\',' + r.nominalTukab + ')" style="background:#f59e0b;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;margin-right:3px;font-size:0.75rem;">✏️</button>';
+        html += '<button onclick="editTukab(' + r.id + ',\'' + r.tglTransaksi + '\',\'' + r.bank + '\',' + r.nominalTukab + ',' + (r.statusAntar ? 'true' : 'false') + ')" style="background:#f59e0b;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;margin-right:3px;font-size:0.75rem;">✏️</button>';
         html += '<button onclick="deleteTukab(' + r.id + ')" style="background:#ef4444;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.75rem;">🗑️</button>';
         html += '</td></tr>';
       }
       bodyEl.innerHTML = html;
     }
 
-    function editTukab(id, tgl, bank, nominal) {
+    function editTukab(id, tgl, bank, nominal, statusAntar) {
       document.getElementById('tukab-edit-id').value = id;
       document.getElementById('tukab-tgl').value = tgl;
       document.getElementById('tukab-bank').value = bank;
       document.getElementById('tukab-nominal').value = nominal.toLocaleString('id-ID');
       document.getElementById('tukab-nominal').setAttribute('data-val', nominal);
+      document.getElementById('tukab-status-antar').checked = (statusAntar === true || statusAntar === 'true');
       document.getElementById('tukab-btn-save').innerHTML = '✏️ UPDATE DATA TUKAB';
     }
 
@@ -1820,7 +1829,7 @@ function initLapCluis() {
       var footEl = document.getElementById('cit-tukab-foot');
 
       if (!data.list || data.list.length === 0) {
-        bodyEl.innerHTML = '<tr><td colspan="4" style="text-align:center;">Tidak ada data TUKAB untuk bulan ini.</td></tr>';
+        bodyEl.innerHTML = '<tr><td colspan="5" style="text-align:center;">Tidak ada data TUKAB untuk bulan ini.</td></tr>';
         footEl.innerHTML = '';
         return;
       }
@@ -1833,14 +1842,15 @@ function initLapCluis() {
         html += '<td style="font-weight:600;">' + r.tglTransaksi.substring(8) + ' <small style="color:#6b7280;">' + r.tglTransaksi.substring(0,7) + '</small></td>';
         html += '<td>' + r.bank + '</td>';
         html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalTukab.toLocaleString('id-ID') + '</td>';
+        html += '<td style="text-align:center;">✅</td>';
         html += '</tr>';
       }
       bodyEl.innerHTML = html;
 
       footEl.innerHTML = '<tr style="font-weight:bold; background:#f8fafc;">' +
-        '<td colspan="3" style="text-align:right; font-weight:800;">TOTAL</td>' +
+        '<td colspan="3" style="text-align:right; font-weight:800;">TOTAL (Sudah Diantar)</td>' +
         '<td style="text-align:right; font-weight:800;">Rp ' + data.grandTotal.toLocaleString('id-ID') + '</td>' +
-        '</tr>';
+        '<td></td></tr>';
     }
 
     // =============================================

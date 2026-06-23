@@ -44,6 +44,8 @@ Deno.serve(async (req: Request) => {
         .order("tgl_transaksi", { ascending: true })
         .order("id", { ascending: true });
 
+      // Hanya tampil yg sudah diantar (status_antar = true)
+      query = query.eq("status_antar", true);
       if (kodeWilayah !== "ALL") query = query.eq("kode_wilayah", kodeWilayah);
 
       const { data, error } = await query;
@@ -56,6 +58,7 @@ Deno.serve(async (req: Request) => {
         bank: cleanStr(row.bank),
         nominalTukab: parseInt(String(row.nominal_tukab)) || 0,
         userEstim: cleanStr(row.user_estim),
+        statusAntar: row.status_antar === true,
       }));
 
       const grandTotal = list.reduce((s, r) => s + r.nominalTukab, 0);
@@ -84,6 +87,7 @@ Deno.serve(async (req: Request) => {
         bank: cleanStr(row.bank),
         nominalTukab: parseInt(String(row.nominal_tukab)) || 0,
         userEstim: cleanStr(row.user_estim),
+        statusAntar: row.status_antar === true,
       }));
 
       return successResponse({ list });
@@ -98,6 +102,7 @@ Deno.serve(async (req: Request) => {
         tgl_transaksi: body.tglTransaksi || body.tgl_transaksi || getWIBDateString(),
         bank: body.bank || "",
         nominal_tukab: parseInt(String(body.nominalTukab || body.nominal_tukab)) || 0,
+        status_antar: body.statusAntar === true || body.status_antar === true,
         user_estim: body.userEstim || body.user_estim || "",
         kode_wilayah: body.kodeWilayah || body.kode_wilayah || "",
         kode_cabang: body.kodeCabang || body.kode_cabang || "",
