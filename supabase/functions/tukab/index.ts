@@ -44,8 +44,8 @@ Deno.serve(async (req: Request) => {
         .order("tgl_transaksi", { ascending: true })
         .order("id", { ascending: true });
 
-      // Hanya tampil yg sudah diantar (status_antar = true)
-      query = query.eq("status_antar", true);
+      // Hanya tampil yg BELUM diantar (status_antar = false) → masuk CIT
+      query = query.eq("status_antar", false);
       if (kodeWilayah !== "ALL") query = query.eq("kode_wilayah", kodeWilayah);
 
       const { data, error } = await query;

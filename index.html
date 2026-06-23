@@ -1093,13 +1093,13 @@
         </div>
         <div class="form-row" style="align-items:center; margin-bottom:10px;">
           <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600;">
-            <input type="checkbox" id="tukab-status-antar" style="width:20px; height:20px; cursor:pointer;"> ✅ Sudah diantar / Masuk CIT TUKAB
+            <input type="checkbox" id="tukab-status-antar" style="width:20px; height:20px; cursor:pointer;"> ✅ Sudah diantar (tidak masuk CIT TUKAB)
           </label>
         </div>
         <button class="btn-refresh" style="width:100%; font-size:1.1rem; padding:16px; margin-top:10px;" id="tukab-btn-save" onclick="saveTukab()">💾 SIMPAN DATA TUKAB</button>
         <div class="table-responsive" style="margin-top:20px;">
           <table>
-            <thead><tr><th>No</th><th>TGL</th><th>Bank</th><th style="text-align:right;">Nominal</th><th style="text-align:center;width:50px;">Antar</th><th style="width:80px;">Aksi</th></tr></thead>
+            <thead><tr><th>No</th><th>TGL</th><th>Bank</th><th style="text-align:right;">Nominal</th><th style="text-align:center;width:50px;" title="Masuk CIT">CIT</th><th style="width:80px;">Aksi</th></tr></thead>
             <tbody id="tukab-body">
               <tr><td colspan="5" style="text-align:center;">Muat data transaksi terbaru...</td></tr>
             </tbody>
@@ -1123,9 +1123,9 @@
         </div>
         <div class="table-responsive">
           <table>
-            <thead><tr><th>No</th><th>TGL</th><th>BANK</th><th style="text-align:right;">NOMINAL TUKAB</th><th style="text-align:center;width:50px;">✓</th></tr></thead>
+            <thead><tr><th>No</th><th>TGL</th><th>BANK</th><th style="text-align:right;">NOMINAL TUKAB</th></tr></thead>
             <tbody id="cit-tukab-body">
-              <tr><td colspan="5" style="text-align:center;">Pilih bulan untuk melihat data TUKAB.</td></tr>
+              <tr><td colspan="4" style="text-align:center;">Pilih bulan untuk melihat data TUKAB.</td></tr>
             </tbody>
             <tfoot id="cit-tukab-foot"></tfoot>
           </table>
@@ -1829,7 +1829,7 @@ function initLapCluis() {
       var footEl = document.getElementById('cit-tukab-foot');
 
       if (!data.list || data.list.length === 0) {
-        bodyEl.innerHTML = '<tr><td colspan="5" style="text-align:center;">Tidak ada data TUKAB untuk bulan ini.</td></tr>';
+        bodyEl.innerHTML = '<tr><td colspan="4" style="text-align:center;">Tidak ada data TUKAB untuk bulan ini.</td></tr>';
         footEl.innerHTML = '';
         return;
       }
@@ -1842,15 +1842,14 @@ function initLapCluis() {
         html += '<td style="font-weight:600;">' + r.tglTransaksi.substring(8) + ' <small style="color:#6b7280;">' + r.tglTransaksi.substring(0,7) + '</small></td>';
         html += '<td>' + r.bank + '</td>';
         html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalTukab.toLocaleString('id-ID') + '</td>';
-        html += '<td style="text-align:center;">✅</td>';
         html += '</tr>';
       }
       bodyEl.innerHTML = html;
 
       footEl.innerHTML = '<tr style="font-weight:bold; background:#f8fafc;">' +
-        '<td colspan="3" style="text-align:right; font-weight:800;">TOTAL (Sudah Diantar)</td>' +
+        '<td colspan="3" style="text-align:right; font-weight:800;">TOTAL (Belum Diantar)</td>' +
         '<td style="text-align:right; font-weight:800;">Rp ' + data.grandTotal.toLocaleString('id-ID') + '</td>' +
-        '<td></td></tr>';
+        '</tr>';
     }
 
     // =============================================
