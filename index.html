@@ -1775,7 +1775,7 @@ function initLapCluis() {
     // CIT TUKAB — Rekap (Head Teller)
     // =============================================
     function initCitTukab() {
-      nav('cit-tukab-rekap', document.querySelectorAll('#sub-cib-cis-cit .menu-item.submenu')[4]);
+      nav('cit-tukab-rekap', document.querySelectorAll('#sub-cib-cis-cit .menu-item.submenu')[5]);
       var bulanEl = document.getElementById('tukab-rekap-bulan');
       if (!bulanEl.value) {
         var now = new Date();
@@ -3669,10 +3669,10 @@ function loadDashboardHT() {
   showLoader(true, "Memuat Rekap Wilayah...");
   google.script.run.withSuccessHandler((res) => {
     showLoader(false);
-    document.getElementById('ht-awal').innerText = "Rp " + res.saldoAwal.toLocaleString('id-ID');
-    document.getElementById('ht-akhir').innerText = "Rp " + res.saldoAkhirKhasanah.toLocaleString('id-ID');
-    document.getElementById('ht-tot-bon').innerText = "Rp " + res.totalBonTeller.toLocaleString('id-ID');
-    document.getElementById('ht-tot-setor').innerText = "Rp " + res.totalSetorTeller.toLocaleString('id-ID');
+    document.getElementById('ht-awal').innerText = "Rp " + ((res.saldoAwal || 0)).toLocaleString('id-ID');
+    document.getElementById('ht-akhir').innerText = "Rp " + ((res.saldoAkhirKhasanah || res.saldoAkhir || 0)).toLocaleString('id-ID');
+    document.getElementById('ht-tot-bon').innerText = "Rp " + ((res.totalBonTeller || res.bonHariIni || 0)).toLocaleString('id-ID');
+    document.getElementById('ht-tot-setor').innerText = "Rp " + ((res.totalSetorTeller || res.setorHariIni || 0)).toLocaleString('id-ID');
   }).getRekapHeadTeller(todayISO, currentUser.kodeWilayah);
 }
 
