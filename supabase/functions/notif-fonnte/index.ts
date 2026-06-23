@@ -336,6 +336,17 @@ Deno.serve(async (req: Request) => {
         result = await sendPerkiraanH1(tgl, kodeWilayah, setting);
         break;
 
+      case "tukab": {
+        const bank = body.bank || "-";
+        const nominal = Number(body.nominal) || 0;
+        const token = setting?.token_kf;
+        const target = cleanStr(setting?.target_tukab || "");
+        if (!token || !target) return errorResponse("Token/Target TUKAB belum diatur di Setting WA");
+        const tukabMsg = `Mohon dibantu Input Tukab *${bank}* Rp ${nominal.toLocaleString("id-ID")},\nTerima Kasih\n\n_from Cash Monitor Apps_`;
+        result = await fonnteSend(token, target.replace(/\s+/g, ""), tukabMsg);
+        break;
+      }
+
       // === SCHEDULED TASKS (called by GitHub Actions cron / pg_cron) ===
       case "scheduled-laporan-ht": {
         console.log(`[scheduled-laporan-ht] Triggered at ${new Date().toISOString()}`);
