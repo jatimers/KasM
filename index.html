@@ -3156,6 +3156,14 @@ function loadPerkiraanHT() {
       } else {
         statusEl.innerHTML = `<div style="color:#059669; padding:12px; border-radius:8px; background:#f0fdf4; border:1px solid #bbf7d0;">✅ <b>AMAN:</b> Saldo Khasanah & Estimasi Setoran mencukupi kebutuhan.</div>`;
       }
+
+      // Auto-trigger notif WA TUKAB jika ada kekurangan
+      if (grandTukab > 0) {
+        google.script.run
+          .withSuccessHandler(function(r) { console.log('✅ Notif TUKAB auto-terkirim'); })
+          .withFailureHandler(function(e) { console.warn('⚠️ Notif TUKAB gagal:', e.message); })
+          .sendAnalisaTukabWA({action: "analisa-tukab", tanggal: tgl, kodeWilayah: currentUser.kodeWilayah || 'ALL'});
+      }
     })
     .getRekapPerkiraanHT(tgl, currentUser.kodeWilayah, todayISO);
 }

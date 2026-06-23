@@ -179,7 +179,7 @@ async function sendPerkiraanKF(tgl: string, kodeWilayah: string, setting: any): 
 }
 
 // =============================================
-// ANALISA TUKAB
+// ANALISA TUKAB (Smart Logic)
 // =============================================
 async function sendAnalisaTukab(tgl: string, kodeWilayah: string, setting: any): Promise<string> {
   const token = setting?.token_kf;
@@ -198,48 +198,105 @@ async function sendAnalisaTukab(tgl: string, kodeWilayah: string, setting: any):
   const list = rekap.list || [];
 
   let tBon100 = 0, tBon50 = 0, tSetor100 = 0, tSetor50 = 0;
+  let unitCount = 0;
   for (const r of list) {
-    tBon100 += Number(r.p100k_bon) || 0;
-    tBon50 += Number(r.p50k_bon) || 0;
+    const b100 = Number(r.p100k_bon) || 0;
+    const b50 = Number(r.p50k_bon) || 0;
+    if (b100 > 0 || b50 > 0) unitCount++;
+    tBon100 += b100;
+    tBon50 += b50;
     tSetor100 += Number(r.p100k_setor) || 0;
     tSetor50 += Number(r.p50k_setor) || 0;
   }
 
   const khasanah100 = Number(rekap.khasanah100) || 0;
   const khasanah50 = Number(rekap.khasanah50) || 0;
-  const tersedia100 = khasanah100 + tSetor100;
-  const tersedia50 = khasanah50 + tSetor50;
-  const hasil100 = Math.max(0, tBon100 - tersedia100);
-  const hasil50 = Math.max(0, tBon50 - tersedia50);
-  const grandTukab = hasil100 + hasil50;
+  const saldo100 = khasanah100 + tSetor100;
+  const saldo50 = khasanah50 + tSetor50;
+  const kurang100 = Math.max(0, tBon100 - saldo100);
+  const kurang50 = Math.max(0, tBon50 - saldo50);
+  const grandKurang = kurang100 + kurang50;
   const totBon = tBon100 + tBon50;
-  const totTersedia = tersedia100 + tersedia50;
+  const totSaldo = saldo100 + saldo50;
+
+  // Surplus per pecahan
+  const surplus100 = Math.max(0, saldo100 - tBon100);
+  const surplus50 = Math.max(0, saldo50 - tBon50);
 
   let msg = "*ANALISA KEBUTUHAN TUKAB*\n";
-  msg += "Tanggal: " + formatTglIndo(tgl) + "\n";
+  msg += "Tanggal: " + formatTglIndo(tgl) + " (" + unitCount + " unit)\n";
   msg += "--------------------------------\n";
-  msg += "Keb. Bon 100k : Rp " + tBon100.toLocaleString("id-ID") + "\n";
-  msg += "Tersedia 100k : Rp " + tersedia100.toLocaleString("id-ID") + "\n";
-  msg += "Kekurangan 100k : Rp " + hasil100.toLocaleString("id-ID") + "\n\n";
-  msg += "Keb. Bon 50k : Rp " + tBon50.toLocaleString("id-ID") + "\n";
-  msg += "Tersedia 50k : Rp " + tersedia50.toLocaleString("id-ID") + "\n";
-  msg += "Kekurangan 50k : Rp " + hasil50.toLocaleString("id-ID") + "\n";
-  msg += "--------------------------------\n";
-  msg += "TOTAL KEKURANGAN: Rp " + grandTukab.toLocaleString("id-ID") + "\n\n";
 
-  let status = "";
-  if (grandTukab > 0) {
-    if (totTersedia >= totBon) {
-      status = "⚠️ *PERHATIAN:*\nDari jumlah nominal keseluruhan, kebutuhan kas tercukupi, namun jika dipilah berdasarkan pecahan:\n";
-      if (hasil100 > 0) status += "- Kekurangan pecahan 100.000 sebesar Rp " + hasil100.toLocaleString("id-ID") + "\n";
-      if (hasil50 > 0) status += "- Kekurangan pecahan 50.000 sebesar Rp " + hasil50.toLocaleString("id-ID") + "\n";
-    } else {
-      status = "🚨 *PERLU TUKAB:*\nSaldo Khasanah tidak mencukupi, butuh tambahan fisik Rp " + grandTukab.toLocaleString("id-ID");
-    }
+  // Pecahan 100.000
+  msg += "💵 *Pecahan 100.000*\n";
+  msg += "  📤 Kebutuhan Bon : Rp " + tBon100.toLocaleString("id-ID") + "\n";
+  msg += "  📥 Saldo + Setoran: Rp " + saldo100.toLocaleString("id-ID") + "\n";
+  if (kurang100 > 0) {
+    msg += "  🔴 *Kekurangan:* Rp " + kurang100.toLocaleString("id-ID") + "\n";
   } else {
-    status = "✅ *AMAN:*\nSaldo Khasanah & Estimasi Setoran mencukupi kebutuhan.";
+    msg += "  🟢 *Surplus:* Rp " + surplus100.toLocaleString("id-ID") + "\n";
   }
-  msg += status + "\n\n_from Cash Monitor Apps_";
+  msg += "\n";
+
+  // Pecahan 50.000
+  msg += "💵 *Pecahan 50.000*\n";
+  msg += "  📤 Kebutuhan Bon : Rp " + tBon50.toLocaleString("id-ID") + "\n";
+  msg += "  📥 Saldo + Setoran: Rp " + saldo50.toLocaleString("id-ID") + "\n";
+  if (kurang50 > 0) {
+    msg += "  🔴 *Kekurangan:* Rp " + kurang50.toLocaleString("id-ID") + "\n";
+  } else {
+    msg += "  🟢 *Surplus:* Rp " + surplus50.toLocaleString("id-ID") + "\n";
+  }
+  msg += "\n--------------------------------\n";
+
+  // Smart Analysis
+  if (grandKurang === 0) {
+    msg += "✅ *STATUS: AMAN*\nSaldo Khasanah + Estimasi Setoran mencukupi seluruh kebutuhan Bon.\n";
+  } else if (totSaldo >= totBon) {
+    // Total cukup, tapi mismatch pecahan
+    msg += "⚠️ *STATUS: MISMATCH PECAHAN*\n";
+    msg += "Total dana mencukupi (Rp " + totSaldo.toLocaleString("id-ID") + " ≥ Rp " + totBon.toLocaleString("id-ID") + "),\n";
+    msg += "namun terjadi ketidaksesuaian pecahan:\n\n";
+
+    if (kurang100 > 0) {
+      const lembarButuh = Math.ceil(kurang100 / 100000);
+      msg += "🔴 *Butuh pecahan 100.000:* Rp " + kurang100.toLocaleString("id-ID") + " (" + lembarButuh.toLocaleString("id-ID") + " lembar)\n";
+      if (surplus50 > 0) {
+        const bisaDitukar = Math.min(surplus50, kurang100 * 2);
+        const lembar50 = Math.floor(bisaDitukar / 50000);
+        msg += "   💡 *Saran:* Tukar " + lembar50.toLocaleString("id-ID") + " lbr pecahan 50.000 (surplus)\n";
+        msg += "   menjadi " + Math.floor(bisaDitukar / 100000).toLocaleString("id-ID") + " lbr pecahan 100.000\n";
+      }
+    }
+    if (kurang50 > 0) {
+      const lembarButuh = Math.ceil(kurang50 / 50000);
+      msg += "🔴 *Butuh pecahan 50.000:* Rp " + kurang50.toLocaleString("id-ID") + " (" + lembarButuh.toLocaleString("id-ID") + " lembar)\n";
+      if (surplus100 > 0) {
+        const bisaDitukar = Math.min(surplus100, kurang50 * 2);
+        const lembar100 = Math.floor(bisaDitukar / 100000);
+        msg += "   💡 *Saran:* Tukar " + lembar100.toLocaleString("id-ID") + " lbr pecahan 100.000 (surplus)\n";
+        msg += "   menjadi " + Math.floor(bisaDitukar / 50000).toLocaleString("id-ID") + " lbr pecahan 50.000\n";
+      }
+    }
+    msg += "\n";
+  } else {
+    // Total tidak cukup → BUTUH TUKAB DARI LUAR
+    msg += "🚨 *STATUS: PERLU TUKAB*\n";
+    msg += "Total dana TIDAK mencukupi (Rp " + totSaldo.toLocaleString("id-ID") + " < Rp " + totBon.toLocaleString("id-ID") + ")\n";
+    msg += "Total kekurangan: *Rp " + grandKurang.toLocaleString("id-ID") + "*\n\n";
+    msg += "📋 *Rincian Kebutuhan TUKAB:*\n";
+    if (kurang100 > 0) {
+      const lembar = Math.ceil(kurang100 / 100000);
+      msg += "  • Pecahan 100.000: Rp " + kurang100.toLocaleString("id-ID") + " (" + lembar.toLocaleString("id-ID") + " lbr)\n";
+    }
+    if (kurang50 > 0) {
+      const lembar = Math.ceil(kurang50 / 50000);
+      msg += "  • Pecahan 50.000: Rp " + kurang50.toLocaleString("id-ID") + " (" + lembar.toLocaleString("id-ID") + " lbr)\n";
+    }
+    msg += "\n";
+  }
+
+  msg += "_from Cash Monitor Apps_";
 
   return fonnteSend(token, target.replace(/\s+/g, ""), msg);
 }
