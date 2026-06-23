@@ -340,8 +340,8 @@ Deno.serve(async (req: Request) => {
         const bank = body.bank || "-";
         const nominal = Number(body.nominal) || 0;
         const token = setting?.token_kf;
-        const target = cleanStr(setting?.target_tukab || "");
-        if (!token || !target) return errorResponse("Token/Target TUKAB belum diatur di Setting WA");
+        const target = cleanStr(setting?.target_input_tukab || "");
+        if (!token || !target) return errorResponse("Token/Target Input TUKAB belum diatur di Setting WA");
         const tukabMsg = `Mohon dibantu Input Tukab *${bank}* Rp ${nominal.toLocaleString("id-ID")},\nTerima Kasih\n\n_from Cash Monitor Apps_`;
         result = await fonnteSend(token, target.replace(/\s+/g, ""), tukabMsg);
         break;

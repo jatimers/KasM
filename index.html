@@ -432,6 +432,7 @@
         <div class="form-row">
          <div class="form-group"><label>Target HP/Grup (Rekap KF)</label><input type="text" id="fn-kf-target" placeholder="Cth: 08123xxx atau ID Grup" style="background:var(--input-yellow);"></div>
         <div class="form-group"><label>Target HP/Grup (Analisa TUKAB)</label><input type="text" id="fn-tukab-target" placeholder="Cth: 1203xxx-group" style="background:var(--input-yellow);"></div>
+        <div class="form-group"><label>Target HP/Grup (Input TUKAB)</label><input type="text" id="fn-input-tukab-target" placeholder="Cth: 08123xxx" style="background:var(--input-yellow);"></div>
         <div class="form-group"><label>Token API Fonnte (Perkiraan KF)</label><input type="text" id="fn-kf-token" placeholder="Token API Notif KF" style="background:var(--input-yellow);"></div>
         <div class="form-group"><label>Target HP/Grup (Posisi Kas KF)</label><input type="text" id="fn-posisi-kf-target" placeholder="Cth: 1203xxx-group" style="background:var(--input-yellow);"></div>
         </div>
@@ -3189,6 +3190,7 @@ function loadPerkiraanHT() {
           document.getElementById('fn-kf-token').value = res.tokenKF || ''; 
           document.getElementById('fn-kf-target').value = res.targetKF || ''; 
           document.getElementById('fn-tukab-target').value = res.targetTukab || '';
+          document.getElementById('fn-input-tukab-target').value = res.targetInputTukab || '';
           document.getElementById('fn-h1-target').value = res.targetPerkiraanH1 || ''; 
           document.getElementById('fn-h1-waktu').value = res.waktuPerkiraanH1 || '07:00';
           if(document.getElementById('fn-posisi-kf-target')) {
@@ -3211,9 +3213,10 @@ function loadPerkiraanHT() {
      tokenKF: document.getElementById('fn-kf-token').value, 
      targetKF: document.getElementById('fn-kf-target').value, 
      targetTukab: document.getElementById('fn-tukab-target').value,
+     targetInputTukab: document.getElementById('fn-input-tukab-target').value,
      waktuPerkiraanH1: document.getElementById('fn-h1-waktu').value,
      targetPerkiraanH1: document.getElementById('fn-h1-target').value,
-     
+
      // PASTIKAN BARIS INI ADA DAN KOMA DI ATASNYA SUDAH BENAR
      targetPosisiKas: document.getElementById('fn-posisi-kf-target') ? document.getElementById('fn-posisi-kf-target').value : ''
   };
