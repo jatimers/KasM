@@ -52,7 +52,7 @@ Deno.serve(async (req: Request) => {
 
       if (uEstim) {
         userMap[uEstim] = displayName;
-        if (role === "teller" && !listTeller.includes(displayName)) listTeller.push(displayName);
+        if ((role === "teller" || role === "pp") && !listTeller.includes(displayName)) listTeller.push(displayName);
         else if (role === "kf" && !listKF.includes(displayName)) {
           listKF.push(displayName);
           kfUnitMap[displayName] = namaUnit;
