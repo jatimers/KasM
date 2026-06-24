@@ -270,11 +270,9 @@
       <div id="sub-cib-cis-cit" class="submenu-container">
         <div class="menu-item submenu" onclick="initCib()">📊 CIB</div>
         <div class="menu-item submenu" onclick="initCis()">📈 CIS</div>
-        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🏧 CIT MPP</div>
-        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🚗 CIT SAMSAT</div>
+        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">👤 CIT KF</div>
         <div class="menu-item submenu" onclick="initCitAtmRekap()">🏧 CIT ATM</div>
         <div class="menu-item submenu" onclick="initCitTukab()">🚛 CIT TUKAB</div>
-        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">👤 CIT KF</div>
       </div>
       </div>
       <div class="role-menu menu-teller">
@@ -348,7 +346,7 @@
           <div class="form-group"><label>Username Login</label><input type="text" id="u-user"></div>
           <div class="form-group"><label>Password</label><input type="text" id="u-pass"></div>
           <div class="form-group"><label>Hak Akses (Role)</label>
-            <select id="u-role"><option value="capem">Capem</option><option value="teller">Teller</option><option value="kf">KF</option><option value="headteller">Head Teller</option><option value="admin">Admin</option></select>
+            <select id="u-role"><option value="capem">Capem</option><option value="teller">Teller</option><option value="pp">PP</option><option value="kf">KF</option><option value="headteller">Head Teller</option><option value="admin">Admin</option></select>
           </div>
           <div class="form-group"><label>UserEstim (Unik)</label><input type="text" id="u-estim"></div>
         </div>
@@ -1799,7 +1797,7 @@ function initLapCluis() {
     // CIT TUKAB — Rekap (Head Teller)
     // =============================================
     function initCitTukab() {
-      nav('cit-tukab-rekap', document.querySelectorAll('#sub-cib-cis-cit .menu-item.submenu')[5]);
+      nav('cit-tukab-rekap', document.querySelectorAll('#sub-cib-cis-cit .menu-item.submenu')[4]);
       var bulanEl = document.getElementById('tukab-rekap-bulan');
       if (!bulanEl.value) {
         var now = new Date();
@@ -2103,7 +2101,7 @@ function initLapCluis() {
     // CIT ATM — Rekap (Head Teller)
     // =============================================
     function initCitAtmRekap() {
-      nav('cit-atm-rekap', document.querySelectorAll('#sub-cib-cis-cit .menu-item.submenu')[2]);
+      nav('cit-atm-rekap', document.querySelectorAll('#sub-cib-cis-cit .menu-item.submenu')[3]);
       var bulanEl = document.getElementById('cit-atm-bulan');
       if (!bulanEl.value) {
         var now = new Date();
@@ -3229,7 +3227,7 @@ function loadPerkiraanHT() {
     let rowPimkas = inputPimkas.closest('.form-row');
     let judulPimkas = rowPimkas ? rowPimkas.previousElementSibling : null;
 
-    if (role === 'teller') {
+    if (role === 'teller' || role === 'pp') {
       if (rowPimkas) rowPimkas.style.display = 'none';
       if (judulPimkas && judulPimkas.tagName === 'H4') judulPimkas.style.display = 'none';
     } else {
@@ -3362,7 +3360,7 @@ function loadPerkiraanHT() {
          if(scopeEl) { scopeEl.value = 'HEAD TELLER'; scopeEl.disabled = true; } 
       }
       else if(mode === 'BON PAGI') { 
-         if (role === 'teller' || role === 'kf') { 
+         if (role === 'teller' || role === 'pp' || role === 'kf') {
             document.getElementById('trx-title').innerText = "Input Bon Pagi (Dari Head Teller)";
             selectEl.innerHTML = '<option value="BON PAGI">Bon Pagi Dari Head Teller</option>'; 
          } else { 
@@ -3381,10 +3379,10 @@ function loadPerkiraanHT() {
          }).getPreviousWorkingDayBackend(tglSkrg);
 
          if(scopeEl) { 
-            if(role === 'teller' || role === 'kf') { scopeEl.value = 'HEAD TELLER'; scopeEl.disabled = true; } 
-            else { scopeEl.value = 'KHASANAH'; scopeEl.disabled = false; } 
-         } 
-      } 
+            if(role === 'teller' || role === 'pp' || role === 'kf') { scopeEl.value = 'HEAD TELLER'; scopeEl.disabled = true; }
+            else { scopeEl.value = 'KHASANAH'; scopeEl.disabled = false; }
+         }
+      }
       else if(mode === 'TAMBAHAN') {
          document.getElementById('trx-title').innerText = "Input Bon / Setor Tambahan";
          selectEl.innerHTML = '<option value="BON TAMBAHAN">Bon Tambahan Dari HeadTeller</option><option value="SETOR TAMBAHAN">Setor Tambahan Ke HeadTeller</option>';
@@ -3392,8 +3390,8 @@ function loadPerkiraanHT() {
          panelBonPagi.style.display = 'none';
          if(scopeEl) { scopeEl.value = 'KHASANAH'; scopeEl.disabled = true; }
       }
-      else if(mode === 'SETOR SORE') { 
-         if (role === 'teller' || role === 'kf') { 
+      else if(mode === 'SETOR SORE') {
+         if (role === 'teller' || role === 'pp' || role === 'kf') {
             document.getElementById('trx-title').innerText = "Input Setor Sore (Ke Head Teller)";
             selectEl.innerHTML = '<option value="SETOR SORE">Setor Sore Ke Head Teller</option>'; 
          } else { 
@@ -3403,9 +3401,9 @@ function loadPerkiraanHT() {
          selectEl.disabled = true; 
          panelBonPagi.style.display = 'none';
          if(scopeEl) { 
-            if(role === 'teller' || role === 'kf') { scopeEl.value = 'HEAD TELLER'; scopeEl.disabled = true; } 
-            else { scopeEl.value = 'KHASANAH'; scopeEl.disabled = false; } 
-         } 
+            if(role === 'teller' || role === 'pp' || role === 'kf') { scopeEl.value = 'HEAD TELLER'; scopeEl.disabled = true; }
+            else { scopeEl.value = 'KHASANAH'; scopeEl.disabled = false; }
+         }
          loadSuggestedSetorSore();
       }
     }
@@ -3437,8 +3435,8 @@ function loadPerkiraanHT() {
       let role = currentUser.role ? currentUser.role.toLowerCase() : '';
       let html = "";
       for (const [kategori, pecahanArr] of Object.entries(configUang)) {
-        if (kategori === 'Lainnya' && role !== 'teller' && role !== 'kf') continue;
-        if (kategori === 'ULE Campuran' && role !== 'kf' && role !== 'teller') continue;
+        if (kategori === 'Lainnya' && role !== 'teller' && role !== 'pp' && role !== 'kf') continue;
+        if (kategori === 'ULE Campuran' && role !== 'kf' && role !== 'teller' && role !== 'pp') continue;
         if (kategori === 'UTLE Campuran' && role !== 'kf') continue;
         let catId = kategori.replace(/ /g,'');
         html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:25px; margin-bottom:10px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;"><h4 style="margin:0; color:var(--text-main); font-weight:700;">${kategori}</h4><span style="font-weight:700; color:var(--primary-red); background:var(--light-red); padding:4px 12px; border-radius:6px; font-size:0.95rem;" id="subtotal_trx_${catId}">Rp 0</span></div><div class="table-responsive"><table><tr><th style="text-align:right;">PECAHAN</th><th style="display:none;">Lembar</th><th style="text-align:right;">NOMINAL</th></tr>`;
@@ -3451,7 +3449,7 @@ function loadPerkiraanHT() {
     }
 
     function resetTrxKas() { document.getElementById('trx-idtrx').value = generateIdTrx(); resetFormVals('trx'); setTodayDates();
-      if(document.getElementById('trx-scope')) { let role = currentUser.role ? currentUser.role.toLowerCase() : ''; let tipeEl = document.getElementById('trx-tipe'); let tipe = tipeEl ? tipeEl.value : ''; if (tipe === 'BON TAMBAHAN' || tipe === 'SETOR TAMBAHAN') { document.getElementById('trx-scope').value = 'KHASANAH'; document.getElementById('trx-scope').disabled = true; } else { document.getElementById('trx-scope').value = (role === 'teller' || role === 'kf') ? 'HEAD TELLER' : 'KHASANAH'; document.getElementById('trx-scope').disabled = (role === 'teller' || role === 'kf'); }
+      if(document.getElementById('trx-scope')) { let role = currentUser.role ? currentUser.role.toLowerCase() : ''; let tipeEl = document.getElementById('trx-tipe'); let tipe = tipeEl ? tipeEl.value : ''; if (tipe === 'BON TAMBAHAN' || tipe === 'SETOR TAMBAHAN') { document.getElementById('trx-scope').value = 'KHASANAH'; document.getElementById('trx-scope').disabled = true; } else { document.getElementById('trx-scope').value = (role === 'teller' || role === 'pp' || role === 'kf') ? 'HEAD TELLER' : 'KHASANAH'; document.getElementById('trx-scope').disabled = (role === 'teller' || role === 'pp' || role === 'kf'); }
       }
     }
 
