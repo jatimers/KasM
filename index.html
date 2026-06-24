@@ -1000,7 +1000,7 @@
         <div class="header-page">
           <div>
             <h3>CIB — Jumlah Uang Yang Dipertanggungkan</h3>
-            <p style="margin:5px 0 0 0;">Total Bon Pagi (+ Bon Tambahan PP) masing-masing user PP & KF per tanggal.</p>
+            <p style="margin:5px 0 0 0;">Total Bon Pagi (+ Bon Tambahan Teller/PP) per user Teller, PP & KF per tanggal.</p>
           </div>
         </div>
         <div class="form-row" style="align-items:flex-end;">
@@ -1595,7 +1595,28 @@ function initLapCluis() {
     // =============================================
     // CIB: Bon Pagi per KF per Tanggal
     // =============================================
-    // ===== CIB Helper: fetch PP+KF users (PP first) =====
+    // ===== Shared helpers: fetch users from Supabase (service key, bypass RLS) =====
+    function _fetchUsersCib(callback) {
+      var SVC = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8";
+      var hdrs = { "apikey": SVC, "Authorization": "Bearer " + SVC };
+      var REST = "https://jwsfsczgyqphoyflpjnm.supabase.co/rest/v1";
+      fetch(REST + "/users?select=user_estim,nama_user,nama_unit,role&role=in.(teller,pp,kf)&order=user_estim", { headers: hdrs })
+        .then(function(r) { return r.json(); })
+        .then(function(users) {
+          // Sort: Teller first, then PP, then KF
+          var teller = [], pp = [], kf = [];
+          for (var i = 0; i < users.length; i++) {
+            if (users[i].role === 'teller') teller.push(users[i]);
+            else if (users[i].role === 'pp') pp.push(users[i]);
+            else kf.push(users[i]);
+          }
+          teller.sort(function(a,b) { return (a.user_estim||'').localeCompare(b.user_estim||''); });
+          pp.sort(function(a,b) { return (a.user_estim||'').localeCompare(b.user_estim||''); });
+          kf.sort(function(a,b) { return (a.user_estim||'').localeCompare(b.user_estim||''); });
+          callback(null, teller.concat(pp).concat(kf), hdrs, REST);
+        })
+        .catch(function(err) { callback(err); });
+    }
     function _fetchUsersPpKf(callback) {
       var SVC = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8";
       var hdrs = { "apikey": SVC, "Authorization": "Bearer " + SVC };
@@ -1631,7 +1652,7 @@ function initLapCluis() {
       var bulan = document.getElementById('cib-bulan').value;
       if (!bulan) return;
       showLoader(true, "Memuat data CIB...");
-      _fetchUsersPpKf(function(err, userList, hdrs, REST) {
+      _fetchUsersCib(function(err, userList, hdrs, REST) {
         if (err) { showLoader(false); alert("Gagal: " + err.message); return; }
         if (userList.length === 0) { showLoader(false); renderCibEmpty(); return; }
 
@@ -1661,9 +1682,10 @@ function initLapCluis() {
               if (!userEstimSet[row.user_estim]) continue;
               var tgl = String(row.tanggal).substring(0, 10);
               if (!matrix[tgl]) continue;
-              var isPP = (userEstimSet[row.user_estim].role === 'pp');
-              // BON PAGI → all users; BON TAMBAHAN → only PP
-              if (row.tipe === 'BON PAGI' || (row.tipe === 'BON TAMBAHAN' && isPP)) {
+              var role = userEstimSet[row.user_estim].role;
+              var isTellerOrPP = (role === 'teller' || role === 'pp');
+              // BON PAGI → all users; BON TAMBAHAN → teller & PP
+              if (row.tipe === 'BON PAGI' || (row.tipe === 'BON TAMBAHAN' && isTellerOrPP)) {
                 matrix[tgl][row.user_estim] += (row.nominal || 0);
               }
             }
@@ -1675,7 +1697,7 @@ function initLapCluis() {
 
     function renderCibEmpty() {
       document.getElementById('cib-head').innerHTML = '<tr><th>TGL</th><th>JUMLAH</th></tr>';
-      document.getElementById('cib-body').innerHTML = '<tr><td colspan="2" style="text-align:center;">Tidak ada data user PP/KF.</td></tr>';
+      document.getElementById('cib-body').innerHTML = '<tr><td colspan="2" style="text-align:center;">Tidak ada data user Teller/PP/KF.</td></tr>';
       document.getElementById('cib-foot').innerHTML = '';
     }
 
@@ -1686,7 +1708,7 @@ function initLapCluis() {
 
       var html = '<tr><th style="width:80px;">TGL</th>';
       for (var i = 0; i < userList.length; i++) {
-        var roleBadge = userList[i].role === 'pp' ? 'PP' : 'KF';
+        var roleBadge = userList[i].role === 'pp' ? 'PP' : (userList[i].role === 'teller' ? 'TLR' : 'KF');
         html += '<th style="text-align:right;">' + (userList[i].nama_unit || userList[i].nama_user || userList[i].user_estim) + '<br><small style="color:#6b7280;">' + userList[i].user_estim + ' <b>[' + roleBadge + ']</b></small></th>';
       }
       html += '<th style="text-align:right; background:#fef2f2; color:#dc2626;">JUMLAH</th></tr>';
