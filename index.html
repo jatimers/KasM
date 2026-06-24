@@ -472,8 +472,6 @@
         
         <div style="display:flex; gap:15px; flex-wrap:wrap; margin-top: 25px;">
           <button class="btn-refresh" style="flex:2; font-size:1.1rem; padding:15px; margin-bottom:0;" onclick="simpanFonnteSettings()">💾 SIMPAN SEMUA PENGATURAN</button>
-          <button class="btn-reset" style="flex:1; font-size:1rem; padding:15px; margin-bottom:0; background:#d97706;" onclick="testKirimFonnte()">📲 TEST KIRIM HT</button>
-          <button class="btn-reset" style="flex:1; font-size:1rem; padding:15px; margin-bottom:0; background:#7c3aed;" onclick="testKirimPerkiraanH1Btn()">📲 TEST KIRIM H-1</button>
         </div>
       </div>
 
@@ -1275,8 +1273,6 @@
       deletePesananNasabah:       ['DELETE','/pesanan-nasabah','id'],
       recalcPerkiraanDariPesanan: ['POST','/perkiraan'],
       getRekapGlobalMutasiTeller: ['GET','/bon-setor','?action=rekap-global','tanggal','kodeWilayah','tipeFilter'],
-      testKirimFonnte:            ['POST','/notif-fonnte'],
-      testKirimPerkiraanH1:       ['POST','/notif-fonnte'],
       sendNotifPosisiKasWA:       ['POST','/notif-fonnte'],
       getTabularisData:           ['GET','/tabularis','periode'],
       sendLaporanHTFonnte:        ['POST','/notif-fonnte'],
@@ -3582,27 +3578,6 @@ function loadPerkiraanHT() {
     showLoader(false); showToast(false); alert("Pengaturan Notifikasi Berhasil Disimpan."); 
   }).saveSettingFonnte(obj);
 }
-
-    function testKirimFonnte() { 
-      let tgl = getLocalDateString(); 
-      let wil = currentUser.kodeWilayah || 'ALL';
-      showLoader(true, "Mengirim Pesan Test HT...");
-      google.script.run.withSuccessHandler((res) => { 
-        showLoader(false); alert("Respon Pengiriman API: " + res); 
-      }).withFailureHandler((err) => { 
-        showLoader(false); alert("Gagal Kirim: " + err.message); 
-      }).testKirimFonnte(tgl, wil);
-    }
-
-    function testKirimPerkiraanH1Btn() {
-      let wil = currentUser.kodeWilayah || 'ALL';
-      showLoader(true, "Mengirim Pesan Test Summary H-1...");
-      google.script.run.withSuccessHandler((res) => {
-        showLoader(false); alert("Respon Pengiriman API Perkiraan H-1: " + res);
-      }).withFailureHandler((err) => {
-        showLoader(false); alert("Gagal Kirim: " + err.message);
-      }).testKirimPerkiraanH1(wil);
-    }
 
     function clearFormUser() { document.getElementById('u-id').value = ''; document.getElementById('u-wilayah').value = ''; document.getElementById('u-kode').value = ''; document.getElementById('u-unit').value = '';
       document.getElementById('u-user').value = ''; document.getElementById('u-pass').value = ''; document.getElementById('u-role').value = 'teller'; document.getElementById('u-estim').value = ''; document.getElementById('u-ref-unit').value = ''; }
