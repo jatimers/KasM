@@ -271,7 +271,7 @@
       <div id="sub-cib-cis-cit" class="submenu-container">
         <div class="menu-item submenu" onclick="initCib()">📊 CIB</div>
         <div class="menu-item submenu" onclick="initCis()">📈 CIS</div>
-        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">👤 CIT KF</div>
+        <div class="menu-item submenu" onclick="initCit()">🚛 CIT</div>
         <div class="menu-item submenu" onclick="initCitAtmRekap()">🏧 CIT ATM</div>
         <div class="menu-item submenu" onclick="initCitTukab()">🚛 CIT TUKAB</div>
       </div>
@@ -1049,6 +1049,37 @@
       </div>
 
       <!-- ============================================= -->
+      <!-- PAGE: CIT — Cash In Transit (KF & PP)         -->
+      <!-- ============================================= -->
+      <div id="page-cit" class="page role-page-ht">
+        <div class="header-page">
+          <div>
+            <h3>CIT — Cash In Transit (Uang Yang Dipertanggungkan)</h3>
+            <p style="margin:5px 0 0 0;">Nilai terbesar antara total Bon Pagi vs Setor Sore seluruh KF & PP per tanggal.</p>
+          </div>
+        </div>
+        <div class="form-row" style="align-items:flex-end;">
+          <div class="form-group"><label>Bulan</label><input type="month" id="cit-bulan" onchange="loadCit()" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCit()">🔄 Muat Data</button></div>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:100px;">TGL</th>
+                <th style="text-align:right;">JUMLAH UANG YG DIPERTANGGUNGKAN</th>
+                <th style="text-align:right; background:#fef2f2; color:#dc2626;">JUMLAH</th>
+              </tr>
+            </thead>
+            <tbody id="cit-body">
+              <tr><td colspan="3" style="text-align:center;">Pilih bulan untuk melihat data CIT.</td></tr>
+            </tbody>
+            <tfoot id="cit-foot"></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================= -->
       <!-- PAGE: Data ATM (KF & Teller)                   -->
       <!-- ============================================= -->
       <div id="data-atm-page" class="page">
@@ -1696,6 +1727,135 @@ function initLapCluis() {
       footEl.innerHTML = '<tr style="font-weight:bold; background:#f8fafc;">' +
         '<td style="font-weight:800;">TOTAL</td>' +
         '<td style="text-align:right; font-weight:800;">Rp ' + data.grandTotal.toLocaleString('id-ID') + '</td>' +
+        '</tr>';
+    }
+
+    // =============================================
+    // CIT — Cash In Transit (KF & PP)
+    // Max(Total Bon Pagi, Total Setor Sore) per tgl
+    // Direct Supabase REST — no edge function needed
+    // =============================================
+    function initCit() {
+      nav('page-cit', document.querySelectorAll('#sub-cib-cis-cit .menu-item.submenu')[2]);
+      var bulanEl = document.getElementById('cit-bulan');
+      if (!bulanEl.value) {
+        var now = new Date();
+        bulanEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+      }
+      loadCit();
+    }
+
+    function loadCit() {
+      var bulan = document.getElementById('cit-bulan').value;
+      if (!bulan) return;
+      showLoader(true, "Memuat data CIT...");
+
+      var REST = "https://jwsfsczgyqphoyflpjnm.supabase.co/rest/v1";
+      var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MDM0MjYsImV4cCI6MjA5NzE3OTQyNn0.seVnStDF6xsLum4N1075J6uPncMPiCsANU7YROMfisU";
+      var hdrs = { "apikey": ANON, "Authorization": "Bearer " + ANON };
+
+      // Generate all dates in the month
+      var parts = bulan.split('-');
+      var y = parseInt(parts[0]), m = parseInt(parts[1]);
+      var lastDay = new Date(y, m, 0).getDate();
+      var allDates = [];
+      for (var d = 1; d <= lastDay; d++) {
+        allDates.push(bulan + '-' + String(d).padStart(2, '0'));
+      }
+
+      // Step 1: Get KF & PP users
+      fetch(REST + "/users?select=user_estim,role&role=in.(kf,pp)", { headers: hdrs })
+        .then(function(r) { return r.json(); })
+        .then(function(users) {
+          var kfppEstim = {};
+          for (var i = 0; i < users.length; i++) {
+            kfppEstim[users[i].user_estim] = true;
+          }
+          var estimList = users.map(function(u) { return u.user_estim; });
+
+          if (estimList.length === 0) {
+            showLoader(false);
+            renderCitEmpty(allDates);
+            return;
+          }
+
+          // Step 2: Get bon_setor for the month
+          var startDate = bulan + '-01';
+          var endDate = bulan + '-' + String(lastDay).padStart(2, '0');
+          return fetch(REST + "/bon_setor?select=tanggal,tipe,nominal,user_estim&tanggal=gte." + startDate + "&tanggal=lte." + endDate + "&tipe=in.(BON%20PAGI,SETOR%20SORE)&order=tanggal", { headers: hdrs })
+            .then(function(r) { return r.json(); })
+            .then(function(rows) {
+              showLoader(false);
+
+              // Aggregate: per date, sum BON PAGI and SETOR SORE for KF+PP only
+              var bonPerTgl = {}, setorPerTgl = {};
+              for (var i = 0; i < allDates.length; i++) {
+                bonPerTgl[allDates[i]] = 0;
+                setorPerTgl[allDates[i]] = 0;
+              }
+              for (var j = 0; j < rows.length; j++) {
+                var row = rows[j];
+                if (!kfppEstim[row.user_estim]) continue;
+                var tgl = String(row.tanggal).substring(0, 10);
+                if (row.tipe === 'BON PAGI') {
+                  bonPerTgl[tgl] = (bonPerTgl[tgl] || 0) + (row.nominal || 0);
+                } else if (row.tipe === 'SETOR SORE') {
+                  setorPerTgl[tgl] = (setorPerTgl[tgl] || 0) + (row.nominal || 0);
+                }
+              }
+
+              renderCit(allDates, bonPerTgl, setorPerTgl);
+            });
+        })
+        .catch(function(err) {
+          showLoader(false);
+          alert("Gagal memuat data CIT: " + err.message);
+        });
+    }
+
+    function renderCitEmpty(allDates) {
+      var html = '';
+      for (var d = 0; d < allDates.length; d++) {
+        var tgl = allDates[d];
+        var dObj = new Date(tgl + 'T00:00:00');
+        var hari = ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()];
+        html += '<tr><td style="font-weight:600;">' + tgl.substring(8) + ' <small>' + hari + '</small></td><td style="text-align:right;">0</td><td style="text-align:right; background:#fef2f2;">0</td></tr>';
+      }
+      document.getElementById('cit-body').innerHTML = html;
+      document.getElementById('cit-foot').innerHTML = '<tr style="font-weight:bold; background:#f8fafc;"><td style="font-weight:800;">GRAND TOTAL</td><td></td><td style="text-align:right; font-weight:800; background:#dc2626; color:#fff;">0</td></tr>';
+    }
+
+    function renderCit(allDates, bonPerTgl, setorPerTgl) {
+      var bodyEl = document.getElementById('cit-body');
+      var footEl = document.getElementById('cit-foot');
+      var html = '';
+      var grandTotal = 0;
+
+      for (var d = 0; d < allDates.length; d++) {
+        var tgl = allDates[d];
+        var bonVal = bonPerTgl[tgl] || 0;
+        var setorVal = setorPerTgl[tgl] || 0;
+        var maxVal = bonVal >= setorVal ? bonVal : setorVal; // MAX(bon, setor)
+        grandTotal += maxVal;
+
+        var dObj = new Date(tgl + 'T00:00:00');
+        var isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
+        var hari = ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()];
+        var rowStyle = isWeekend ? 'background:#fff7ed;' : '';
+
+        var info = maxVal === 0 ? '' : (bonVal >= setorVal ? ' (Bon Pagi)' : ' (Setor Sore)');
+        html += '<tr style="' + rowStyle + '">';
+        html += '<td style="font-weight:600;">' + tgl.substring(8) + ' <small style="color:#6b7280;">' + hari + '</small></td>';
+        html += '<td style="text-align:right; font-weight:600;">Rp ' + maxVal.toLocaleString('id-ID') + '<br><small style="color:#6b7280;">' + info + '</small></td>';
+        html += '<td style="text-align:right; font-weight:700; background:#fef2f2;">' + (maxVal > 0 ? maxVal.toLocaleString('id-ID') : '0') + '</td>';
+        html += '</tr>';
+      }
+
+      bodyEl.innerHTML = html;
+      footEl.innerHTML = '<tr style="font-weight:bold; background:#f8fafc; font-size:1.1rem;">' +
+        '<td style="font-weight:800;">GRAND TOTAL</td>' +
+        '<td style="text-align:right;">Rp ' + grandTotal.toLocaleString('id-ID') + '</td>' +
+        '<td style="text-align:right; font-weight:800; background:#dc2626; color:#fff;">' + grandTotal.toLocaleString('id-ID') + '</td>' +
         '</tr>';
     }
 
