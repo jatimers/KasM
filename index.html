@@ -1751,8 +1751,8 @@ function initLapCluis() {
       showLoader(true, "Memuat data CIT...");
 
       var REST = "https://jwsfsczgyqphoyflpjnm.supabase.co/rest/v1";
-      var ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MDM0MjYsImV4cCI6MjA5NzE3OTQyNn0.seVnStDF6xsLum4N1075J6uPncMPiCsANU7YROMfisU";
-      var hdrs = { "apikey": ANON, "Authorization": "Bearer " + ANON };
+      var SVC = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8";
+      var hdrs = { "apikey": SVC, "Authorization": "Bearer " + SVC };
 
       // Generate all dates in the month
       var parts = bulan.split('-');
