@@ -3385,13 +3385,13 @@ function loadPerkiraanHT() {
             else { scopeEl.value = 'KHASANAH'; scopeEl.disabled = false; } 
          } 
       } 
-      else if(mode === 'TAMBAHAN') { 
+      else if(mode === 'TAMBAHAN') {
          document.getElementById('trx-title').innerText = "Input Bon / Setor Tambahan";
-         selectEl.innerHTML = '<option value="BON TAMBAHAN">Bon Tambahan Dari HeadTeller</option><option value="SETOR TAMBAHAN">Setor Tambahan Ke HeadTeller</option>'; 
-         selectEl.disabled = false; 
+         selectEl.innerHTML = '<option value="BON TAMBAHAN">Bon Tambahan Dari HeadTeller</option><option value="SETOR TAMBAHAN">Setor Tambahan Ke HeadTeller</option>';
+         selectEl.disabled = false;
          panelBonPagi.style.display = 'none';
-         if(scopeEl) { scopeEl.value = 'KHASANAH'; scopeEl.disabled = false; } 
-      } 
+         if(scopeEl) { scopeEl.value = 'KHASANAH'; scopeEl.disabled = true; }
+      }
       else if(mode === 'SETOR SORE') { 
          if (role === 'teller' || role === 'kf') { 
             document.getElementById('trx-title').innerText = "Input Setor Sore (Ke Head Teller)";
@@ -3451,8 +3451,8 @@ function loadPerkiraanHT() {
     }
 
     function resetTrxKas() { document.getElementById('trx-idtrx').value = generateIdTrx(); resetFormVals('trx'); setTodayDates();
-      if(document.getElementById('trx-scope')) { let role = currentUser.role ? currentUser.role.toLowerCase() : ''; document.getElementById('trx-scope').value = (role === 'teller' || role === 'kf') ? 'HEAD TELLER' : 'KHASANAH'; document.getElementById('trx-scope').disabled = (role === 'teller' || role === 'kf');
-      } 
+      if(document.getElementById('trx-scope')) { let role = currentUser.role ? currentUser.role.toLowerCase() : ''; let tipeEl = document.getElementById('trx-tipe'); let tipe = tipeEl ? tipeEl.value : ''; if (tipe === 'BON TAMBAHAN' || tipe === 'SETOR TAMBAHAN') { document.getElementById('trx-scope').value = 'KHASANAH'; document.getElementById('trx-scope').disabled = true; } else { document.getElementById('trx-scope').value = (role === 'teller' || role === 'kf') ? 'HEAD TELLER' : 'KHASANAH'; document.getElementById('trx-scope').disabled = (role === 'teller' || role === 'kf'); }
+      }
     }
 
     function simpanTrxKas() {
