@@ -1000,7 +1000,7 @@
         <div class="header-page">
           <div>
             <h3>CIB — Jumlah Uang Yang Dipertanggungkan</h3>
-            <p style="margin:5px 0 0 0;">Total Bon Pagi masing-masing KF per tanggal dalam satu bulan.</p>
+            <p style="margin:5px 0 0 0;">Total Bon Pagi (+ Bon Tambahan PP) masing-masing user PP & KF per tanggal.</p>
           </div>
         </div>
         <div class="form-row" style="align-items:flex-end;">
@@ -1055,7 +1055,7 @@
         <div class="header-page">
           <div>
             <h3>CIT — Cash In Transit (Uang Yang Dipertanggungkan)</h3>
-            <p style="margin:5px 0 0 0;">Nilai terbesar antara total Bon Pagi vs Setor Sore seluruh KF & PP per tanggal.</p>
+            <p style="margin:5px 0 0 0;">Nilai terbesar (Bon Pagi vs Setor Sore) masing-masing user PP & KF per tanggal.</p>
           </div>
         </div>
         <div class="form-row" style="align-items:flex-end;">
@@ -1064,15 +1064,9 @@
         </div>
         <div class="table-responsive">
           <table>
-            <thead>
-              <tr>
-                <th style="width:100px;">TGL</th>
-                <th style="text-align:right;">JUMLAH UANG YG DIPERTANGGUNGKAN</th>
-                <th style="text-align:right; background:#fef2f2; color:#dc2626;">JUMLAH</th>
-              </tr>
-            </thead>
+            <thead id="cit-head"></thead>
             <tbody id="cit-body">
-              <tr><td colspan="3" style="text-align:center;">Pilih bulan untuk melihat data CIT.</td></tr>
+              <tr><td style="text-align:center;">Pilih bulan untuk melihat data CIT.</td></tr>
             </tbody>
             <tfoot id="cit-foot"></tfoot>
           </table>
@@ -1601,6 +1595,28 @@ function initLapCluis() {
     // =============================================
     // CIB: Bon Pagi per KF per Tanggal
     // =============================================
+    // ===== CIB Helper: fetch PP+KF users (PP first) =====
+    function _fetchUsersPpKf(callback) {
+      var SVC = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8";
+      var hdrs = { "apikey": SVC, "Authorization": "Bearer " + SVC };
+      var REST = "https://jwsfsczgyqphoyflpjnm.supabase.co/rest/v1";
+      fetch(REST + "/users?select=user_estim,nama_user,nama_unit,role&role=in.(pp,kf)&order=user_estim", { headers: hdrs })
+        .then(function(r) { return r.json(); })
+        .then(function(users) {
+          // Sort: PP first, then KF
+          var pp = [], kf = [];
+          for (var i = 0; i < users.length; i++) {
+            if (users[i].role === 'pp') pp.push(users[i]);
+            else kf.push(users[i]);
+          }
+          pp.sort(function(a,b) { return (a.user_estim||'').localeCompare(b.user_estim||''); });
+          kf.sort(function(a,b) { return (a.user_estim||'').localeCompare(b.user_estim||''); });
+          callback(null, pp.concat(kf), hdrs, REST);
+        })
+        .catch(function(err) { callback(err); });
+    }
+
+    // ===== CIB: Bon Pagi per PP & KF (direct REST — no edge function) =====
     function initCib() {
       nav('page-cib', document.querySelector('#sub-cib-cis-cit .menu-item.submenu'));
       var bulanEl = document.getElementById('cib-bulan');
@@ -1615,61 +1631,99 @@ function initLapCluis() {
       var bulan = document.getElementById('cib-bulan').value;
       if (!bulan) return;
       showLoader(true, "Memuat data CIB...");
-      google.script.run
-        .withSuccessHandler(function(data) {
-          showLoader(false);
-          renderCib(data);
-        })
-        .withFailureHandler(function(err) {
-          showLoader(false);
-          alert("Gagal memuat data CIB: " + err.message);
-        })
-        .getCibData(bulan, currentUser.kodeWilayah || 'ALL');
+      _fetchUsersPpKf(function(err, userList, hdrs, REST) {
+        if (err) { showLoader(false); alert("Gagal: " + err.message); return; }
+        if (userList.length === 0) { showLoader(false); renderCibEmpty(); return; }
+
+        var parts = bulan.split('-');
+        var lastDay = new Date(parseInt(parts[0]), parseInt(parts[1]), 0).getDate();
+        var startDate = bulan + '-01';
+        var endDate = bulan + '-' + String(lastDay).padStart(2, '0');
+
+        fetch(REST + "/bon_setor?select=tanggal,tipe,nominal,user_estim&tanggal=gte." + startDate + "&tanggal=lte." + endDate + "&tipe=in.(BON PAGI,BON TAMBAHAN)&limit=100000", { headers: hdrs })
+          .then(function(r) { return r.json(); })
+          .then(function(rows) {
+            showLoader(false);
+            var userEstimSet = {};
+            for (var i = 0; i < userList.length; i++) { userEstimSet[userList[i].user_estim] = userList[i]; }
+
+            var allDates = [];
+            for (var d = 1; d <= lastDay; d++) { allDates.push(bulan + '-' + String(d).padStart(2, '0')); }
+
+            var matrix = {};
+            for (var dd = 0; dd < allDates.length; dd++) {
+              matrix[allDates[dd]] = {};
+              for (var u = 0; u < userList.length; u++) { matrix[allDates[dd]][userList[u].user_estim] = 0; }
+            }
+
+            for (var r = 0; r < rows.length; r++) {
+              var row = rows[r];
+              if (!userEstimSet[row.user_estim]) continue;
+              var tgl = String(row.tanggal).substring(0, 10);
+              if (!matrix[tgl]) continue;
+              var isPP = (userEstimSet[row.user_estim].role === 'pp');
+              // BON PAGI → all users; BON TAMBAHAN → only PP
+              if (row.tipe === 'BON PAGI' || (row.tipe === 'BON TAMBAHAN' && isPP)) {
+                matrix[tgl][row.user_estim] += (row.nominal || 0);
+              }
+            }
+            renderCib(userList, allDates, matrix);
+          })
+          .catch(function(err) { showLoader(false); alert("Gagal: " + err.message); });
+      });
     }
 
-    function renderCib(data) {
+    function renderCibEmpty() {
+      document.getElementById('cib-head').innerHTML = '<tr><th>TGL</th><th>JUMLAH</th></tr>';
+      document.getElementById('cib-body').innerHTML = '<tr><td colspan="2" style="text-align:center;">Tidak ada data user PP/KF.</td></tr>';
+      document.getElementById('cib-foot').innerHTML = '';
+    }
+
+    function renderCib(userList, allDates, matrix) {
       var headEl = document.getElementById('cib-head');
       var bodyEl = document.getElementById('cib-body');
       var footEl = document.getElementById('cib-foot');
 
       var html = '<tr><th style="width:80px;">TGL</th>';
-      for (var i = 0; i < data.kfList.length; i++) {
-        var roleBadge = data.kfList[i].role === 'kf' ? 'KF' : 'TLR';
-        html += '<th style="text-align:right;">' + data.kfList[i].namaUnit + '<br><small style="color:#6b7280;">' + data.kfList[i].userEstim + ' <b>[' + roleBadge + ']</b></small></th>';
+      for (var i = 0; i < userList.length; i++) {
+        var roleBadge = userList[i].role === 'pp' ? 'PP' : 'KF';
+        html += '<th style="text-align:right;">' + (userList[i].nama_unit || userList[i].nama_user || userList[i].user_estim) + '<br><small style="color:#6b7280;">' + userList[i].user_estim + ' <b>[' + roleBadge + ']</b></small></th>';
       }
       html += '<th style="text-align:right; background:#fef2f2; color:#dc2626;">JUMLAH</th></tr>';
       headEl.innerHTML = html;
 
       html = '';
-      var totalsPerKf = {};
-      for (var i = 0; i < data.kfList.length; i++) {
-        totalsPerKf[data.kfList[i].userEstim] = 0;
-      }
+      var totalsPerUser = {};
+      for (var u = 0; u < userList.length; u++) { totalsPerUser[userList[u].user_estim] = 0; }
 
-      for (var d = 0; d < data.allDates.length; d++) {
-        var tgl = data.allDates[d];
-        var row = data.matrix[tgl] || {};
-        html += '<tr>';
-        html += '<td style="font-weight:600;">' + tgl.substring(8) + '</td>';
+      for (var d = 0; d < allDates.length; d++) {
+        var tgl = allDates[d];
+        var dObj = new Date(tgl + 'T00:00:00');
+        var isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
+        var rowStyle = isWeekend ? 'background:#fff7ed;' : '';
+        html += '<tr style="' + rowStyle + '">';
+        html += '<td style="font-weight:600;">' + tgl.substring(8) + ' <small style="color:#6b7280;">' + ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()] + '</small></td>';
         var rowTotal = 0;
-        for (var k = 0; k < data.kfList.length; k++) {
-          var ue = data.kfList[k].userEstim;
-          var val = row[ue] || 0;
+        for (var k = 0; k < userList.length; k++) {
+          var ue = userList[k].user_estim;
+          var val = matrix[tgl][ue] || 0;
           rowTotal += val;
-          totalsPerKf[ue] += val;
+          totalsPerUser[ue] += val;
           html += '<td style="text-align:right;">' + (val > 0 ? val.toLocaleString('id-ID') : '0') + '</td>';
         }
         html += '<td style="text-align:right; font-weight:700; background:#fef2f2;">' + (rowTotal > 0 ? rowTotal.toLocaleString('id-ID') : '0') + '</td>';
         html += '</tr>';
       }
 
+      var grandTotal = 0;
       html += '<tr style="font-weight:bold; background:#f8fafc;">';
       html += '<td style="font-weight:800;">TOTAL</td>';
-      for (var j = 0; j < data.kfList.length; j++) {
-        var t = totalsPerKf[data.kfList[j].userEstim];
+      for (var j = 0; j < userList.length; j++) {
+        var t = totalsPerUser[userList[j].user_estim];
+        grandTotal += t;
         html += '<td style="text-align:right;">' + (t > 0 ? t.toLocaleString('id-ID') : '0') + '</td>';
       }
-      html += '<td style="text-align:right; font-weight:800; background:#dc2626; color:#fff;">' + data.grandTotal.toLocaleString('id-ID') + '</td>';
+      html += '<td style="text-align:right; font-weight:800; background:#dc2626; color:#fff;">' + grandTotal.toLocaleString('id-ID') + '</td>';
       html += '</tr>';
 
       bodyEl.innerHTML = html;
@@ -1731,9 +1785,9 @@ function initLapCluis() {
     }
 
     // =============================================
-    // CIT — Cash In Transit (KF & PP)
-    // Max(Total Bon Pagi, Total Setor Sore) per tgl
-    // Direct Supabase REST — no edge function needed
+    // CIT — Cash In Transit (PP & KF)
+    // Max(Bon Pagi, Setor Sore) per user per tgl
+    // Direct Supabase REST, reuses _fetchUsersPpKf
     // =============================================
     function initCit() {
       nav('page-cit', document.querySelectorAll('#sub-cib-cis-cit .menu-item.submenu')[2]);
@@ -1749,114 +1803,108 @@ function initLapCluis() {
       var bulan = document.getElementById('cit-bulan').value;
       if (!bulan) return;
       showLoader(true, "Memuat data CIT...");
+      _fetchUsersPpKf(function(err, userList, hdrs, REST) {
+        if (err) { showLoader(false); alert("Gagal: " + err.message); return; }
+        if (userList.length === 0) { showLoader(false); renderCitEmpty(); return; }
 
-      var REST = "https://jwsfsczgyqphoyflpjnm.supabase.co/rest/v1";
-      var SVC = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8";
-      var hdrs = { "apikey": SVC, "Authorization": "Bearer " + SVC };
+        var parts = bulan.split('-');
+        var lastDay = new Date(parseInt(parts[0]), parseInt(parts[1]), 0).getDate();
+        var startDate = bulan + '-01';
+        var endDate = bulan + '-' + String(lastDay).padStart(2, '0');
 
-      // Generate all dates in the month
-      var parts = bulan.split('-');
-      var y = parseInt(parts[0]), m = parseInt(parts[1]);
-      var lastDay = new Date(y, m, 0).getDate();
-      var allDates = [];
-      for (var d = 1; d <= lastDay; d++) {
-        allDates.push(bulan + '-' + String(d).padStart(2, '0'));
-      }
-
-      // Step 1: Get KF & PP users
-      fetch(REST + "/users?select=user_estim,role&role=in.(kf,pp)", { headers: hdrs })
-        .then(function(r) { return r.json(); })
-        .then(function(users) {
-          var kfppEstim = {};
-          for (var i = 0; i < users.length; i++) {
-            kfppEstim[users[i].user_estim] = true;
-          }
-          var estimList = users.map(function(u) { return u.user_estim; });
-
-          if (estimList.length === 0) {
+        fetch(REST + "/bon_setor?select=tanggal,tipe,nominal,user_estim&tanggal=gte." + startDate + "&tanggal=lte." + endDate + "&tipe=in.(BON PAGI,SETOR SORE)&limit=100000", { headers: hdrs })
+          .then(function(r) { return r.json(); })
+          .then(function(rows) {
             showLoader(false);
-            renderCitEmpty(allDates);
-            return;
-          }
+            var userEstimSet = {};
+            for (var i = 0; i < userList.length; i++) { userEstimSet[userList[i].user_estim] = userList[i]; }
 
-          // Step 2: Get bon_setor for the month
-          var startDate = bulan + '-01';
-          var endDate = bulan + '-' + String(lastDay).padStart(2, '0');
-          return fetch(REST + "/bon_setor?select=tanggal,tipe,nominal,user_estim&tanggal=gte." + startDate + "&tanggal=lte." + endDate + "&tipe=in.(BON%20PAGI,SETOR%20SORE)&order=tanggal", { headers: hdrs })
-            .then(function(r) { return r.json(); })
-            .then(function(rows) {
-              showLoader(false);
+            var allDates = [];
+            for (var d = 1; d <= lastDay; d++) { allDates.push(bulan + '-' + String(d).padStart(2, '0')); }
 
-              // Aggregate: per date, sum BON PAGI and SETOR SORE for KF+PP only
-              var bonPerTgl = {}, setorPerTgl = {};
-              for (var i = 0; i < allDates.length; i++) {
-                bonPerTgl[allDates[i]] = 0;
-                setorPerTgl[allDates[i]] = 0;
+            // Build matrix: per user per date → {bon, setor}
+            var matrix = {};
+            for (var dd = 0; dd < allDates.length; dd++) {
+              matrix[allDates[dd]] = {};
+              for (var u = 0; u < userList.length; u++) {
+                matrix[allDates[dd]][userList[u].user_estim] = { bon: 0, setor: 0 };
               }
-              for (var j = 0; j < rows.length; j++) {
-                var row = rows[j];
-                if (!kfppEstim[row.user_estim]) continue;
-                var tgl = String(row.tanggal).substring(0, 10);
-                if (row.tipe === 'BON PAGI') {
-                  bonPerTgl[tgl] = (bonPerTgl[tgl] || 0) + (row.nominal || 0);
-                } else if (row.tipe === 'SETOR SORE') {
-                  setorPerTgl[tgl] = (setorPerTgl[tgl] || 0) + (row.nominal || 0);
-                }
-              }
+            }
 
-              renderCit(allDates, bonPerTgl, setorPerTgl);
-            });
-        })
-        .catch(function(err) {
-          showLoader(false);
-          alert("Gagal memuat data CIT: " + err.message);
-        });
+            for (var r = 0; r < rows.length; r++) {
+              var row = rows[r];
+              if (!userEstimSet[row.user_estim]) continue;
+              var tgl = String(row.tanggal).substring(0, 10);
+              if (!matrix[tgl] || !matrix[tgl][row.user_estim]) continue;
+              if (row.tipe === 'BON PAGI') {
+                matrix[tgl][row.user_estim].bon += (row.nominal || 0);
+              } else if (row.tipe === 'SETOR SORE') {
+                matrix[tgl][row.user_estim].setor += (row.nominal || 0);
+              }
+            }
+
+            renderCit(userList, allDates, matrix);
+          })
+          .catch(function(err) { showLoader(false); alert("Gagal: " + err.message); });
+      });
     }
 
-    function renderCitEmpty(allDates) {
-      var html = '';
-      for (var d = 0; d < allDates.length; d++) {
-        var tgl = allDates[d];
-        var dObj = new Date(tgl + 'T00:00:00');
-        var hari = ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()];
-        html += '<tr><td style="font-weight:600;">' + tgl.substring(8) + ' <small>' + hari + '</small></td><td style="text-align:right;">0</td><td style="text-align:right; background:#fef2f2;">0</td></tr>';
-      }
-      document.getElementById('cit-body').innerHTML = html;
-      document.getElementById('cit-foot').innerHTML = '<tr style="font-weight:bold; background:#f8fafc;"><td style="font-weight:800;">GRAND TOTAL</td><td></td><td style="text-align:right; font-weight:800; background:#dc2626; color:#fff;">0</td></tr>';
+    function renderCitEmpty() {
+      document.getElementById('cit-head').innerHTML = '<tr><th>TGL</th><th>JUMLAH</th></tr>';
+      document.getElementById('cit-body').innerHTML = '<tr><td colspan="2" style="text-align:center;">Tidak ada data user PP/KF.</td></tr>';
+      document.getElementById('cit-foot').innerHTML = '';
     }
 
-    function renderCit(allDates, bonPerTgl, setorPerTgl) {
+    function renderCit(userList, allDates, matrix) {
+      var headEl = document.getElementById('cit-head');
       var bodyEl = document.getElementById('cit-body');
       var footEl = document.getElementById('cit-foot');
-      var html = '';
-      var grandTotal = 0;
+
+      var html = '<tr><th style="width:80px;">TGL</th>';
+      for (var i = 0; i < userList.length; i++) {
+        var roleBadge = userList[i].role === 'pp' ? 'PP' : 'KF';
+        html += '<th style="text-align:right;">' + (userList[i].nama_user || userList[i].user_estim) + '<br><small style="color:#6b7280;">' + userList[i].user_estim + ' <b>[' + roleBadge + ']</b></small></th>';
+      }
+      html += '<th style="text-align:right; background:#fef2f2; color:#dc2626;">JUMLAH</th></tr>';
+      headEl.innerHTML = html;
+
+      html = '';
+      var totalsPerUser = {};
+      for (var u = 0; u < userList.length; u++) { totalsPerUser[userList[u].user_estim] = 0; }
 
       for (var d = 0; d < allDates.length; d++) {
         var tgl = allDates[d];
-        var bonVal = bonPerTgl[tgl] || 0;
-        var setorVal = setorPerTgl[tgl] || 0;
-        var maxVal = bonVal >= setorVal ? bonVal : setorVal; // MAX(bon, setor)
-        grandTotal += maxVal;
-
         var dObj = new Date(tgl + 'T00:00:00');
         var isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
-        var hari = ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()];
         var rowStyle = isWeekend ? 'background:#fff7ed;' : '';
-
-        var info = maxVal === 0 ? '' : (bonVal >= setorVal ? ' (Bon Pagi)' : ' (Setor Sore)');
         html += '<tr style="' + rowStyle + '">';
-        html += '<td style="font-weight:600;">' + tgl.substring(8) + ' <small style="color:#6b7280;">' + hari + '</small></td>';
-        html += '<td style="text-align:right; font-weight:600;">Rp ' + maxVal.toLocaleString('id-ID') + '<br><small style="color:#6b7280;">' + info + '</small></td>';
-        html += '<td style="text-align:right; font-weight:700; background:#fef2f2;">' + (maxVal > 0 ? maxVal.toLocaleString('id-ID') : '0') + '</td>';
+        html += '<td style="font-weight:600;">' + tgl.substring(8) + ' <small style="color:#6b7280;">' + ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()] + '</small></td>';
+        var rowTotal = 0;
+        for (var k = 0; k < userList.length; k++) {
+          var ue = userList[k].user_estim;
+          var bs = matrix[tgl][ue];
+          var maxVal = bs.bon >= bs.setor ? bs.bon : bs.setor; // MAX(bon, setor)
+          rowTotal += maxVal;
+          totalsPerUser[ue] += maxVal;
+          html += '<td style="text-align:right;">' + (maxVal > 0 ? maxVal.toLocaleString('id-ID') : '0') + '</td>';
+        }
+        html += '<td style="text-align:right; font-weight:700; background:#fef2f2;">' + (rowTotal > 0 ? rowTotal.toLocaleString('id-ID') : '0') + '</td>';
         html += '</tr>';
       }
 
+      var grandTotal = 0;
+      html += '<tr style="font-weight:bold; background:#f8fafc;">';
+      html += '<td style="font-weight:800;">TOTAL</td>';
+      for (var j = 0; j < userList.length; j++) {
+        var t = totalsPerUser[userList[j].user_estim];
+        grandTotal += t;
+        html += '<td style="text-align:right;">' + (t > 0 ? t.toLocaleString('id-ID') : '0') + '</td>';
+      }
+      html += '<td style="text-align:right; font-weight:800; background:#dc2626; color:#fff;">' + grandTotal.toLocaleString('id-ID') + '</td>';
+      html += '</tr>';
+
       bodyEl.innerHTML = html;
-      footEl.innerHTML = '<tr style="font-weight:bold; background:#f8fafc; font-size:1.1rem;">' +
-        '<td style="font-weight:800;">GRAND TOTAL</td>' +
-        '<td style="text-align:right;">Rp ' + grandTotal.toLocaleString('id-ID') + '</td>' +
-        '<td style="text-align:right; font-weight:800; background:#dc2626; color:#fff;">' + grandTotal.toLocaleString('id-ID') + '</td>' +
-        '</tr>';
+      footEl.innerHTML = '';
     }
 
     // =============================================
