@@ -1006,9 +1006,10 @@
         <div class="form-row" style="align-items:flex-end;">
           <div class="form-group"><label>Bulan</label><input type="month" id="cib-bulan" onchange="loadCib()" style="background:var(--input-yellow);"></div>
           <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCib()">🔄 Muat Data</button></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px; background:#16a34a;" onclick="exportCibExcel()">📥 Export Excel</button></div>
         </div>
         <div class="table-responsive">
-          <table>
+          <table id="table-cib">
             <thead id="cib-head"></thead>
             <tbody id="cib-body">
               <tr><td style="text-align:center;">Pilih bulan untuk melihat data CIB.</td></tr>
@@ -1031,9 +1032,10 @@
         <div class="form-row" style="align-items:flex-end;">
           <div class="form-group"><label>Bulan</label><input type="month" id="cis-bulan" onchange="loadCis()" style="background:var(--input-yellow);"></div>
           <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCis()">🔄 Muat Data</button></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px; background:#16a34a;" onclick="exportCisExcel()">📥 Export Excel</button></div>
         </div>
         <div class="table-responsive">
-          <table>
+          <table id="table-cis">
             <thead>
               <tr>
                 <th style="width:100px;">TGL</th>
@@ -1061,9 +1063,10 @@
         <div class="form-row" style="align-items:flex-end;">
           <div class="form-group"><label>Bulan</label><input type="month" id="cit-bulan" onchange="loadCit()" style="background:var(--input-yellow);"></div>
           <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCit()">🔄 Muat Data</button></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px; background:#16a34a;" onclick="exportCitExcel()">📥 Export Excel</button></div>
         </div>
         <div class="table-responsive">
-          <table>
+          <table id="table-cit">
             <thead id="cit-head"></thead>
             <tbody id="cit-body">
               <tr><td style="text-align:center;">Pilih bulan untuk melihat data CIT.</td></tr>
@@ -1171,9 +1174,10 @@
         <div class="form-row" style="align-items:flex-end;">
           <div class="form-group"><label>Bulan</label><input type="month" id="tukab-rekap-bulan" onchange="loadCitTukab()" style="background:var(--input-yellow);"></div>
           <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCitTukab()">🔄 Muat Data</button></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px; background:#16a34a;" onclick="exportTukabExcel()">📥 Export Excel</button></div>
         </div>
         <div class="table-responsive">
-          <table>
+          <table id="table-cit-tukab">
             <thead><tr><th>No</th><th>TGL</th><th>BANK</th><th style="text-align:right;">NOMINAL TUKAB</th></tr></thead>
             <tbody id="cit-tukab-body">
               <tr><td colspan="4" style="text-align:center;">Pilih bulan untuk melihat data TUKAB.</td></tr>
@@ -1196,9 +1200,10 @@
         <div class="form-row" style="align-items:flex-end;">
           <div class="form-group"><label>Bulan</label><input type="month" id="cit-atm-bulan" onchange="loadCitAtmRekap()" style="background:var(--input-yellow);"></div>
           <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCitAtmRekap()">🔄 Muat Data</button></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px; background:#16a34a;" onclick="exportCitAtmExcel()">📥 Export Excel</button></div>
         </div>
         <div class="table-responsive">
-          <table>
+          <table id="table-cit-atm">
             <thead>
               <tr><th style="width:40px;">No</th><th>TGL</th><th>USER ATM</th><th style="text-align:right;">NOMINAL PENGISIAN</th></tr>
             </thead>
@@ -1595,6 +1600,19 @@ function initLapCluis() {
     // =============================================
     // CIB: Bon Pagi per KF per Tanggal
     // =============================================
+    function _fmtTgl(tgl) { return tgl.substring(8,10) + '-' + tgl.substring(5,7) + '-' + tgl.substring(2,4); }
+    function _exportTable(tableId, prefix, bulan) {
+      var table = document.getElementById(tableId);
+      if (!table) return;
+      var html = table.outerHTML;
+      var blob = new Blob(["﻿" + html], { type: "application/vnd.ms-excel" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = prefix + "_" + (bulan || "data") + ".xls";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
     // ===== Shared helpers: fetch users from Supabase (service key, bypass RLS) =====
     function _fetchUsersCib(callback) {
       var SVC = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8";
@@ -1724,7 +1742,7 @@ function initLapCluis() {
         var isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
         var rowStyle = isWeekend ? 'background:#fff7ed;' : '';
         html += '<tr style="' + rowStyle + '">';
-        html += '<td style="font-weight:600;">' + tgl.substring(8) + ' <small style="color:#6b7280;">' + ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()] + '</small></td>';
+        html += '<td style="font-weight:600;">' + _fmtTgl(tgl) + ' <small style="color:#6b7280;">' + ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()] + '</small></td>';
         var rowTotal = 0;
         for (var k = 0; k < userList.length; k++) {
           var ue = userList[k].user_estim;
@@ -1793,7 +1811,7 @@ function initLapCluis() {
         var isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
         var rowStyle = isWeekend ? 'background:#fff7ed;' : '';
         html += '<tr style="' + rowStyle + '">';
-        html += '<td style="font-weight:600;">' + tgl.substring(8) + ' <small style="color:#6b7280;">' + ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()] + '</small></td>';
+        html += '<td style="font-weight:600;">' + _fmtTgl(tgl) + ' <small style="color:#6b7280;">' + ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()] + '</small></td>';
         html += '<td style="text-align:right; font-weight:600;">Rp ' + saldo.toLocaleString('id-ID') + '</td>';
         html += '</tr>';
       }
@@ -1900,7 +1918,7 @@ function initLapCluis() {
         var isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
         var rowStyle = isWeekend ? 'background:#fff7ed;' : '';
         html += '<tr style="' + rowStyle + '">';
-        html += '<td style="font-weight:600;">' + tgl.substring(8) + ' <small style="color:#6b7280;">' + ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()] + '</small></td>';
+        html += '<td style="font-weight:600;">' + _fmtTgl(tgl) + ' <small style="color:#6b7280;">' + ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()] + '</small></td>';
         var rowTotal = 0;
         for (var k = 0; k < userList.length; k++) {
           var ue = userList[k].user_estim;
@@ -2023,7 +2041,7 @@ function initLapCluis() {
         var r = data.list[i];
         html += '<tr>';
         html += '<td>' + r.no + '</td>';
-        html += '<td style="font-weight:600;">' + r.tglTransaksi.substring(8) + '</td>';
+        html += '<td style="font-weight:600;">' + _fmtTgl(r.tglTransaksi) + '</td>';
         html += '<td>' + r.bank + '</td>';
         html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalTukab.toLocaleString('id-ID') + '</td>';
         html += '<td style="text-align:center;">' + (r.statusAntar ? '✅' : '❌') + '</td>';
@@ -2098,7 +2116,7 @@ function initLapCluis() {
         var r = data.list[i];
         html += '<tr>';
         html += '<td>' + r.no + '</td>';
-        html += '<td style="font-weight:600;">' + r.tglTransaksi.substring(8) + ' <small style="color:#6b7280;">' + r.tglTransaksi.substring(0,7) + '</small></td>';
+        html += '<td style="font-weight:600;">' + _fmtTgl(r.tglTransaksi) + '</td>';
         html += '<td>' + r.bank + '</td>';
         html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalTukab.toLocaleString('id-ID') + '</td>';
         html += '</tr>';
@@ -2317,7 +2335,7 @@ function initLapCluis() {
         var r = data.list[i];
         html += '<tr>';
         html += '<td>' + r.no + '</td>';
-        html += '<td style="font-weight:600;">' + r.tglTransaksi.substring(8) + ' <small style="color:#6b7280;">' + r.tglTransaksi.substring(0,7) + '</small></td>';
+        html += '<td style="font-weight:600;">' + _fmtTgl(r.tglTransaksi) + '</td>';
         html += '<td>' + r.userAtm + '</td>';
         html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalPengisian.toLocaleString('id-ID') + '</td>';
         html += '<td style="white-space:nowrap;">';
@@ -2402,7 +2420,7 @@ function initLapCluis() {
         var r = data.list[i];
         html += '<tr>';
         html += '<td>' + r.no + '</td>';
-        html += '<td style="font-weight:600;">' + r.tglTransaksi.substring(8) + ' <small style="color:#6b7280;">' + r.tglTransaksi.substring(0,7) + '</small></td>';
+        html += '<td style="font-weight:600;">' + _fmtTgl(r.tglTransaksi) + '</td>';
         html += '<td>' + r.userAtm + '</td>';
         html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalPengisian.toLocaleString('id-ID') + '</td>';
         html += '</tr>';
@@ -4768,6 +4786,12 @@ function formatRpTab(angka) {
   return val.toLocaleString('id-ID');
 }
   
+function exportCibExcel() { var b = document.getElementById('cib-bulan'); _exportTable('table-cib','CIB', b ? b.value : ''); }
+function exportCisExcel() { var b = document.getElementById('cis-bulan'); _exportTable('table-cis','CIS', b ? b.value : ''); }
+function exportCitExcel() { var b = document.getElementById('cit-bulan'); _exportTable('table-cit','CIT', b ? b.value : ''); }
+function exportTukabExcel() { var b = document.getElementById('tukab-rekap-bulan'); _exportTable('table-cit-tukab','CIT_TUKAB', b ? b.value : ''); }
+function exportCitAtmExcel() { var b = document.getElementById('cit-atm-bulan'); _exportTable('table-cit-atm','CIT_ATM', b ? b.value : ''); }
+
 function exportTabularisExcel() {
   var table = document.getElementById("table-tabularis-data");
   if (!table) return;
