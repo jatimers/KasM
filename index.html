@@ -237,6 +237,7 @@
     <div class="role-menu menu-admin">
       <div class="role-title">ADMINISTRATOR</div>
       <div class="menu-item active" onclick="nav('kelola-user', this); loadUsers();">👥 Kelola User</div>
+      <div class="menu-item" onclick="nav('kelola-unit-kerja', this); loadUnitKerja();">🏢 Kelola Unit Kerja</div>
       <div class="menu-item" onclick="nav('setelan-libur', this); loadHariLibur();">📅 Setelan Hari Libur</div>
       <div class="menu-item" onclick="nav('setting-fonnte', this); loadFonnteSettings();">⚙️ Notifikasi WA</div>
     </div>
@@ -340,9 +341,15 @@
         <div class="header-page"><h3>Manajemen Pengguna Aplikasi</h3><button class="btn-refresh" onclick="loadUsers()">🔄 Refresh</button></div>
         <div class="form-row">
           <input type="hidden" id="u-id">
-          <div class="form-group"><label>Kode Wilayah (HT View)</label><input type="text" id="u-wilayah"></div>
-          <div class="form-group"><label>Kode Cabang (Unit Kerja)</label><input type="text" id="u-kode"></div>
-          <div class="form-group"><label>Nama Unit Kerja</label><input type="text" id="u-unit"></div>
+          <div class="form-group" style="grid-column: 1 / -1; background: #f0f9ff; padding: 12px; border-radius: 8px; border: 1px dashed #0284c7;">
+            <label style="color: #0284c7; font-weight: 700;">🔍 Pilih dari Unit Kerja (auto-isi)</label>
+            <select id="u-ref-unit" onchange="pilihUnitKerja(this.value)" style="width:100%; font-weight: 600;">
+              <option value="">-- Pilih Unit Kerja --</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Kode Wilayah (HT View)</label><input type="text" id="u-wilayah" placeholder="Auto dari Unit Kerja"></div>
+          <div class="form-group"><label>Kode Cabang (Unit Kerja)</label><input type="text" id="u-kode" placeholder="Auto dari Unit Kerja"></div>
+          <div class="form-group"><label>Nama Unit Kerja</label><input type="text" id="u-unit" placeholder="Auto dari Unit Kerja"></div>
           <div class="form-group"><label>Username Login</label><input type="text" id="u-user"></div>
           <div class="form-group"><label>Password</label><input type="text" id="u-pass"></div>
           <div class="form-group"><label>Hak Akses (Role)</label>
@@ -356,6 +363,27 @@
         </div>
         <div class="table-responsive" style="margin-top:25px;">
           <table><thead><tr><th>K. Wilayah</th><th>K. Cabang</th><th>Nama Unit Kerja</th><th>Username</th><th>Role</th><th>UserEstim</th><th>Aksi</th></tr></thead><tbody id="user-body"><tr><td colspan="7" style="text-align:center;">Memuat data...</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <div id="kelola-unit-kerja" class="page role-page-admin">
+        <div class="header-page"><h3>Kelola Unit Kerja</h3><button class="btn-refresh" onclick="loadUnitKerja()">🔄 Refresh</button></div>
+        <div class="form-row">
+          <input type="hidden" id="uk-id">
+          <div class="form-group"><label>NIP</label><input type="text" id="uk-nip" placeholder="Nomor Induk Pegawai"></div>
+          <div class="form-group"><label>Nama Pegawai</label><input type="text" id="uk-nama-pegawai" placeholder="Nama lengkap pegawai"></div>
+          <div class="form-group"><label>Nama Unit Kerja</label><input type="text" id="uk-nama-unit" placeholder="Contoh: KC LUMAJANG"></div>
+          <div class="form-group"><label>Kode Wilayah</label><input type="text" id="uk-kode-wilayah" placeholder="Contoh: 052"></div>
+          <div class="form-group"><label>Nama Wilayah</label><input type="text" id="uk-nama-wilayah" placeholder="Contoh: LUMAJANG"></div>
+          <div class="form-group"><label>Kode Cabang</label><input type="text" id="uk-kode-cabang" placeholder="Kode unit cabang"></div>
+          <div class="form-group"><label>Nama Cabang</label><input type="text" id="uk-nama-cabang" placeholder="Nama cabang lengkap"></div>
+        </div>
+        <div style="display:flex; gap:15px; flex-wrap:wrap;">
+          <button class="btn-refresh" style="flex:2; font-size:1.1rem; padding:15px; margin:0;" onclick="simpanUnitKerja()">💾 SIMPAN UNIT KERJA</button>
+          <button class="btn-reset" style="flex:1; margin:0;" onclick="clearFormUnitKerja()">Kosongkan Form</button>
+        </div>
+        <div class="table-responsive" style="margin-top:25px;">
+          <table><thead><tr><th>NIP</th><th>Nama Pegawai</th><th>Unit Kerja</th><th>Kode Wilayah</th><th>Nama Wilayah</th><th>Kode Cabang</th><th>Nama Cabang</th><th>Aksi</th></tr></thead><tbody id="uk-body"><tr><td colspan="8" style="text-align:center;">Memuat data...</td></tr></tbody></table>
         </div>
       </div>
 
@@ -1240,6 +1268,9 @@
       getTukabHistory:            ['GET','/tukab','?action=history','tanggal','kodeWilayah'],
       saveTukab:                  ['POST','/tukab'],
       deleteTukab:                ['DELETE','/tukab','id'],
+      getUnitKerja:               ['GET','/unit-kerja'],
+      saveUnitKerja:              ['POST','/unit-kerja'],
+      deleteUnitKerja:            ['DELETE','/unit-kerja','id'],
     };
 
     (function(){
@@ -3326,10 +3357,29 @@ function loadPerkiraanHT() {
     }
 
     function clearFormUser() { document.getElementById('u-id').value = ''; document.getElementById('u-wilayah').value = ''; document.getElementById('u-kode').value = ''; document.getElementById('u-unit').value = '';
-      document.getElementById('u-user').value = ''; document.getElementById('u-pass').value = ''; document.getElementById('u-role').value = 'teller'; document.getElementById('u-estim').value = ''; }
+      document.getElementById('u-user').value = ''; document.getElementById('u-pass').value = ''; document.getElementById('u-role').value = 'teller'; document.getElementById('u-estim').value = ''; document.getElementById('u-ref-unit').value = ''; }
     function loadUsers() { showLoader(true);
       google.script.run.withSuccessHandler((res) => { showLoader(false); allUsersData = res; let html = ""; res.forEach((u, idx) => { html += `<tr><td>${u.kodeWilayah}</td><td>${u.kodeCabang}</td><td>${u.namaUnit}</td><td>${u.namaUser}</td><td><b style="color:var(--primary-red);">${u.role.toUpperCase()}</b></td><td>${u.userEstim}</td><td><button class="btn-action btn-edit" onclick="editUser(${idx})">Edit</button> <button class="btn-action btn-delete" onclick="hapusUser('${u.id}')">Hapus</button></td></tr>`; }); document.getElementById('user-body').innerHTML = html; }).getAllUsers();
+      loadUnitKerjaForDropdown(); // Refresh dropdown Unit Kerja
     }
+    function pilihUnitKerja(ukId) { if (!ukId) { document.getElementById('u-wilayah').value = ''; document.getElementById('u-kode').value = ''; document.getElementById('u-unit').value = ''; return; }
+      let found = allUnitKerjaData.find(function(uk) { return String(uk.id) === String(ukId); });
+      if (found) { document.getElementById('u-wilayah').value = found.kode_wilayah || ''; document.getElementById('u-kode').value = found.kode_cabang || ''; document.getElementById('u-unit').value = found.nama_unit || ''; }
+    }
+    // ===== UNIT KERJA CRUD =====
+    var allUnitKerjaData = [];
+    function loadUnitKerjaForDropdown() {
+      google.script.run.withSuccessHandler(function(res) { allUnitKerjaData = res; let sel = document.getElementById('u-ref-unit'); if (!sel) return; let curVal = sel.value; sel.innerHTML = '<option value="">-- Pilih Unit Kerja --</option>'; res.forEach(function(uk) { sel.innerHTML += '<option value="'+uk.id+'">'+uk.nama_unit+' — '+uk.nama_wilayah+' ('+uk.nama_cabang+')</option>'; }); sel.value = curVal; }).getUnitKerja();
+    }
+    function loadUnitKerja() { showLoader(true);
+      google.script.run.withSuccessHandler(function(res) { showLoader(false); allUnitKerjaData = res; let html = ""; res.forEach(function(uk, idx) { html += '<tr><td>'+uk.nip+'</td><td>'+uk.nama_pegawai+'</td><td>'+uk.nama_unit+'</td><td>'+uk.kode_wilayah+'</td><td>'+uk.nama_wilayah+'</td><td>'+uk.kode_cabang+'</td><td>'+uk.nama_cabang+'</td><td><button class="btn-action btn-edit" onclick="editUnitKerja('+idx+')">Edit</button> <button class="btn-action btn-delete" onclick="hapusUnitKerja(\''+uk.id+'\')">Hapus</button></td></tr>'; }); document.getElementById('uk-body').innerHTML = html || '<tr><td colspan="8" style="text-align:center;">Belum ada data unit kerja.</td></tr>'; }).getUnitKerja();
+    }
+    function simpanUnitKerja() { let dataObj = { id: document.getElementById('uk-id').value, nip: document.getElementById('uk-nip').value, nama_pegawai: document.getElementById('uk-nama-pegawai').value, nama_unit: document.getElementById('uk-nama-unit').value, kode_cabang: document.getElementById('uk-kode-cabang').value, nama_cabang: document.getElementById('uk-nama-cabang').value, kode_wilayah: document.getElementById('uk-kode-wilayah').value, nama_wilayah: document.getElementById('uk-nama-wilayah').value };
+      if (!dataObj.nama_pegawai || !dataObj.nama_unit) { alert('Nama Pegawai dan Nama Unit wajib diisi!'); return; } showLoader(true); google.script.run.withSuccessHandler(function() { showLoader(false); showToast(false); clearFormUnitKerja(); loadUnitKerja(); }).saveUnitKerja(dataObj);
+    }
+    function clearFormUnitKerja() { document.getElementById('uk-id').value = ''; document.getElementById('uk-nip').value = ''; document.getElementById('uk-nama-pegawai').value = ''; document.getElementById('uk-nama-unit').value = ''; document.getElementById('uk-kode-cabang').value = ''; document.getElementById('uk-nama-cabang').value = ''; document.getElementById('uk-kode-wilayah').value = ''; document.getElementById('uk-nama-wilayah').value = ''; }
+    function editUnitKerja(idx) { let uk = allUnitKerjaData[idx]; document.getElementById('uk-id').value = uk.id; document.getElementById('uk-nip').value = uk.nip || ''; document.getElementById('uk-nama-pegawai').value = uk.nama_pegawai || ''; document.getElementById('uk-nama-unit').value = uk.nama_unit || ''; document.getElementById('uk-kode-cabang').value = uk.kode_cabang || ''; document.getElementById('uk-nama-cabang').value = uk.nama_cabang || ''; document.getElementById('uk-kode-wilayah').value = uk.kode_wilayah || ''; document.getElementById('uk-nama-wilayah').value = uk.nama_wilayah || ''; }
+    function hapusUnitKerja(id) { if (confirm('Hapus Unit Kerja ini?')) { showLoader(true); google.script.run.withSuccessHandler(function() { showLoader(false); showToast(false); loadUnitKerja(); }).deleteUnitKerja(id); } }
     function simpanUser() { let dataObj = { id: document.getElementById('u-id').value, kodeWilayah: document.getElementById('u-wilayah').value, kodeCabang: document.getElementById('u-kode').value, namaUnit: document.getElementById('u-unit').value, namaUser: document.getElementById('u-user').value, role: document.getElementById('u-role').value, userEstim: document.getElementById('u-estim').value, password: document.getElementById('u-pass').value };
       if(!dataObj.kodeWilayah || !dataObj.kodeCabang || !dataObj.userEstim) { alert('Isi Kode Wilayah, Cabang, Estim!'); return; } showLoader(true); google.script.run.withSuccessHandler(()=>{ showLoader(false); showToast(false); clearFormUser(); loadUsers(); }).saveUserData(dataObj);
     }
