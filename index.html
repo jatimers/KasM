@@ -753,12 +753,15 @@
         </div>
         <div class="summary-box" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
           <div><h2 style="margin:0; color:var(--primary-red); font-size: 2rem;">TOTAL: <span id="trx-lbl-total">Rp 0</span></h2><p style="font-weight:600; color:var(--text-muted); margin-top:5px; margin-bottom:0;" id="trx-lbl-terbilang">-</p></div>
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap;" id="btn-simpan-top">
              <button class="btn-reset" style="margin:0;" onclick="resetTrxKas()">+ TRX BARU</button>
              <button class="btn-refresh" style="margin:0;" onclick="simpanTrxKas()">💾 SIMPAN TRX</button>
           </div>
         </div>
         <div id="trx-container"></div>
+        <div id="btn-simpan-bottom" style="display:none; text-align:right; margin-top:15px;">
+           <button class="btn-refresh" style="font-size:1.1rem; padding:15px 30px; margin:0;" onclick="simpanTrxKas()">💾 SIMPAN TRX</button>
+        </div>
       </div>
 
       <div id="history" class="page">
@@ -3663,8 +3666,18 @@ function onToggleNotif() {
     function resetFormHT() { setTodayDates(); resetFormVals('ht'); }
 
     function bukaTrx(mode, el) {
-      nav('trx-kas', el); 
-      resetTrxKas(); 
+      nav('trx-kas', el);
+      resetTrxKas();
+      // Tombol simpan: SETOR SORE di bawah, lainnya di atas
+      let topBtn = document.getElementById('btn-simpan-top');
+      let botBtn = document.getElementById('btn-simpan-bottom');
+      if (mode === 'SETOR SORE') {
+        if (topBtn) topBtn.style.display = 'none';
+        if (botBtn) botBtn.style.display = 'block';
+      } else {
+        if (topBtn) topBtn.style.display = 'flex';
+        if (botBtn) botBtn.style.display = 'none';
+      }
       let selectEl = document.getElementById('trx-tipe');
       selectEl.innerHTML = ''; 
       let panelBonPagi = document.getElementById('panel-bon-pagi'); 
