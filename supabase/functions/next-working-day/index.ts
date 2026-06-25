@@ -4,13 +4,20 @@
 
 import { corsHeaders, successResponse, errorResponse } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase.ts";
-import { formatSafeString } from "../_shared/utils.ts";
+import { formatSafeString, getWIBDateString } from "../_shared/utils.ts";
 
 function formatDate(d: Date): string {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+// Get today's date in WIB as a Date object (midnight WIB)
+function getTodayWIB(): Date {
+  const wibStr = getWIBDateString(); // YYYY-MM-DD in WIB
+  const parts = wibStr.split("-");
+  return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
 }
 
 async function getLiburMap(supabase: ReturnType<typeof getSupabaseClient>): Promise<Record<string, boolean>> {
@@ -38,7 +45,7 @@ Deno.serve(async (req: Request) => {
 
     // getServerNextWorkingDay
     if (!action || action === "next") {
-      const d = new Date();
+      const d = getTodayWIB(); // Gunakan WIB agar sesuai zona pengguna
       d.setDate(d.getDate() + 1);
       let limit = 30;
 
