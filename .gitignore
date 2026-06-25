@@ -5,3 +5,4 @@ node_modules/
 Thumbs.db
 supabase/.temp/
 backup_supabase_*.zip
+export_kasmonitor_*.zip
