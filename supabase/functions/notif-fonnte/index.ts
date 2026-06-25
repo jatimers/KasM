@@ -367,6 +367,12 @@ Deno.serve(async (req: Request) => {
     const setting = await getSetting();
     if (!setting) return errorResponse("Setting Fonnte belum diatur");
 
+    // Toggle notifikasi: cek untuk action realtime (scheduled cron TIDAK terpengaruh)
+    const SCHEDULED_ACTIONS = ["scheduled-laporan-ht", "scheduled-perkiraan-h1"];
+    if (!SCHEDULED_ACTIONS.includes(action) && setting.notif_enabled === false) {
+      return successResponse("Notifikasi WA dinonaktifkan (toggle OFF di Setting WA)");
+    }
+
     const kodeWilayah = body.kodeWilayah || "ALL";
     const tgl = body.tanggal || getWIBDateString();
 

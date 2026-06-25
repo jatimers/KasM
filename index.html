@@ -446,7 +446,19 @@
 
 <div id="setting-fonnte" class="page role-page-admin">
         <div class="header-page"><h3>Pengaturan Notifikasi WA (API Fonnte)</h3></div>
-         
+
+        <!-- TOGGLE NOTIFIKASI WA -->
+        <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px; padding:15px; background:#f8fafc; border-radius:8px; border:1px solid var(--border-color);">
+          <div>
+            <b style="font-size:1.1rem;">🔔 Status Notifikasi WA</b>
+            <p style="margin:4px 0 0 0; color:var(--text-muted); font-size:0.85rem;">Nonaktifkan saat testing agar WA tidak terkirim ke penerima. Cron job tetap berjalan.</p>
+          </div>
+          <label style="margin-left:auto; display:flex; align-items:center; cursor:pointer;">
+            <input type="checkbox" id="fn-notif-enabled" onchange="onToggleNotif()" style="width:48px; height:24px; accent-color:#059669; transform:scale(1.3); cursor:pointer;">
+            <span style="margin-left:8px; font-weight:700;" id="fn-notif-label">AKTIF</span>
+          </label>
+        </div>
+
         <h4 style="border-bottom: 2px solid var(--primary-red); color:var(--primary-red); padding-bottom:8px;">NOTIFIKASI LAPORAN HT (Harian)</h4>
         <div class="form-row">
           <div class="form-group"><label>Target No HP WA (Laporan HT)</label><input type="text" id="fn-nohp" placeholder="Cth: 08123456789" style="background:var(--input-yellow);"></div>
@@ -3538,52 +3550,63 @@ function loadPerkiraanHT() {
     function simpanDataPejabatHT() { let obj = { kodeWilayah: currentUser.kodeWilayah, nipPenyelia: document.getElementById('dph-nip-penyelia').value, namaPenyelia: document.getElementById('dph-nama-penyelia').value, nipPBO: document.getElementById('dph-nip-pbo').value, namaPBO: document.getElementById('dph-nama-pbo').value };
       showLoader(true); google.script.run.withSuccessHandler(() => { showLoader(false); showToast(false); }).saveDataPejabatHT(obj); }
 
-    function loadFonnteSettings() { 
+    function loadFonnteSettings() {
       showLoader(true, "Memuat Setting WA...");
-      google.script.run.withSuccessHandler((res) => { 
-        showLoader(false); 
+      google.script.run.withSuccessHandler((res) => {
+        showLoader(false);
         if (res) {
-          document.getElementById('fn-nohp').value = res.noHp || ''; 
-          document.getElementById('fn-token').value = res.token || ''; 
-          document.getElementById('fn-waktu').value = res.waktu || '16:00'; 
-          document.getElementById('fn-kf-token').value = res.tokenKF || ''; 
-          document.getElementById('fn-kf-target').value = res.targetKF || ''; 
+          document.getElementById('fn-nohp').value = res.noHp || '';
+          document.getElementById('fn-token').value = res.token || '';
+          document.getElementById('fn-waktu').value = res.waktu || '16:00';
+          document.getElementById('fn-kf-token').value = res.tokenKF || '';
+          document.getElementById('fn-kf-target').value = res.targetKF || '';
           document.getElementById('fn-tukab-target').value = res.targetTukab || '';
           document.getElementById('fn-input-tukab-target').value = res.targetInputTukab || '';
-          document.getElementById('fn-h1-target').value = res.targetPerkiraanH1 || ''; 
+          document.getElementById('fn-h1-target').value = res.targetPerkiraanH1 || '';
           document.getElementById('fn-h1-waktu').value = res.waktuPerkiraanH1 || '07:00';
           if(document.getElementById('fn-posisi-kf-target')) {
            document.getElementById('fn-posisi-kf-target').value = res.targetPosisiKas || '';
         }
+          // Load toggle notifikasi
+          let enabled = res.notifEnabled !== undefined ? res.notifEnabled : true;
+          document.getElementById('fn-notif-enabled').checked = enabled;
+          document.getElementById('fn-notif-label').innerText = enabled ? 'AKTIF' : 'NONAKTIF';
+          document.getElementById('fn-notif-label').style.color = enabled ? '#059669' : '#dc2626';
         }
       }).withFailureHandler((err) => {
         showLoader(false);
         alert("Gagal memuat dari server! Pastikan Anda sudah melakukan New Deployment. Error: " + err.message);
-      }).getSettingFonnte(); 
+      }).getSettingFonnte();
     }
 
-  function simpanFonnteSettings() { 
-  let wil = currentUser.kodeWilayah || 'ALL'; 
-  let obj = { 
-     kodeWilayah: wil, 
-     noHp: document.getElementById('fn-nohp').value, 
-     token: document.getElementById('fn-token').value, 
-     waktu: document.getElementById('fn-waktu').value, 
-     tokenKF: document.getElementById('fn-kf-token').value, 
-     targetKF: document.getElementById('fn-kf-target').value, 
+  function simpanFonnteSettings() {
+  let wil = currentUser.kodeWilayah || 'ALL';
+  let obj = {
+     kodeWilayah: wil,
+     noHp: document.getElementById('fn-nohp').value,
+     token: document.getElementById('fn-token').value,
+     waktu: document.getElementById('fn-waktu').value,
+     tokenKF: document.getElementById('fn-kf-token').value,
+     targetKF: document.getElementById('fn-kf-target').value,
      targetTukab: document.getElementById('fn-tukab-target').value,
      targetInputTukab: document.getElementById('fn-input-tukab-target').value,
      waktuPerkiraanH1: document.getElementById('fn-h1-waktu').value,
      targetPerkiraanH1: document.getElementById('fn-h1-target').value,
-
-     // PASTIKAN BARIS INI ADA DAN KOMA DI ATASNYA SUDAH BENAR
-     targetPosisiKas: document.getElementById('fn-posisi-kf-target') ? document.getElementById('fn-posisi-kf-target').value : ''
+     targetPosisiKas: document.getElementById('fn-posisi-kf-target') ? document.getElementById('fn-posisi-kf-target').value : '',
+     notifEnabled: document.getElementById('fn-notif-enabled').checked
   };
   
   showLoader(true, "Menyimpan Setelan..."); 
-  google.script.run.withSuccessHandler(() => { 
-    showLoader(false); showToast(false); alert("Pengaturan Notifikasi Berhasil Disimpan."); 
+  google.script.run.withSuccessHandler(() => {
+    showLoader(false); showToast(false); alert("Pengaturan Notifikasi Berhasil Disimpan.");
   }).saveSettingFonnte(obj);
+}
+
+function onToggleNotif() {
+  let enabled = document.getElementById('fn-notif-enabled').checked;
+  let lbl = document.getElementById('fn-notif-label');
+  lbl.innerText = enabled ? 'AKTIF' : 'NONAKTIF';
+  lbl.style.color = enabled ? '#059669' : '#dc2626';
 }
 
     function clearFormUser() { document.getElementById('u-id').value = ''; document.getElementById('u-wilayah').value = ''; document.getElementById('u-kode').value = ''; document.getElementById('u-unit').value = '';
