@@ -3139,7 +3139,7 @@ function formatTglIndo(dateStr) {
     function getLocalDateString(d = new Date()) { const year = d.getFullYear(); const month = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; }
     function showLoader(show, msg="Memproses...") { document.getElementById('loader-msg').innerText = msg; document.getElementById('global-loader').style.display = show ? 'flex' : 'none'; }
     function showToast(isError = false) { const toast = document.getElementById(isError ? 'toast-error' : 'toast'); toast.style.display = 'block'; setTimeout(() => toast.style.display = 'none', 3000); }
-    function generateIdTrx() { return "TRX-" + Date.now(); }
+    function generateIdTrx() { let ue = currentUser.userEstim || ''; let prefix = ue.slice(-7).toUpperCase() || 'USR'; return prefix + '-' + Date.now(); }
     
     function formatRpAlign(value) {
         if(isNaN(parseInt(value))) return value;
