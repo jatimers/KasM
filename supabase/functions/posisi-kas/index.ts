@@ -46,6 +46,8 @@ Deno.serve(async (req: Request) => {
             saldoFisik: parseFloat(String(row.saldo_fisik)) || 0,
             selisih: parseFloat(String(row.selisih)) || 0,
             selisihPembulatan: parseFloat(String(row.selisih_pembulatan)) || 0,
+            estimDebet: parseFloat(String(row.estim_debet)) || 0,
+            estimKredit: parseFloat(String(row.estim_kredit)) || 0,
           });
         }
 
@@ -224,6 +226,8 @@ Deno.serve(async (req: Request) => {
         kode_cabang: dataObj.KodeCabang || dataObj.kodeCabang || "",
         kode_wilayah: dataObj.KodeWilayah || dataObj.kodeWilayah || "",
         selisih_pembulatan: dataObj.SelisihPembulatan || 0,
+        estim_debet: dataObj.EstimDebet || dataObj.estimDebet || 0,
+        estim_kredit: dataObj.EstimKredit || dataObj.estimKredit || 0,
       };
 
       const { error } = await supabase.from("posisi_kas").upsert(record, {

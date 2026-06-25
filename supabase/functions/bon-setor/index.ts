@@ -114,6 +114,7 @@ Deno.serve(async (req: Request) => {
           bonPagi: 0, bonTambahan: 0, setorTambahan: 0, setorSore: 0,
           penerimaanDebet: 0, pembayaranKredit: 0, penerimaanAntar: 0,
           pembayaranAntar: 0, isSaved: false, selisihPembulatan: 0,
+          estimDebet: 0, estimKredit: 0,
         };
 
         for (const row of (data || [])) {
@@ -138,7 +139,7 @@ Deno.serve(async (req: Request) => {
         // Check posisi_kas for isSaved
         const { data: posData } = await supabase
           .from("posisi_kas")
-          .select("selisih_pembulatan, penerimaan_debet, penerimaan_antar_teller, pembayaran_kredit, pembayaran_antar_teller")
+          .select("selisih_pembulatan, penerimaan_debet, penerimaan_antar_teller, pembayaran_kredit, pembayaran_antar_teller, estim_debet, estim_kredit")
           .eq("tanggal", tgl)
           .eq("user_estim", userEstim)
           .maybeSingle();
@@ -150,6 +151,8 @@ Deno.serve(async (req: Request) => {
           res.pembayaranKredit = parseFloat(String(posData.pembayaran_kredit)) || 0;
           res.pembayaranAntar = parseFloat(String(posData.pembayaran_antar_teller)) || 0;
           res.selisihPembulatan = parseFloat(String(posData.selisih_pembulatan)) || 0;
+          res.estimDebet = parseFloat(String(posData.estim_debet)) || 0;
+          res.estimKredit = parseFloat(String(posData.estim_kredit)) || 0;
         }
 
         return successResponse(res);

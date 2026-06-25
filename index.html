@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
   <script src="config.js"></script>
@@ -763,17 +763,24 @@
         <div style="display:flex; gap:15px; margin-bottom:20px;"><button class="btn-refresh" style="flex:2; font-size:1.1rem; padding:15px; margin-bottom:0;" onclick="simpanPosisiManual()">💾 SIMPAN REKAP POSISI KAS</button></div>
         <div class="table-responsive">
           <table>
-            <tr><td style="max-width:45%; word-break:break-word; color:var(--text-muted);">Bon Pagi (Saldo Awal)</td><td><div style="display:flex; align-items:center; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#0284c7; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-bonpagi" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
+            <!-- MUTASI DEBET -->
+            <tr style="background:#e0f2fe;"><td colspan="2" style="padding:10px 12px; font-weight:700; color:#0369a1; font-size:0.95rem;">📥 MUTASI DEBET</td></tr>
+            <tr><td>Estim Debet</td><td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#0284c7; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-estim-debet" style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></div></td></tr>
+            <tr><td>Estim Kredit</td><td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#0284c7; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-estim-kredit" style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></div></td></tr>
+            <tr><td style="color:var(--text-muted);">Bon Pagi (Saldo Awal)</td><td><div style="display:flex; align-items:center; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#0284c7; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-bonpagi" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
             <tr id="tr-bontambahan"><td style="color:var(--text-muted);">Bon Tambahan</td><td><div style="display:flex; align-items:center; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#0284c7; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-bontambahan" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
+            <tr><td>Penerimaan Kas</td><td><div style="display:flex; align-items:center; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#0284c7; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-penerimaandebet" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
+            <tr><td>Antar Teller (Debet)</td><td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#0284c7; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-penerimaanantar" style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></div></td></tr>
+            <!-- MUTASI KREDIT -->
+            <tr style="background:#fce4ec;"><td colspan="2" style="padding:10px 12px; font-weight:700; color:#b91c1c; font-size:0.95rem;">📤 MUTASI KREDIT</td></tr>
+            <tr><td>Pembayaran Kas</td><td><div style="display:flex; align-items:center; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#dc2626; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-pembayarankredit" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#dc2626; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
             <tr id="tr-setortambahan"><td style="color:var(--text-muted);">Setor Tambahan</td><td><div style="display:flex; align-items:center; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#dc2626; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-setortambahan" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#dc2626; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
-            <tr><td>Penerimaan Kas Hari Ini (Debet)</td><td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#0284c7; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-penerimaandebet" style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></div></td></tr>
-            <tr><td>Penerimaan Kas Antar Teller</td><td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#0284c7; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-penerimaanantar" style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></div></td></tr>
-            <tr><td>Pembayaran Kas (Kredit)</td><td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#dc2626; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-pembayarankredit" style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#dc2626; text-align:right; padding:12px 0; min-width:0;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></div></td></tr>
-            <tr><td>Pembayaran Antar Teller</td><td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#dc2626; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-pembayaranantar" style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#dc2626; text-align:right; padding:12px 0; min-width:0;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></div></td></tr>
-            <tr><td style="background:#fefce8;"><b>Selisih Kas (Penyesuaian Desimal +/-)</b></td><td><input type="number" id="pk-selisih-pembulatan" oninput="calcPosisi()" placeholder="Cth: 50 atau -50" style="padding:12px; border:2px solid #eab308; font-weight:700; background:var(--input-yellow); text-align:right;"></td></tr>
-            <tr><td style="font-weight:700; color:#dc2626;">Saldo Sistem (Ekspektasi)</td><td><div style="display:flex; align-items:center; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:800; color:#dc2626; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-saldohariini" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:800; color:#dc2626; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
+            <tr><td>Antar Teller (Kredit)</td><td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#dc2626; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-pembayaranantar" style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#dc2626; text-align:right; padding:12px 0; min-width:0;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></div></td></tr>
+            <!-- HASIL KALKULASI -->
+            <tr style="background:#fefce8;"><td colspan="2" style="padding:10px 12px; font-weight:700; color:#92400e; font-size:0.95rem;">🔢 HASIL KALKULASI</td></tr>
+            <tr><td style="font-weight:700; color:#dc2626;">Setor HT</td><td><div style="display:flex; align-items:center; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:800; color:#dc2626; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-saldohariini" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:800; color:#dc2626; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
             <tr><td style="font-weight:700; color:#0284c7;">Setor Sore (Fisik Akhir)</td><td><div style="display:flex; align-items:center; background:#f0f9ff; border:1px solid #bae6fd; border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:800; color:#0284c7; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="pk-setorsore" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:800; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
-            <tr><td style="font-weight:700; color:#dc2626;">Status Selisih (Fisik - Sistem)</td><td><input type="text" id="pk-selisih-teks" readonly style="background:#fefce8; font-weight:800; text-align:center;"></td></tr>
+            <tr><td style="font-weight:700; color:#dc2626;">Selisih Kas (Setor HT - Setor Sore)</td><td><input type="text" id="pk-selisih-teks" readonly style="background:#fefce8; font-weight:800; text-align:center;"></td></tr>
           </table>
         </div>
       </div>
@@ -1388,7 +1395,7 @@
     })();
 
     let currentUser = {}; let globalHistoryData = []; let allUsersData = []; let globalPosisiHT = []; let globalHistoryPosisi = [];
-    let currentRekapFisik = { bonPagi: 0, bonTambahan: 0, setorTambahan: 0, setorSore: 0, penerimaanDebet: 0, pembayaranKredit: 0, penerimaanAntar: 0, pembayaranAntar: 0 };
+    let currentRekapFisik = { bonPagi: 0, bonTambahan: 0, setorTambahan: 0, setorSore: 0, penerimaanDebet: 0, pembayaranKredit: 0, penerimaanAntar: 0, pembayaranAntar: 0, estimDebet: 0, estimKredit: 0 };
     window.currentLapMutasiType = 'SETOR';
     
     // Inisialisasi Halaman Cetak KF
@@ -3851,7 +3858,7 @@ function loadPerkiraanHT() {
       if(terbilangEl) { terbilangEl.innerText = (total > 0) ? "# " + terbilang(total).toUpperCase() + " RUPIAH #" : "-"; }
     }
 
-    function initPosisiKasTeller() { ['pk-penerimaandebet', 'pk-penerimaanantar', 'pk-pembayarankredit', 'pk-pembayaranantar', 'pk-selisih-pembulatan', 'pk-saldohariini', 'pk-selisih-teks'].forEach(id => { let el = document.getElementById(id); if (el) { el.value = ''; if (el.hasAttribute('data-val')) el.setAttribute('data-val', 0); } });
+    function initPosisiKasTeller() { ['pk-estim-debet', 'pk-estim-kredit', 'pk-penerimaandebet', 'pk-penerimaanantar', 'pk-pembayarankredit', 'pk-pembayaranantar', 'pk-saldohariini', 'pk-selisih-teks'].forEach(id => { let el = document.getElementById(id); if (el) { el.value = ''; if (el.hasAttribute('data-val')) el.setAttribute('data-val', 0); } });
       setTodayDates(); loadDataPosisiKas(); }
     
    function loadDataPosisiKas() { 
@@ -3870,46 +3877,57 @@ function loadPerkiraanHT() {
     document.getElementById('pk-setortambahan').value = res.setorTambahan.toLocaleString('id-ID', opt); 
     document.getElementById('pk-setorsore').value = res.setorSore.toLocaleString('id-ID', opt); 
     
-    if(res.isSaved) { 
-      document.getElementById('pk-penerimaandebet').value = parseFloat(res.penerimaanDebet).toLocaleString('id-ID', opt); 
-      document.getElementById('pk-penerimaandebet').setAttribute('data-val', res.penerimaanDebet); 
-      
-      document.getElementById('pk-penerimaanantar').value = parseFloat(res.penerimaanAntar).toLocaleString('id-ID', opt); 
+    if(res.isSaved) {
+      document.getElementById('pk-estim-debet').value = parseFloat(res.estimDebet).toLocaleString('id-ID', opt);
+      document.getElementById('pk-estim-debet').setAttribute('data-val', res.estimDebet);
+
+      document.getElementById('pk-estim-kredit').value = parseFloat(res.estimKredit).toLocaleString('id-ID', opt);
+      document.getElementById('pk-estim-kredit').setAttribute('data-val', res.estimKredit);
+
+      document.getElementById('pk-penerimaanantar').value = parseFloat(res.penerimaanAntar).toLocaleString('id-ID', opt);
       document.getElementById('pk-penerimaanantar').setAttribute('data-val', res.penerimaanAntar); 
-      
-      document.getElementById('pk-pembayarankredit').value = parseFloat(res.pembayaranKredit).toLocaleString('id-ID', opt); 
-      document.getElementById('pk-pembayarankredit').setAttribute('data-val', res.pembayaranKredit);
       
       document.getElementById('pk-pembayaranantar').value = parseFloat(res.pembayaranAntar).toLocaleString('id-ID', opt); 
       document.getElementById('pk-pembayaranantar').setAttribute('data-val', res.pembayaranAntar); 
       
-      document.getElementById('pk-selisih-pembulatan').value = res.selisihPembulatan; 
     } 
         calcPosisi(); 
      }).getRekapTrxFisikTeller(tgl, currentUser.userEstim);
     }
 
-function calcPosisi() { 
-  let selisihBulat = parseFloat(document.getElementById('pk-selisih-pembulatan').value) || 0; 
-  let pDebet = parseFloat(document.getElementById('pk-penerimaandebet').getAttribute('data-val')) || 0;
-  let pAntar = parseFloat(document.getElementById('pk-penerimaanantar').getAttribute('data-val')) || 0; 
-  let pKredit = parseFloat(document.getElementById('pk-pembayarankredit').getAttribute('data-val')) || 0; 
-  let pBAntar = parseFloat(document.getElementById('pk-pembayaranantar').getAttribute('data-val')) || 0;
-  
-  let modalAwal = currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan;
-  let sHariIni = modalAwal + pDebet + pAntar - pKredit - pBAntar + selisihBulat;
-  
-  document.getElementById('pk-saldohariini').value = sHariIni.toLocaleString('id-ID', {maximumFractionDigits: 2}); 
-  
-  let fisikAkhir = currentRekapFisik.setorSore + currentRekapFisik.setorTambahan;
-  let selisih = fisikAkhir - sHariIni; 
-  
-  let teksStatus = document.getElementById('pk-selisih-teks'); 
-  // Konversi selisih ke 2 desimal di layar status agar lebih akurat jika kurang/lebih
-  let clr = selisih === 0 ? '#059669' : '#dc2626'; 
-  let str = selisih === 0 ? "BALANCE (Klop)" : (selisih > 0 ? `Lebih Rp ${selisih.toLocaleString('id-ID', {maximumFractionDigits: 2})}` : `Kurang Rp ${Math.abs(selisih).toLocaleString('id-ID', {maximumFractionDigits: 2})}`); 
-  
-  teksStatus.value = str; 
+function calcPosisi() {
+  let estimDebet = parseFloat(document.getElementById('pk-estim-debet').getAttribute('data-val')) || 0;
+  let estimKredit = parseFloat(document.getElementById('pk-estim-kredit').getAttribute('data-val')) || 0;
+  let antarDebet = parseFloat(document.getElementById('pk-penerimaanantar').getAttribute('data-val')) || 0;
+  let antarKredit = parseFloat(document.getElementById('pk-pembayaranantar').getAttribute('data-val')) || 0;
+  let bonPagi = currentRekapFisik.bonPagi || 0;
+  let bonTambahan = currentRekapFisik.bonTambahan || 0;
+  let setorTambahan = currentRekapFisik.setorTambahan || 0;
+
+  // Penerimaan = Estim Kredit - (Bon Pagi + Bon Tambahan) + Setor Tambahan
+  let penerimaan = estimKredit - (bonPagi + bonTambahan) + setorTambahan;
+  document.getElementById('pk-penerimaandebet').value = penerimaan.toLocaleString('id-ID', {maximumFractionDigits: 2});
+  document.getElementById('pk-penerimaandebet').setAttribute('data-val', penerimaan);
+
+  // Pembayaran = Estim Debet
+  let pembayaran = estimDebet;
+  document.getElementById('pk-pembayarankredit').value = pembayaran.toLocaleString('id-ID', {maximumFractionDigits: 2});
+  document.getElementById('pk-pembayarankredit').setAttribute('data-val', pembayaran);
+
+  // Setor HT = Estim Kredit - Estim Debet + Antar Teller (Debet) - Antar Teller (Kredit)
+  let setorHT = estimKredit - estimDebet + antarDebet - antarKredit;
+  document.getElementById('pk-saldohariini').value = setorHT.toLocaleString('id-ID', {maximumFractionDigits: 2});
+  document.getElementById('pk-saldohariini').setAttribute('data-val', setorHT);
+
+  // Selisih = Setor HT - Setor Sore
+  let setorSore = currentRekapFisik.setorSore || 0;
+  let selisih = setorHT - setorSore;
+
+  let teksStatus = document.getElementById('pk-selisih-teks');
+  let clr = selisih === 0 ? '#059669' : '#dc2626';
+  let str = selisih === 0 ? "BALANCE (Klop)" : (selisih > 0 ? `Lebih Rp ${selisih.toLocaleString('id-ID', {maximumFractionDigits: 2})}` : `Kurang Rp ${Math.abs(selisih).toLocaleString('id-ID', {maximumFractionDigits: 2})}`);
+
+  teksStatus.value = str;
   teksStatus.style.color = clr;
 }
 
@@ -3918,16 +3936,20 @@ function simpanPosisiManual() {
   
   if (sFisikTotal <= 0) { if(!confirm('Total Fisik Setor Sore & Tambahan masih 0. Lanjut?')) return; } 
   
-  let pDebet = parseFloat(document.getElementById('pk-penerimaandebet').getAttribute('data-val')) || 0;
+  let estimDebet = parseFloat(document.getElementById('pk-estim-debet').getAttribute('data-val')) || 0;
+  let estimKredit = parseFloat(document.getElementById('pk-estim-kredit').getAttribute('data-val')) || 0;
   let pAntar = parseFloat(document.getElementById('pk-penerimaanantar').getAttribute('data-val')) || 0; 
-  let pKredit = parseFloat(document.getElementById('pk-pembayarankredit').getAttribute('data-val')) || 0; 
   let pBAntar = parseFloat(document.getElementById('pk-pembayaranantar').getAttribute('data-val')) || 0;
-  let selisihBulat = parseFloat(document.getElementById('pk-selisih-pembulatan').value) || 0; 
+  
+  // Penerimaan = Estim Kredit - (Bon Pagi + Bon Tambahan) + Setor Tambahan
+  let penerimaan = estimKredit - (currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan) + currentRekapFisik.setorTambahan;
+  // Pembayaran = Estim Debet
+  let pembayaran = estimDebet;
+  // Setor HT = Estim Kredit - Estim Debet + Antar Teller (Debet) - Antar Teller (Kredit)
+  let setorHT = estimKredit - estimDebet + pAntar - pBAntar;
   
   let sKemarin = currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan; 
-  let sHariIni = sKemarin + pDebet + pAntar - pKredit - pBAntar + selisihBulat; 
-  
-  let selisih = sFisikTotal - sHariIni;
+  let selisih = setorHT - currentRekapFisik.setorSore;
   if (selisih !== 0) { if(!confirm(`Kas selisih Rp ${selisih.toLocaleString('id-ID', {maximumFractionDigits: 2})}. Lanjut simpan?`)) return; } 
   
   let dataObj = { 
@@ -3937,16 +3959,18 @@ function simpanPosisiManual() {
      UserEstim: currentUser.userEstim, 
      NamaUnit: currentUser.namaUnit,
      SaldoKemarin: sKemarin, 
-     PenerimaanDebet: pDebet, 
+     PenerimaanDebet: penerimaan, 
      PenerimaanAntarTeller: pAntar, 
-     PembayaranKredit: pKredit, 
+     PembayaranKredit: pembayaran, 
      PembayaranAntarTeller: pBAntar, 
-     SaldoHariIni: sHariIni, 
+     SaldoHariIni: setorHT, 
      SaldoFisik: sFisikTotal, 
      Selisih: selisih, 
      KodeCabang: currentUser.kodeCabang, 
      KodeWilayah: currentUser.kodeWilayah, 
-     SelisihPembulatan: selisihBulat 
+     SelisihPembulatan: 0,
+     EstimDebet: estimDebet,
+     EstimKredit: estimKredit
   };
   
   showLoader(true, "Menyimpan EOD..."); 
