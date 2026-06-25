@@ -3921,25 +3921,25 @@ function onToggleNotif() {
 function calcPosisi() {
   let estimDebet = parseFloat(document.getElementById('pk-estim-debet').getAttribute('data-val')) || 0;
   let estimKredit = parseFloat(document.getElementById('pk-estim-kredit').getAttribute('data-val')) || 0;
-  let antarDebet = parseFloat(document.getElementById('pk-penerimaanantar').getAttribute('data-val')) || 0;
-  let antarKredit = parseFloat(document.getElementById('pk-pembayaranantar').getAttribute('data-val')) || 0;
+  let antarDebet = Math.round(parseFloat(document.getElementById('pk-penerimaanantar').getAttribute('data-val')) || 0);
+  let antarKredit = Math.round(parseFloat(document.getElementById('pk-pembayaranantar').getAttribute('data-val')) || 0);
   let bonPagi = currentRekapFisik.bonPagi || 0;
   let bonTambahan = currentRekapFisik.bonTambahan || 0;
   let setorTambahan = currentRekapFisik.setorTambahan || 0;
 
   // Penerimaan = Estim Kredit - (Bon Pagi + Bon Tambahan) + Setor Tambahan
-  let penerimaan = estimKredit - (bonPagi + bonTambahan) + setorTambahan;
-  document.getElementById('pk-penerimaandebet').value = penerimaan.toLocaleString('id-ID', {maximumFractionDigits: 2});
+  let penerimaan = Math.round(estimKredit - (bonPagi + bonTambahan) + setorTambahan);
+  document.getElementById('pk-penerimaandebet').value = penerimaan.toLocaleString('id-ID', {maximumFractionDigits: 0});
   document.getElementById('pk-penerimaandebet').setAttribute('data-val', penerimaan);
 
   // Pembayaran = Estim Debet
-  let pembayaran = estimDebet;
-  document.getElementById('pk-pembayarankredit').value = pembayaran.toLocaleString('id-ID', {maximumFractionDigits: 2});
+  let pembayaran = Math.round(estimDebet);
+  document.getElementById('pk-pembayarankredit').value = pembayaran.toLocaleString('id-ID', {maximumFractionDigits: 0});
   document.getElementById('pk-pembayarankredit').setAttribute('data-val', pembayaran);
 
   // Setor HT = Estim Kredit - Estim Debet + Antar Teller (Debet) - Antar Teller (Kredit)
-  let setorHT = estimKredit - estimDebet + antarDebet - antarKredit;
-  document.getElementById('pk-saldohariini').value = setorHT.toLocaleString('id-ID', {maximumFractionDigits: 2});
+  let setorHT = Math.round(estimKredit - estimDebet + antarDebet - antarKredit);
+  document.getElementById('pk-saldohariini').value = setorHT.toLocaleString('id-ID', {maximumFractionDigits: 0});
   document.getElementById('pk-saldohariini').setAttribute('data-val', setorHT);
 
   // Selisih = Setor Sore - Setor HT
@@ -3948,7 +3948,7 @@ function calcPosisi() {
 
   let teksStatus = document.getElementById('pk-selisih-teks');
   let clr = selisih === 0 ? '#059669' : '#dc2626';
-  let str = selisih === 0 ? "BALANCE (Klop)" : (selisih > 0 ? `Lebih Rp ${selisih.toLocaleString('id-ID', {maximumFractionDigits: 2})}` : `Kurang Rp ${Math.abs(selisih).toLocaleString('id-ID', {maximumFractionDigits: 2})}`);
+  let str = selisih === 0 ? "BALANCE (Klop)" : (selisih > 0 ? `Lebih Rp ${selisih.toLocaleString('id-ID', {maximumFractionDigits: 0})}` : `Kurang Rp ${Math.abs(selisih).toLocaleString('id-ID', {maximumFractionDigits: 0})}`);
 
   teksStatus.value = str;
   teksStatus.style.color = clr;
@@ -3961,19 +3961,19 @@ function simpanPosisiManual() {
   
   let estimDebet = parseFloat(document.getElementById('pk-estim-debet').getAttribute('data-val')) || 0;
   let estimKredit = parseFloat(document.getElementById('pk-estim-kredit').getAttribute('data-val')) || 0;
-  let pAntar = parseFloat(document.getElementById('pk-penerimaanantar').getAttribute('data-val')) || 0; 
-  let pBAntar = parseFloat(document.getElementById('pk-pembayaranantar').getAttribute('data-val')) || 0;
-  
+  let pAntar = Math.round(parseFloat(document.getElementById('pk-penerimaanantar').getAttribute('data-val')) || 0);
+  let pBAntar = Math.round(parseFloat(document.getElementById('pk-pembayaranantar').getAttribute('data-val')) || 0);
+
   // Penerimaan = Estim Kredit - (Bon Pagi + Bon Tambahan) + Setor Tambahan
-  let penerimaan = estimKredit - (currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan) + currentRekapFisik.setorTambahan;
+  let penerimaan = Math.round(estimKredit - (currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan) + currentRekapFisik.setorTambahan);
   // Pembayaran = Estim Debet
-  let pembayaran = estimDebet;
+  let pembayaran = Math.round(estimDebet);
   // Setor HT = Estim Kredit - Estim Debet + Antar Teller (Debet) - Antar Teller (Kredit)
-  let setorHT = estimKredit - estimDebet + pAntar - pBAntar;
-  
-  let sKemarin = currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan; 
+  let setorHT = Math.round(estimKredit - estimDebet + pAntar - pBAntar);
+
+  let sKemarin = currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan;
   let selisih = currentRekapFisik.setorSore - setorHT;
-  if (selisih !== 0) { if(!confirm(`Kas selisih Rp ${selisih.toLocaleString('id-ID', {maximumFractionDigits: 2})}. Lanjut simpan?`)) return; } 
+  if (selisih !== 0) { if(!confirm(`Kas selisih Rp ${selisih.toLocaleString('id-ID', {maximumFractionDigits: 0})}. Lanjut simpan?`)) return; } 
   
   let dataObj = { 
      Role: currentUser.role,                     
