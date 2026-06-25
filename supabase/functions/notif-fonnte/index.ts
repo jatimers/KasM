@@ -400,12 +400,13 @@ Deno.serve(async (req: Request) => {
         break;
 
       case "tukab": {
+        const idTransaksi = body.idTransaksi || "-";
         const bank = body.bank || "-";
         const nominal = Number(body.nominal) || 0;
         const token = setting?.token_kf;
         const target = cleanStr(setting?.target_input_tukab || "");
         if (!token || !target) return errorResponse("Token/Target Input TUKAB belum diatur di Setting WA");
-        const tukabMsg = `Mohon dibantu Input Tukab \n\n*Bank ${bank}* Rp. ${nominal.toLocaleString("id-ID")},\nTerima Kasih\n\n_from Cash Monitor Apps_`;
+        const tukabMsg = `Mohon dibantu Input Tukab\n\n*ID: ${idTransaksi}*\n*Bank:* ${bank}\n*Nominal:* Rp. ${nominal.toLocaleString("id-ID")}\n\nTerima Kasih\n\n_from Cash Monitor Apps_`;
         result = await fonnteSend(token, target.replace(/\s+/g, ""), tukabMsg);
         break;
       }

@@ -117,8 +117,9 @@ Deno.serve(async (req: Request) => {
         if (error) throw error;
         return successResponse("Updated");
       } else {
-        const { error } = await supabase.from("db_tukab").insert(record);
+        const { data: inserted, error } = await supabase.from("db_tukab").insert(record).select("id");
         if (error) throw error;
+        const newId = inserted?.[0]?.id ?? null;
 
         // Trigger notifikasi WA TUKAB
         try {
@@ -132,6 +133,7 @@ Deno.serve(async (req: Request) => {
             },
             body: JSON.stringify({
               action: "tukab",
+              idTransaksi: newId,
               bank: record.bank,
               nominal: record.nominal_tukab,
               userEstim: record.user_estim,

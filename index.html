@@ -1167,7 +1167,7 @@
         <input type="hidden" id="tukab-edit-id">
         <div class="form-row">
           <div class="form-group"><label>Tanggal Transaksi</label><input type="date" id="tukab-tgl" style="background:var(--input-yellow);"></div>
-          <div class="form-group"><label>Nama Bank</label><input type="text" id="tukab-bank" placeholder="Contoh: BNI, BRI, Mandiri" style="text-transform:uppercase;"></div>
+          <div class="form-group"><label>Nama Bank</label><select id="tukab-bank" style="background:var(--input-yellow); font-weight:600; text-transform:uppercase;"><option value="">-- Pilih Bank --</option><option value="BNI46">BNI46</option><option value="BSI">BSI</option><option value="BCA">BCA</option><option value="BRI">BRI</option><option value="MANDIRI A. YANI">MANDIRI A. YANI</option><option value="MANDIRI PB. SUDIRMAN">MANDIRI PB. SUDIRMAN</option><option value="CIMB">CIMB</option></select></div>
           <div class="form-group"><label>Nominal TUKAB (Rp)</label><input type="text" id="tukab-nominal" placeholder="0" style="text-align:right;" onfocus="this.select()" onblur="formatTukabNominal()"></div>
         </div>
         <div class="form-row" style="align-items:center; margin-bottom:10px;">
