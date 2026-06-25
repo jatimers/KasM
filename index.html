@@ -3225,35 +3225,36 @@ function formatTglIndo(dateStr) {
         calcPerkiraanTeller();
     } 
    
-function formatRupiahPosisi(el) { 
+function formatRupiahPosisi(el) {
   // Hanya izinkan angka dan satu tanda koma (desimal Indonesia)
   let val = el.value.replace(/[^0-9,]/g, '');
   let parts = val.split(',');
-  
+
   // Batasi maksimal 1 tanda koma di dalam input
-  if (parts.length > 2) { 
-    parts = [parts[0], parts.slice(1).join('')]; 
+  if (parts.length > 2) {
+    parts = [parts[0], parts.slice(1).join('')];
   }
-  
+
   // Batasi maksimal 2 digit desimal di belakang koma
-  if (parts[1] !== undefined) { 
-    parts[1] = parts[1].substring(0, 2); 
+  if (parts[1] !== undefined) {
+    parts[1] = parts[1].substring(0, 2);
   }
-  
+
   let integerPart = parts[0];
   let decimalPart = parts[1];
-  
+
   // Format ribuan pada bagian angka bulat
-  let formattedInteger = integerPart ? parseInt(integerPart, 10).toLocaleString('id-ID') : '';
-  
-  // Tampilkan format ke layar (gabungkan bulat dan desimal)
-  el.value = decimalPart !== undefined ? formattedInteger + ',' + decimalPart : formattedInteger;
-  
+  let formattedInteger = integerPart ? parseInt(integerPart, 10).toLocaleString('id-ID') : '0';
+
+  // Tampilkan format ke layar (selalu 2 desimal)
+  let displayDecimal = decimalPart !== undefined ? decimalPart.padEnd(2, '0') : '00';
+  el.value = formattedInteger + ',' + displayDecimal;
+
   // Simpan nilai asli komputer (dengan titik) ke dalam atribut untuk perhitungan
-  let floatVal = decimalPart !== undefined ? integerPart + '.' + decimalPart : integerPart;
-  el.setAttribute('data-val', floatVal || 0); 
-  
-  calcPosisi(); 
+  let floatVal = decimalPart !== undefined ? integerPart + '.' + decimalPart : (integerPart || '0');
+  el.setAttribute('data-val', floatVal || 0);
+
+  calcPosisi();
 }
 
     function formatRupiahNominal(el, kategori, pecahan, type) {
@@ -3893,7 +3894,7 @@ function onToggleNotif() {
     currentRekapFisik = res; 
     
     // Terapkan opsi desimal ke pembacaan display
-    let opt = { maximumFractionDigits: 2 };
+    let opt = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
     
     document.getElementById('pk-bonpagi').value = res.bonPagi.toLocaleString('id-ID', opt); 
     document.getElementById('pk-bontambahan').value = res.bonTambahan.toLocaleString('id-ID', opt); 
