@@ -3920,8 +3920,20 @@ function onToggleNotif() {
     }
 
     function initPosisiKasTeller() { ['pk-estim-debet', 'pk-estim-kredit', 'pk-penerimaandebet', 'pk-penerimaanantar', 'pk-pembayarankredit', 'pk-pembayaranantar', 'pk-saldohariini', 'pk-selisih-teks'].forEach(id => { let el = document.getElementById(id); if (el) { el.value = ''; if (el.hasAttribute('data-val')) el.setAttribute('data-val', 0); } });
+      // iOS fix: delegate touch dari wrapper div ke input di dalamnya
+      // (input transparent di dalam flex container tidak selalu menerima touch event di iOS Safari)
+      setTimeout(function() {
+        document.querySelectorAll('#posisi td > div').forEach(function(div) {
+          if (div._iosTouchFixed) return; div._iosTouchFixed = true;
+          div.addEventListener('click', function(e) {
+            if (e.target.tagName === 'INPUT') return;
+            var inp = this.querySelector('input');
+            if (inp && !inp.readOnly) { inp.focus(); e.preventDefault(); }
+          });
+        });
+      }, 300);
       setTodayDates(); loadDataPosisiKas(); }
-    
+
    function loadDataPosisiKas() { 
   let tgl = document.getElementById('pk-tanggal').value; 
   if(!tgl) return; showLoader(true);
