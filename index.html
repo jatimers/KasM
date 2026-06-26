@@ -3229,34 +3229,23 @@ function formatTglIndo(dateStr) {
     } 
    
 function formatRupiahPosisi(el) {
-  // Hanya izinkan angka dan satu tanda koma (desimal Indonesia)
+  // Simpel & proven: seperti Setor Sore, hanya izinkan angka + satu koma desimal
   let val = el.value.replace(/[^0-9,]/g, '');
-  let parts = val.split(',');
-
-  // Batasi maksimal 1 tanda koma di dalam input
-  if (parts.length > 2) {
-    parts = [parts[0], parts.slice(1).join('')];
+  let commaIdx = val.indexOf(',');
+  if (commaIdx >= 0) {
+    // Ada koma: integer sebelum koma, maks 2 digit desimal setelah koma
+    let intPart = val.substring(0, commaIdx).replace(/\D/g, '') || '0';
+    let decPart = val.substring(commaIdx + 1).replace(/\D/g, '').substring(0, 2);
+    let num = parseInt(intPart, 10) || 0;
+    let dec = parseInt(decPart.padEnd(2, '0'), 10) || 0;
+    el.setAttribute('data-val', num + (dec / 100));
+    el.value = num.toLocaleString('id-ID') + ',' + decPart.padEnd(2, '0');
+  } else {
+    // Tidak ada koma: integer biasa seperti Setor Sore
+    let raw = val.replace(/\D/g, '');
+    el.setAttribute('data-val', raw || '0');
+    el.value = raw ? parseInt(raw, 10).toLocaleString('id-ID') : '';
   }
-
-  // Batasi maksimal 2 digit desimal di belakang koma
-  if (parts[1] !== undefined) {
-    parts[1] = parts[1].substring(0, 2);
-  }
-
-  let integerPart = parts[0];
-  let decimalPart = parts[1];
-
-  // Format ribuan pada bagian angka bulat
-  let formattedInteger = integerPart ? parseInt(integerPart, 10).toLocaleString('id-ID') : '0';
-
-  // Tampilkan format ke layar (selalu 2 desimal)
-  let displayDecimal = decimalPart !== undefined ? decimalPart.padEnd(2, '0') : '00';
-  el.value = formattedInteger + ',' + displayDecimal;
-
-  // Simpan nilai asli komputer (dengan titik) ke dalam atribut untuk perhitungan
-  let floatVal = decimalPart !== undefined ? integerPart + '.' + decimalPart : (integerPart || '0');
-  el.setAttribute('data-val', floatVal || 0);
-
   calcPosisi();
 }
 
