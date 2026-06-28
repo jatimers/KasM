@@ -993,7 +993,7 @@
     const _API = "https://jwsfsczgyqphoyflpjnm.supabase.co/functions/v1";
     // Format: [method, endpoint, ...paramNames]
     const _GAS_MAP = {
-      doLogin:                    ['POST','/auth'],
+      doLogin:                    ['POST','/auth','username','password'],
       getAllUsers:                ['GET','/users'],
       saveUserData:               ['POST','/users'],
       deleteUserData:             ['DELETE','/users','id'],
@@ -1073,7 +1073,21 @@
         if (method === 'DELETE' && args && args.length > 0) {
           url += '/' + encodeURIComponent(args[0]);
         } else if (method === 'POST' && args && args.length > 0) {
-          options.body = JSON.stringify(args[0]);
+          // Build body from paramNames + args (or use args[0] if no paramNames)
+          if (paramNames && paramNames.length > 0 && !(paramNames.length === 1 && paramNames[0].indexOf('?') === 0)) {
+            var bodyObj = {};
+            var ai = 0;
+            for (var k = 0; k < paramNames.length; k++) {
+              if (paramNames[k].indexOf('?') === 0) continue;
+              if (ai < args.length && args[ai] !== undefined) {
+                bodyObj[paramNames[k]] = args[ai];
+              }
+              ai++;
+            }
+            options.body = JSON.stringify(bodyObj);
+          } else {
+            options.body = JSON.stringify(args[0]);
+          }
         } else if (method === 'GET' && args && args.length > 0) {
           // Map positional args to named params (skip fixed params)
           var argIdx = 0;
