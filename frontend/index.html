@@ -217,7 +217,7 @@
       <div class="role-title">ADMINISTRATOR</div>
       <div class="menu-item active" onclick="nav('kelola-user', this); loadUsers();">👥 Kelola User</div>
       <div class="menu-item" onclick="nav('setelan-libur', this); loadHariLibur();">📅 Setelan Hari Libur</div>
-      <div class="menu-item" onclick="nav('setting-fonnte', this); loadFonnteSettings();">⚙️ Notifikasi WA</div>
+      <div class="menu-item" onclick="nav('setting-wa-gateway', this); loadWAGatewaySettings();">⚙️ Notifikasi WA</div>
     </div>
 
     <div class="role-menu menu-ht">
@@ -392,34 +392,33 @@
         </div>
       </div>
 
-<div id="setting-fonnte" class="page role-page-admin">
-        <div class="header-page"><h3>Pengaturan Notifikasi WA (API Fonnte)</h3></div>
-         
+<div id="setting-wa-gateway" class="page role-page-admin">
+        <div class="header-page"><h3>Pengaturan Notifikasi WA (WhatsApp Gateway)</h3></div>
+
         <h4 style="border-bottom: 2px solid var(--primary-red); color:var(--primary-red); padding-bottom:8px;">NOTIFIKASI LAPORAN HT (Harian)</h4>
         <div class="form-row">
-          <div class="form-group"><label>Target No HP WA (Laporan HT)</label><input type="text" id="fn-nohp" placeholder="Cth: 08123456789" style="background:var(--input-yellow);"></div>
-          <div class="form-group"><label>Token API Fonnte (Laporan HT)</label><input type="text" id="fn-token" placeholder="Token API Laporan HT" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><label>Target No HP WA (Laporan HT)</label><input type="text" id="fn-nohp" placeholder="Cth: 6281234xxx" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><label>API Key WA Gateway</label><input type="text" id="fn-apikey" placeholder="API Key dari WA Gateway" style="background:var(--input-yellow);"></div>
           <div class="form-group"><label>Jam Pengiriman Otomatis</label><input type="time" id="fn-waktu" style="background:var(--input-yellow);"></div>
         </div>
-        
+
         <h4 style="border-bottom: 2px solid #059669; color:#059669; padding-bottom:8px; margin-top:25px;">NOTIFIKASI GRUP KF & TUKAB (Realtime)</h4>
         <div class="form-row">
-         <div class="form-group"><label>Target HP/Grup (Rekap KF)</label><input type="text" id="fn-kf-target" placeholder="Cth: 08123xxx atau ID Grup" style="background:var(--input-yellow);"></div>
+         <div class="form-group"><label>Target HP/Grup (Rekap KF)</label><input type="text" id="fn-kf-target" placeholder="Cth: 6281234xxx atau ID Grup" style="background:var(--input-yellow);"></div>
         <div class="form-group"><label>Target HP/Grup (Analisa TUKAB)</label><input type="text" id="fn-tukab-target" placeholder="Cth: 1203xxx-group" style="background:var(--input-yellow);"></div>
-        <div class="form-group"><label>Token API Fonnte (Perkiraan KF)</label><input type="text" id="fn-kf-token" placeholder="Token API Notif KF" style="background:var(--input-yellow);"></div>
         <div class="form-group"><label>Target HP/Grup (Posisi Kas KF)</label><input type="text" id="fn-posisi-kf-target" placeholder="Cth: 1203xxx-group" style="background:var(--input-yellow);"></div>
         </div>
-        
+
         <h4 style="border-bottom: 2px solid #ea580c; color:#ea580c; padding-bottom:8px; margin-top:25px;">NOTIFIKASI SUMMARY PERKIRAAN BERJADWAL (H-1)</h4>
         <div class="form-row">
           <div class="form-group"><label>Target No HP/ID Grup (Summary H-1)</label><input type="text" id="fn-h1-target" placeholder="Cth: 1203xxx-group" style="background:var(--input-yellow);"></div>
           <div class="form-group"><label>Jam Pengiriman Otomatis (H-1)</label><input type="time" id="fn-h1-waktu" value="07:00" style="background:var(--input-yellow);"></div>
           <div class="form-group" style="visibility: hidden; min-width: 200px;"></div>
         </div>
-        
+
         <div style="display:flex; gap:15px; flex-wrap:wrap; margin-top: 25px;">
-          <button class="btn-refresh" style="flex:2; font-size:1.1rem; padding:15px; margin-bottom:0;" onclick="simpanFonnteSettings()">💾 SIMPAN SEMUA PENGATURAN</button>
-          <button class="btn-reset" style="flex:1; font-size:1rem; padding:15px; margin-bottom:0; background:#d97706;" onclick="testKirimFonnte()">📲 TEST KIRIM HT</button>
+          <button class="btn-refresh" style="flex:2; font-size:1.1rem; padding:15px; margin-bottom:0;" onclick="simpanWAGatewaySettings()">💾 SIMPAN SEMUA PENGATURAN</button>
+          <button class="btn-reset" style="flex:1; font-size:1rem; padding:15px; margin-bottom:0; background:#d97706;" onclick="testKirimWAGateway()">📲 TEST KIRIM HT</button>
           <button class="btn-reset" style="flex:1; font-size:1rem; padding:15px; margin-bottom:0; background:#7c3aed;" onclick="testKirimPerkiraanH1Btn()">📲 TEST KIRIM H-1</button>
         </div>
       </div>
@@ -1004,8 +1003,8 @@
       getServerNextWorkingDay:    ['GET','/next-working-day'],
       getNextWorkingDayFrom:      ['GET','/next-working-day','?action=from','fromDate'],
       getPreviousWorkingDayBackend:['GET','/next-working-day','?action=prev','fromDate'],
-      getSettingFonnte:           ['GET','/setting-fonnte'],
-      saveSettingFonnte:          ['POST','/setting-fonnte'],
+      getSettingWAGateway:        ['GET','/setting-wa-gateway'],
+      saveSettingWAGateway:       ['POST','/setting-wa-gateway'],
       getPerkiraanTeller:         ['GET','/perkiraan','?action=teller','tanggal','userEstim'],
       savePerkiraanTeller:        ['POST','/perkiraan'],
       getRekapPerkiraanHT:        ['GET','/perkiraan','?action=rekap','tanggal','kodeWilayah','tglHariIni'],
@@ -1037,14 +1036,14 @@
       deletePesananNasabah:       ['DELETE','/pesanan-nasabah','id'],
       recalcPerkiraanDariPesanan: ['POST','/perkiraan'],
       getRekapGlobalMutasiTeller: ['GET','/bon-setor','?action=rekap-global','tanggal','kodeWilayah','tipeFilter'],
-      testKirimFonnte:            ['POST','/notif-fonnte'],
-      testKirimPerkiraanH1:       ['POST','/notif-fonnte'],
-      sendNotifPosisiKasWA:       ['POST','/notif-fonnte'],
+      testKirimWAGateway:         ['POST','/notif-wa-gateway'],
+      testKirimPerkiraanH1:       ['POST','/notif-wa-gateway'],
+      sendNotifPosisiKasWA:       ['POST','/notif-wa-gateway'],
       getTabularisData:           ['GET','/tabularis','periode'],
-      sendLaporanHTFonnte:        ['POST','/notif-fonnte'],
-      sendSummaryPerkiraanKF:     ['POST','/notif-fonnte'],
-      sendAnalisaTukabWA:         ['POST','/notif-fonnte'],
-      sendSummaryPerkiraanH1WA:   ['POST','/notif-fonnte'],
+      sendLaporanHTWA:            ['POST','/notif-wa-gateway'],
+      sendSummaryPerkiraanKF:     ['POST','/notif-wa-gateway'],
+      sendAnalisaTukabWA:         ['POST','/notif-wa-gateway'],
+      sendSummaryPerkiraanH1WA:   ['POST','/notif-wa-gateway'],
       fetchDataHT:                ['GET','/laporan-ht','?action=history-ht','tanggal','kodeWilayah'],
       getCibData:                 ['GET','/laporan-cib-cis','?action=cib','bulan','kodeWilayah'],
       getCisData:                 ['GET','/laporan-cib-cis','?action=cis','bulan','kodeWilayah'],
@@ -2322,7 +2321,7 @@ function formatRupiahPosisi(el) {
         // Trigger notifikasi WA: kirim rekap perkiraan ke KF
         var tglSimpan = obj.tanggal;
         var wilSimpan = obj.kodeWilayah || 'ALL';
-        fetch('https://jwsfsczgyqphoyflpjnm.supabase.co/functions/v1/notif-fonnte', {
+        fetch('https://jwsfsczgyqphoyflpjnm.supabase.co/functions/v1/notif-wa-gateway', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({action: 'perkiraan-kf', tanggal: tglSimpan, kodeWilayah: wilSimpan})
@@ -2499,18 +2498,17 @@ function loadPerkiraanHT() {
     function simpanDataPejabatHT() { let obj = { kodeWilayah: currentUser.kodeWilayah, nipPenyelia: document.getElementById('dph-nip-penyelia').value, namaPenyelia: document.getElementById('dph-nama-penyelia').value, nipPBO: document.getElementById('dph-nip-pbo').value, namaPBO: document.getElementById('dph-nama-pbo').value };
       showLoader(true); google.script.run.withSuccessHandler(() => { showLoader(false); showToast(false); }).saveDataPejabatHT(obj); }
 
-    function loadFonnteSettings() { 
+    function loadWAGatewaySettings() {
       showLoader(true, "Memuat Setting WA...");
-      google.script.run.withSuccessHandler((res) => { 
-        showLoader(false); 
+      google.script.run.withSuccessHandler((res) => {
+        showLoader(false);
         if (res) {
-          document.getElementById('fn-nohp').value = res.noHp || ''; 
-          document.getElementById('fn-token').value = res.token || ''; 
-          document.getElementById('fn-waktu').value = res.waktu || '16:00'; 
-          document.getElementById('fn-kf-token').value = res.tokenKF || ''; 
-          document.getElementById('fn-kf-target').value = res.targetKF || ''; 
+          document.getElementById('fn-nohp').value = res.noHp || '';
+          document.getElementById('fn-apikey').value = res.apiKey || '';
+          document.getElementById('fn-waktu').value = res.waktu || '16:00';
+          document.getElementById('fn-kf-target').value = res.targetKF || '';
           document.getElementById('fn-tukab-target').value = res.targetTukab || '';
-          document.getElementById('fn-h1-target').value = res.targetPerkiraanH1 || ''; 
+          document.getElementById('fn-h1-target').value = res.targetPerkiraanH1 || '';
           document.getElementById('fn-h1-waktu').value = res.waktuPerkiraanH1 || '07:00';
           if(document.getElementById('fn-posisi-kf-target')) {
            document.getElementById('fn-posisi-kf-target').value = res.targetPosisiKas || '';
@@ -2519,41 +2517,38 @@ function loadPerkiraanHT() {
       }).withFailureHandler((err) => {
         showLoader(false);
         alert("Gagal memuat dari server! Pastikan Anda sudah melakukan New Deployment. Error: " + err.message);
-      }).getSettingFonnte(); 
+      }).getSettingWAGateway();
     }
 
-  function simpanFonnteSettings() { 
-  let wil = currentUser.kodeWilayah || 'ALL'; 
-  let obj = { 
-     kodeWilayah: wil, 
-     noHp: document.getElementById('fn-nohp').value, 
-     token: document.getElementById('fn-token').value, 
-     waktu: document.getElementById('fn-waktu').value, 
-     tokenKF: document.getElementById('fn-kf-token').value, 
-     targetKF: document.getElementById('fn-kf-target').value, 
+  function simpanWAGatewaySettings() {
+  let wil = currentUser.kodeWilayah || 'ALL';
+  let obj = {
+     kodeWilayah: wil,
+     noHp: document.getElementById('fn-nohp').value,
+     apiKey: document.getElementById('fn-apikey').value,
+     waktu: document.getElementById('fn-waktu').value,
+     targetKF: document.getElementById('fn-kf-target').value,
      targetTukab: document.getElementById('fn-tukab-target').value,
      waktuPerkiraanH1: document.getElementById('fn-h1-waktu').value,
      targetPerkiraanH1: document.getElementById('fn-h1-target').value,
-     
-     // PASTIKAN BARIS INI ADA DAN KOMA DI ATASNYA SUDAH BENAR
      targetPosisiKas: document.getElementById('fn-posisi-kf-target') ? document.getElementById('fn-posisi-kf-target').value : ''
   };
-  
-  showLoader(true, "Menyimpan Setelan..."); 
-  google.script.run.withSuccessHandler(() => { 
-    showLoader(false); showToast(false); alert("Pengaturan Notifikasi Berhasil Disimpan."); 
-  }).saveSettingFonnte(obj);
+
+  showLoader(true, "Menyimpan Setelan...");
+  google.script.run.withSuccessHandler(() => {
+    showLoader(false); showToast(false); alert("Pengaturan Notifikasi Berhasil Disimpan.");
+  }).saveSettingWAGateway(obj);
 }
 
-    function testKirimFonnte() { 
-      let tgl = getLocalDateString(); 
+    function testKirimWAGateway() {
+      let tgl = getLocalDateString();
       let wil = currentUser.kodeWilayah || 'ALL';
       showLoader(true, "Mengirim Pesan Test HT...");
-      google.script.run.withSuccessHandler((res) => { 
-        showLoader(false); alert("Respon Pengiriman API: " + res); 
-      }).withFailureHandler((err) => { 
-        showLoader(false); alert("Gagal Kirim: " + err.message); 
-      }).testKirimFonnte(tgl, wil);
+      google.script.run.withSuccessHandler((res) => {
+        showLoader(false); alert("Respon Pengiriman API: " + res);
+      }).withFailureHandler((err) => {
+        showLoader(false); alert("Gagal Kirim: " + err.message);
+      }).testKirimWAGateway(tgl, wil);
     }
 
     function testKirimPerkiraanH1Btn() {
