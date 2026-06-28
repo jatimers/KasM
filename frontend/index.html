@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
   <script src="config.js"></script>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root { 
@@ -70,7 +70,7 @@
     input:focus, select:focus { outline: none; border-color: var(--primary-red); }
     
     .table-responsive { overflow-x: auto; width: 100%; margin-bottom: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
-    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; min-width: 500px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; min-width: 0; }
     th, td { border-bottom: 1px solid var(--border-color); padding: 14px 16px; text-align: left; }
     th { background-color: #f8fafc; color: var(--text-muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; white-space: nowrap; }
     tbody tr:hover { background-color: #f1f5f9; }
@@ -100,6 +100,9 @@
 
     .clickable-row { cursor: pointer; transition: 0.2s; }
 
+    @media (min-width: 769px) {
+      table { min-width: 500px; }
+    }
     @media (max-width: 768px) {
       body { flex-direction: column; }
       .mobile-header { display: flex; }
@@ -117,67 +120,80 @@
      PERBAIKAN TAMPILAN MOBILE: SAPU JAGAT LEVEL 4 (V4)
      ========================================================= */
   @media screen and (max-width: 768px) {
-    /* 1. Kunci Mati Lebar Halaman (Anti-Scroll Kanan-Kiri) */
-    html, body { 
-      overflow-x: hidden !important; 
-      width: 100vw !important; 
+    html, body {
+      overflow-x: hidden !important;
+      width: 100vw !important;
+      max-width: 100vw !important;
     }
 
-    /* 2. JIKA FORM PECAHAN MENGGUNAKAN TABEL */
-    /* Target khusus baris tabel (tr) yang HANYA memiliki input angka */
-    table:has(input[type="number"]) tr, 
-    tbody:has(input[type="number"]) tr {
+    /* Force all containers to stay within viewport */
+    .main-content, .page, .form-row, .table-responsive,
+    #trx-container, #trx-kas, #posisi, #input-ht, #ht-input-container {
+      max-width: 100% !important;
+      overflow-x: hidden !important;
+    }
+
+    /* Kill table min-width that causes overflow */
+    table, .table-responsive table, #trx-container table,
+    #posisi table, #ht-input-container table {
+      min-width: 0 !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      table-layout: fixed !important;
+    }
+
+    /* Stack rows vertically */
+    #trx-container tr, #ht-input-container tr, #posisi tr {
       display: flex !important;
       flex-direction: column !important;
       width: 100% !important;
-      margin-bottom: 12px !important;
-      border-bottom: 1px dashed var(--border-color, #ccc) !important;
-      padding-bottom: 8px !important;
-    }
-    table:has(input[type="number"]) td {
-      display: block !important;
-      width: 100% !important;
-      padding: 2px 0 !important;
-      text-align: left !important;
-      border: none !important;
+      max-width: 100% !important;
+      margin-bottom: 8px !important;
+      border-bottom: 1px dashed #ccc !important;
+      padding-bottom: 6px !important;
     }
 
-    /* 3. JIKA FORM PECAHAN MENGGUNAKAN DIV / INLINE FLEXBOX */
-    /* Deteksi div yang membungkus input secara otomatis */
-    div:has(> input[type="number"]),
-    .row:has(input[type="number"]),
-    div[style*="display: flex"]:has(input),
-    div[style*="display:flex"]:has(input) {
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: flex-start !important;
-      width: 100% !important;
-      height: auto !important;
-      margin-bottom: 10px !important;
-    }
-
-    /* 4. PAKSA LABEL / KETERANGAN NAIK KE ATAS */
-    label, span, td > strong, div:has(> input) > span {
-      display: block !important;
-      width: 100% !important;
-      text-align: left !important;
-      margin-bottom: 6px !important;
-      font-size: 13px !important;
-      white-space: normal !important; /* Teks otomatis turun jika panjang */
-    }
-
-    /* 5. PAKSA KOTAK INPUT MENGISI PENUH BAGIAN BAWAH */
-    input[type="number"], 
-    input[type="text"] {
+    /* Reset td to block, full width, no extra padding */
+    #trx-container td, #ht-input-container td, #posisi td {
       display: block !important;
       width: 100% !important;
       max-width: 100% !important;
-      min-width: 100% !important;
-      box-sizing: border-box !important;
-      height: 45px !important; /* Dibuat lebih tinggi agar enak diketik di layar sentuh */
+      min-width: 0 !important;
+      padding: 2px 0 !important;
+      border: none !important;
+    }
+
+    /* Label above input */
+    #trx-container td:first-child, #posisi td:first-child {
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      white-space: normal !important;
+    }
+
+    /* Input wrapper div (trx only, posisi now uses direct inputs) */
+    #trx-container td > div {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      padding-left: 6px !important;
+      padding-right: 6px !important;
+    }
+
+    /* Input itself */
+    #trx-container input[type="text"],
+    #posisi input[type="text"],
+    #posisi input[type="number"],
+    #ht-input-container input[type="text"] {
+      height: 40px !important;
+      font-size: 16px !important;
       margin: 0 !important;
     }
-  }   
+
+    /* Reduce page padding to give more room */
+    .main-content { padding: 8px !important; }
+    .page { padding: 12px !important; }
+    .form-row { padding: 10px !important; }
+  }
   </style>
 </head>
 <body>
@@ -216,6 +232,7 @@
     <div class="role-menu menu-admin">
       <div class="role-title">ADMINISTRATOR</div>
       <div class="menu-item active" onclick="nav('kelola-user', this); loadUsers();">👥 Kelola User</div>
+      <div class="menu-item" onclick="nav('kelola-unit-kerja', this); loadUnitKerja();">🏢 Kelola Unit Kerja</div>
       <div class="menu-item" onclick="nav('setelan-libur', this); loadHariLibur();">📅 Setelan Hari Libur</div>
       <div class="menu-item" onclick="nav('setting-wa-gateway', this); loadWAGatewaySettings();">⚙️ Notifikasi WA</div>
     </div>
@@ -249,11 +266,9 @@
       <div id="sub-cib-cis-cit" class="submenu-container">
         <div class="menu-item submenu" onclick="initCib()">📊 CIB</div>
         <div class="menu-item submenu" onclick="initCis()">📈 CIS</div>
-        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🏧 CIT MPP</div>
-        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🚗 CIT SAMSAT</div>
-        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🏧 CIT ATM</div>
-        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">🚛 CIT TUKAB</div>
-        <div class="menu-item submenu" onclick="alert('Dalam proses pengembangan')">👤 CIT KF</div>
+        <div class="menu-item submenu" onclick="initCit()">🚛 CIT</div>
+        <div class="menu-item submenu" onclick="initCitAtmRekap()">🏧 CIT ATM</div>
+        <div class="menu-item submenu" onclick="initCitTukab()">🚛 CIT TUKAB</div>
       </div>
       </div>
       <div class="role-menu menu-teller">
@@ -262,6 +277,7 @@
       <div class="menu-item" onclick="nav('data-pegawai', this); loadDataPegawai();">🧑‍💼 Data Pegawai</div>
       <div class="menu-item" style="background: #f8fafc;" onclick="nav('pesanan-nasabah', this); initPesananNasabah();">👤 Input Pesanan Nasabah</div>
       <div class="menu-item" onclick="nav('perkiraan-ht', this); initPerkiraanHT();">📅 Rekap Perk.Bon/Setor</div>
+      <div class="menu-item" onclick="nav('tukab-input', this); initTukabInput();">🚛 Input TUKAB</div>
       <div class="menu-item" onclick="toggleSubmenu('sub-trx-teller')">▼ TRANSAKSI KAS FISIK</div>
       <div id="sub-trx-teller" class="submenu-container open">
         <div class="menu-item submenu" onclick="bukaTrx('SALDO AWAL', this)">💼 Saldo Awal (Migrasi)</div>
@@ -275,6 +291,8 @@
         <div class="menu-item submenu" onclick="nav('posisi', this); initPosisiKasTeller();">🧮 Kalkulator Posisi Kas</div>
         <div class="menu-item submenu" onclick="nav('history-posisi', this); loadHistoryPosisiKas();">📜 History Posisi Kas</div>
       </div>
+      <div class="menu-item" onclick="nav('data-atm-page', this); initDataAtm();">🏧 Data ATM</div>
+      <div class="menu-item" onclick="nav('cit-atm-input', this); initCitAtmInput();">💵 Input CIT ATM</div>
     </div>
       <div class="role-menu menu-kf">
       <div class="role-title">OPERASIONAL KF</div>
@@ -298,6 +316,8 @@
         <div class="menu-item submenu" onclick="nav('cetak-kf-page', this); initCetakKF('setorbon');">🖨️ Cetak Setor & Bon</div>
         <div class="menu-item submenu" onclick="nav('cetak-kf-page', this); initCetakKF('rincian');">🖨️ Cetak Rincian Kas</div>
       </div>
+      <div class="menu-item" onclick="nav('data-atm-page', this); initDataAtm();">🏧 Data ATM</div>
+      <div class="menu-item" onclick="nav('cit-atm-input', this); initCitAtmInput();">💵 Input CIT ATM</div>
     </div>
     <div class="role-menu menu-capem">
       <div class="role-title">OPERASIONAL CAPEM</div>
@@ -316,13 +336,19 @@
         <div class="header-page"><h3>Manajemen Pengguna Aplikasi</h3><button class="btn-refresh" onclick="loadUsers()">🔄 Refresh</button></div>
         <div class="form-row">
           <input type="hidden" id="u-id">
-          <div class="form-group"><label>Kode Wilayah (HT View)</label><input type="text" id="u-wilayah"></div>
-          <div class="form-group"><label>Kode Cabang (Unit Kerja)</label><input type="text" id="u-kode"></div>
-          <div class="form-group"><label>Nama Unit Kerja</label><input type="text" id="u-unit"></div>
+          <div class="form-group" style="grid-column: 1 / -1; background: #f0f9ff; padding: 12px; border-radius: 8px; border: 1px dashed #0284c7;">
+            <label style="color: #0284c7; font-weight: 700;">🔍 Pilih dari Unit Kerja (auto-isi)</label>
+            <select id="u-ref-unit" onchange="pilihUnitKerja(this.value)" style="width:100%; font-weight: 600;">
+              <option value="">-- Pilih Unit Kerja --</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Kode Wilayah (HT View)</label><input type="text" id="u-wilayah" placeholder="Auto dari Unit Kerja"></div>
+          <div class="form-group"><label>Kode Cabang (Unit Kerja)</label><input type="text" id="u-kode" placeholder="Auto dari Unit Kerja"></div>
+          <div class="form-group"><label>Nama Unit Kerja</label><input type="text" id="u-unit" placeholder="Auto dari Unit Kerja"></div>
           <div class="form-group"><label>Username Login</label><input type="text" id="u-user"></div>
           <div class="form-group"><label>Password</label><input type="text" id="u-pass"></div>
           <div class="form-group"><label>Hak Akses (Role)</label>
-            <select id="u-role"><option value="capem">Capem</option><option value="teller">Teller</option><option value="kf">KF</option><option value="headteller">Head Teller</option><option value="admin">Admin</option></select>
+            <select id="u-role"><option value="capem">Capem</option><option value="teller">Teller</option><option value="pp">PP</option><option value="kf">KF</option><option value="headteller">Head Teller</option><option value="admin">Admin</option></select>
           </div>
           <div class="form-group"><label>UserEstim (Unik)</label><input type="text" id="u-estim"></div>
         </div>
@@ -332,6 +358,27 @@
         </div>
         <div class="table-responsive" style="margin-top:25px;">
           <table><thead><tr><th>K. Wilayah</th><th>K. Cabang</th><th>Nama Unit Kerja</th><th>Username</th><th>Role</th><th>UserEstim</th><th>Aksi</th></tr></thead><tbody id="user-body"><tr><td colspan="7" style="text-align:center;">Memuat data...</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <div id="kelola-unit-kerja" class="page role-page-admin">
+        <div class="header-page"><h3>Kelola Unit Kerja</h3><button class="btn-refresh" onclick="loadUnitKerja()">🔄 Refresh</button></div>
+        <div class="form-row">
+          <input type="hidden" id="uk-id">
+          <div class="form-group"><label>NIP</label><input type="text" id="uk-nip" placeholder="Nomor Induk Pegawai"></div>
+          <div class="form-group"><label>Nama Pegawai</label><input type="text" id="uk-nama-pegawai" placeholder="Nama lengkap pegawai"></div>
+          <div class="form-group"><label>Nama Unit Kerja</label><input type="text" id="uk-nama-unit" placeholder="Contoh: KC LUMAJANG"></div>
+          <div class="form-group"><label>Kode Wilayah</label><input type="text" id="uk-kode-wilayah" placeholder="Contoh: 052"></div>
+          <div class="form-group"><label>Nama Wilayah</label><input type="text" id="uk-nama-wilayah" placeholder="Contoh: LUMAJANG"></div>
+          <div class="form-group"><label>Kode Cabang</label><input type="text" id="uk-kode-cabang" placeholder="Kode unit cabang"></div>
+          <div class="form-group"><label>Nama Cabang</label><input type="text" id="uk-nama-cabang" placeholder="Nama cabang lengkap"></div>
+        </div>
+        <div style="display:flex; gap:15px; flex-wrap:wrap;">
+          <button class="btn-refresh" style="flex:2; font-size:1.1rem; padding:15px; margin:0;" onclick="simpanUnitKerja()">💾 SIMPAN UNIT KERJA</button>
+          <button class="btn-reset" style="flex:1; margin:0;" onclick="clearFormUnitKerja()">Kosongkan Form</button>
+        </div>
+        <div class="table-responsive" style="margin-top:25px;">
+          <table><thead><tr><th>NIP</th><th>Nama Pegawai</th><th>Unit Kerja</th><th>Kode Wilayah</th><th>Nama Wilayah</th><th>Kode Cabang</th><th>Nama Cabang</th><th>Aksi</th></tr></thead><tbody id="uk-body"><tr><td colspan="8" style="text-align:center;">Memuat data...</td></tr></tbody></table>
         </div>
       </div>
 
@@ -395,6 +442,18 @@
 <div id="setting-wa-gateway" class="page role-page-admin">
         <div class="header-page"><h3>Pengaturan Notifikasi WA (WhatsApp Gateway)</h3></div>
 
+        <!-- TOGGLE NOTIFIKASI WA -->
+        <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px; padding:15px; background:#f8fafc; border-radius:8px; border:1px solid var(--border-color);">
+          <div>
+            <b style="font-size:1.1rem;">🔔 Status Notifikasi WA</b>
+            <p style="margin:4px 0 0 0; color:var(--text-muted); font-size:0.85rem;">Nonaktifkan saat testing agar WA tidak terkirim ke penerima. Cron job tetap berjalan.</p>
+          </div>
+          <label style="margin-left:auto; display:flex; align-items:center; cursor:pointer;">
+            <input type="checkbox" id="fn-notif-enabled" onchange="onToggleNotif()" style="width:48px; height:24px; accent-color:#059669; transform:scale(1.3); cursor:pointer;">
+            <span style="margin-left:8px; font-weight:700;" id="fn-notif-label">AKTIF</span>
+          </label>
+        </div>
+
         <h4 style="border-bottom: 2px solid var(--primary-red); color:var(--primary-red); padding-bottom:8px;">NOTIFIKASI LAPORAN HT (Harian)</h4>
         <div class="form-row">
           <div class="form-group"><label>Target No HP WA (Laporan HT)</label><input type="text" id="fn-nohp" placeholder="Cth: 6281234xxx" style="background:var(--input-yellow);"></div>
@@ -406,6 +465,7 @@
         <div class="form-row">
          <div class="form-group"><label>Target HP/Grup (Rekap KF)</label><input type="text" id="fn-kf-target" placeholder="Cth: 6281234xxx atau ID Grup" style="background:var(--input-yellow);"></div>
         <div class="form-group"><label>Target HP/Grup (Analisa TUKAB)</label><input type="text" id="fn-tukab-target" placeholder="Cth: 1203xxx-group" style="background:var(--input-yellow);"></div>
+        <div class="form-group"><label>Target HP/Grup (Input TUKAB)</label><input type="text" id="fn-input-tukab-target" placeholder="Cth: 6281234xxx" style="background:var(--input-yellow);"></div>
         <div class="form-group"><label>Target HP/Grup (Posisi Kas KF)</label><input type="text" id="fn-posisi-kf-target" placeholder="Cth: 1203xxx-group" style="background:var(--input-yellow);"></div>
         </div>
 
@@ -418,8 +478,6 @@
 
         <div style="display:flex; gap:15px; flex-wrap:wrap; margin-top: 25px;">
           <button class="btn-refresh" style="flex:2; font-size:1.1rem; padding:15px; margin-bottom:0;" onclick="simpanWAGatewaySettings()">💾 SIMPAN SEMUA PENGATURAN</button>
-          <button class="btn-reset" style="flex:1; font-size:1rem; padding:15px; margin-bottom:0; background:#d97706;" onclick="testKirimWAGateway()">📲 TEST KIRIM HT</button>
-          <button class="btn-reset" style="flex:1; font-size:1rem; padding:15px; margin-bottom:0; background:#7c3aed;" onclick="testKirimPerkiraanH1Btn()">📲 TEST KIRIM H-1</button>
         </div>
       </div>
 
@@ -429,19 +487,19 @@
         <!-- FORM PERKIRAAN: Card Layout dengan warna SETOR (hijau) vs BON (merah) -->
         <div style="display:flex; flex-direction:column; gap:16px;">
           <!-- PECAHAN 100.000 -->
-          <div style="background:#fff; border:2px solid #0284c7; border-radius:12px; overflow:hidden;">
+          <div style="background:#fff; border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
             <div style="background:#0284c7; color:#fff; padding:10px 16px; font-weight:700; font-size:1.05rem;">💵 PECAHAN Rp 100.000</div>
             <div style="padding:12px 16px; display:flex; flex-direction:column; gap:10px;">
               <div>
                 <label style="display:block; font-weight:700; color:#059669; margin-bottom:4px; font-size:0.9rem;">📥 SETOR (Uang Masuk / Kelebihan)</label>
-                <div style="display:flex; align-items:center; background:#ecfdf5; border:2px solid #10b981; border-radius:8px; padding:0 12px;">
+                <div style="display:flex; align-items:center; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:0 12px;">
                   <span style="font-weight:700; color:#047857; margin-right:8px;">Rp</span>
                   <input type="text" id="pt-100-setor" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:14px 0; font-size:1.1rem; min-width:0; color:#047857;">
                 </div>
               </div>
               <div>
                 <label style="display:block; font-weight:700; color:#dc2626; margin-bottom:4px; font-size:0.9rem;">📤 BON (Uang Keluar / Kebutuhan)</label>
-                <div style="display:flex; align-items:center; background:#fef2f2; border:2px solid #ef4444; border-radius:8px; padding:0 12px;">
+                <div style="display:flex; align-items:center; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:0 12px;">
                   <span style="font-weight:700; color:#b91c1c; margin-right:8px;">Rp</span>
                   <input type="text" id="pt-100-bon" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:14px 0; font-size:1.1rem; min-width:0; color:#b91c1c;">
                 </div>
@@ -450,19 +508,19 @@
           </div>
 
           <!-- PECAHAN 50.000 -->
-          <div style="background:#fff; border:2px solid #0369a1; border-radius:12px; overflow:hidden;">
+          <div style="background:#fff; border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
             <div style="background:#0369a1; color:#fff; padding:10px 16px; font-weight:700; font-size:1.05rem;">💵 PECAHAN Rp 50.000</div>
             <div style="padding:12px 16px; display:flex; flex-direction:column; gap:10px;">
               <div>
                 <label style="display:block; font-weight:700; color:#059669; margin-bottom:4px; font-size:0.9rem;">📥 SETOR (Uang Masuk / Kelebihan)</label>
-                <div style="display:flex; align-items:center; background:#ecfdf5; border:2px solid #10b981; border-radius:8px; padding:0 12px;">
+                <div style="display:flex; align-items:center; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:0 12px;">
                   <span style="font-weight:700; color:#047857; margin-right:8px;">Rp</span>
                   <input type="text" id="pt-50-setor" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:14px 0; font-size:1.1rem; min-width:0; color:#047857;">
                 </div>
               </div>
               <div>
                 <label style="display:block; font-weight:700; color:#dc2626; margin-bottom:4px; font-size:0.9rem;">📤 BON (Uang Keluar / Kebutuhan)</label>
-                <div style="display:flex; align-items:center; background:#fef2f2; border:2px solid #ef4444; border-radius:8px; padding:0 12px;">
+                <div style="display:flex; align-items:center; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:0 12px;">
                   <span style="font-weight:700; color:#b91c1c; margin-right:8px;">Rp</span>
                   <input type="text" id="pt-50-bon" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:14px 0; font-size:1.1rem; min-width:0; color:#b91c1c;">
                 </div>
@@ -497,13 +555,13 @@
           <div class="form-row" style="margin-bottom:15px; padding:0; border:none; background:transparent; box-shadow:none;">
             <div class="form-group"><label>Nama Nasabah</label><input type="text" id="pn-nama" placeholder="Cth: PT XYZ / Bpk Budi" style="background:var(--input-yellow);"></div>
             <div class="form-group"><label>Nominal 100.000 (Rp)</label>
-              <div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 10px; width:100%;">
+              <div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;">
                 <span style="font-weight:700; color:#475569; margin-right:8px;">Rp</span>
                 <input type="text" id="pn-100k" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:12px 0; font-size:1rem; min-width:0;">
               </div>
             </div>
             <div class="form-group"><label>Nominal 50.000 (Rp)</label>
-              <div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 10px; width:100%;">
+              <div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;">
                 <span style="font-weight:700; color:#475569; margin-right:8px;">Rp</span>
                 <input type="text" id="pn-50k" data-val="0" oninput="formatRupiahInput(this)" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:12px 0; font-size:1rem; min-width:0;">
               </div>
@@ -565,6 +623,19 @@
           </div>
         </div>
 
+        <!-- DETAIL PESANAN NASABAH -->
+        <div class="summary-box" style="margin-top:25px; background:#f0fdf4; border-left-color:#10b981;">
+          <h3 style="margin:0; border:none; color:#047857;">📋 Detail Pesanan Nasabah</h3>
+          <p style="margin-top:5px; color:#047857;">Daftar pesanan uang nasabah per teller untuk tanggal ini.</p>
+          <div class="table-responsive" style="margin-top:15px;">
+            <table style="background:white; border:1px solid #a7f3d0;">
+              <thead><tr><th style="background:#dcfce7; color:#047857;">Nama Nasabah</th><th style="text-align:right; background:#dcfce7; color:#047857;">Nominal 100k</th><th style="text-align:right; background:#dcfce7; color:#047857;">Nominal 50k</th><th style="text-align:right; background:#dcfce7; color:#047857;">Total</th><th style="background:#dcfce7; color:#047857;">User Input</th></tr></thead>
+              <tbody id="pht-pesanan-body"><tr><td colspan="5" style="text-align:center;">Memuat data pesanan...</td></tr></tbody>
+              <tfoot id="pht-pesanan-foot"></tfoot>
+            </table>
+          </div>
+        </div>
+
         <div class="summary-box" style="margin-top:25px; background:#fff7ed; border-left-color: #ea580c; text-align:center;">
           <h3 style="margin:0; border:none; color:#c2410c;">ANALISA KEBUTUHAN TUKAB</h3>
           <p style="margin-top:5px;">Perbandingan Total Estimasi Bon Teller dengan Saldo Fisik Khasanah Hari Ini</p>
@@ -596,6 +667,10 @@
     </div>
     <div class="form-group">
       <button class="btn-primary" onclick="loadTabularis()" style="padding: 8px 16px; background: var(--primary-red); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Muat Data</button>
+	    </div>
+	    <div class="form-group">
+	      <button onclick="exportTabularisExcel()" style="padding: 8px 16px; background: #16a34a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Excel</button>
+	      <button onclick="exportTabularisPDF()" style="padding: 8px 16px; background: #1e293b; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-left: 5px;">PDF</button>
     </div>
   </div>
 
@@ -614,7 +689,7 @@
         <div class="header-page"><div><h3>Data Pegawai (Persiapan Laporan)</h3><p style="margin: 5px 0 0 0;">Masukkan informasi staf dan penyelia (Pimkas).</p></div></div>
         <h4 style="border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-top:10px;">Informasi Pengelola Kas</h4>
         <div class="form-row">
-          <div class="form-group"><label>UserEstim Aktif</label><input type="text" id="dp-estim-teller" readonly style="background:#f1f5f9; font-weight:700; color:#0284c7;"></div>
+          <div class="form-group"><label>UserEstim Aktif</label><input type="text" id="dp-estim-teller" readonly onfocus="this.blur()" style="background:#f1f5f9; font-weight:700; color:#0284c7;"></div>
           <div class="form-group"><label>NIP / No Pegawai</label><input type="text" id="dp-nip-teller" placeholder="Masukkan NIP Pegawai" style="background:var(--input-yellow);"></div>
           <div class="form-group"><label>Nama Lengkap</label><input type="text" id="dp-nama-teller" placeholder="Nama Lengkap Pegawai" style="background:var(--input-yellow);"></div>
         </div>
@@ -629,7 +704,7 @@
 
       <div id="data-pejabat-ht" class="page role-page-ht">
         <div class="header-page"><div><h3>Data Pejabat Khasanah (Untuk Laporan Mutasi)</h3><p style="margin: 5px 0 0 0;">Informasi Pejabat untuk dicetak pada laporan Setoran/Pengeluaran.</p></div></div>
-        <div class="form-row" style="margin-bottom: 20px;"><div class="form-group"><label>Kode Wilayah Data</label><input type="text" id="dph-wilayah" readonly style="background:#f1f5f9; font-weight:700; color:#0284c7;"></div></div>
+        <div class="form-row" style="margin-bottom: 20px;"><div class="form-group"><label>Kode Wilayah Data</label><input type="text" id="dph-wilayah" readonly onfocus="this.blur()" style="background:#f1f5f9; font-weight:700; color:#0284c7;"></div></div>
         <h4 style="border-bottom:2px solid var(--primary-red); color:var(--primary-red); padding-bottom:8px; margin-top:20px;">Penyelia Operasional Dana</h4>
         <div class="form-row">
           <div class="form-group"><label>NIP / No Pegawai</label><input type="text" id="dph-nip-penyelia" placeholder="Masukkan NIP/No Pegawai" style="background:var(--input-yellow);"></div>
@@ -658,7 +733,7 @@
       <div id="trx-kas" class="page">
         <div class="header-page"><h3 id="trx-title">Input Transaksi Kas</h3></div>
         <div class="form-row" style="background: transparent; border: none; padding: 0; box-shadow: none;">
-          <div class="form-group"><label>ID Transaksi</label><input type="text" id="trx-idtrx" readonly style="background:#f1f5f9; font-weight:700; color:#475569;"></div>
+          <div class="form-group"><label>ID Transaksi</label><input type="text" id="trx-idtrx" readonly onfocus="this.blur()" style="background:#f1f5f9; font-weight:700; color:#475569;"></div>
           <div class="form-group"><label>Tanggal</label><input type="date" id="trx-tanggal" onchange="checkTrxDateChange()" style="background:var(--input-yellow);"></div>
           <div class="form-group"><label>Jenis Mutasi</label><select id="trx-tipe" style="font-weight:700; background:var(--input-yellow);"></select></div>
           <div class="form-group"><label>Sumber/Tujuan Saldo</label><select id="trx-scope" style="font-weight:700; background:var(--input-yellow);"><option value="HEAD TELLER" selected>CASHBOX TELLER</option><option value="KHASANAH">KHASANAH (VAULT)</option></select></div>
@@ -672,12 +747,15 @@
         </div>
         <div class="summary-box" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
           <div><h2 style="margin:0; color:var(--primary-red); font-size: 2rem;">TOTAL: <span id="trx-lbl-total">Rp 0</span></h2><p style="font-weight:600; color:var(--text-muted); margin-top:5px; margin-bottom:0;" id="trx-lbl-terbilang">-</p></div>
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap;" id="btn-simpan-top">
              <button class="btn-reset" style="margin:0;" onclick="resetTrxKas()">+ TRX BARU</button>
              <button class="btn-refresh" style="margin:0;" onclick="simpanTrxKas()">💾 SIMPAN TRX</button>
           </div>
         </div>
         <div id="trx-container"></div>
+        <div id="btn-simpan-bottom" style="display:none; text-align:right; margin-top:15px;">
+           <button class="btn-refresh" style="font-size:1.1rem; padding:15px 30px; margin:0;" onclick="simpanTrxKas()">💾 SIMPAN TRX</button>
+        </div>
       </div>
 
       <div id="history" class="page">
@@ -694,17 +772,29 @@
         <div style="display:flex; gap:15px; margin-bottom:20px;"><button class="btn-refresh" style="flex:2; font-size:1.1rem; padding:15px; margin-bottom:0;" onclick="simpanPosisiManual()">💾 SIMPAN REKAP POSISI KAS</button></div>
         <div class="table-responsive">
           <table>
-            <tr><td style="width:40%; color:var(--text-muted);">Bon Pagi (Saldo Awal)</td><td><div style="display:flex; align-items:center; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; padding:0 10px; width:100%;"><span style="font-weight:700; color:#0284c7; margin-right:8px;">Rp</span><input type="text" id="pk-bonpagi" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
-            <tr id="tr-bontambahan"><td style="color:var(--text-muted);">Bon Tambahan</td><td><div style="display:flex; align-items:center; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; padding:0 10px; width:100%;"><span style="font-weight:700; color:#0284c7; margin-right:8px;">Rp</span><input type="text" id="pk-bontambahan" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
-            <tr id="tr-setortambahan"><td style="color:var(--text-muted);">Setor Tambahan</td><td><div style="display:flex; align-items:center; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; padding:0 10px; width:100%;"><span style="font-weight:700; color:#dc2626; margin-right:8px;">Rp</span><input type="text" id="pk-setortambahan" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#dc2626; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
-            <tr><td>Penerimaan Kas Hari Ini (Debet)</td><td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 10px; width:100%;"><span style="font-weight:700; color:#0284c7; margin-right:8px;">Rp</span><input type="text" id="pk-penerimaandebet" style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></div></td></tr>
-            <tr><td>Penerimaan Kas Antar Teller</td><td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 10px; width:100%;"><span style="font-weight:700; color:#0284c7; margin-right:8px;">Rp</span><input type="text" id="pk-penerimaanantar" style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></div></td></tr>
-            <tr><td>Pembayaran Kas (Kredit)</td><td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 10px; width:100%;"><span style="font-weight:700; color:#dc2626; margin-right:8px;">Rp</span><input type="text" id="pk-pembayarankredit" style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#dc2626; text-align:right; padding:12px 0; min-width:0;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></div></td></tr>
-            <tr><td>Pembayaran Antar Teller</td><td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 10px; width:100%;"><span style="font-weight:700; color:#dc2626; margin-right:8px;">Rp</span><input type="text" id="pk-pembayaranantar" style="flex:1; background:transparent; border:none; outline:none; font-weight:600; color:#dc2626; text-align:right; padding:12px 0; min-width:0;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></div></td></tr>
-            <tr><td style="background:#fefce8;"><b>Selisih Kas (Penyesuaian Desimal +/-)</b></td><td><input type="number" id="pk-selisih-pembulatan" oninput="calcPosisi()" placeholder="Cth: 50 atau -50" style="padding:12px; border:2px solid #eab308; font-weight:700; background:var(--input-yellow); text-align:right;"></td></tr>
-            <tr><td style="font-weight:700; color:#dc2626;">Saldo Sistem (Ekspektasi)</td><td><div style="display:flex; align-items:center; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:0 10px; width:100%;"><span style="font-weight:800; color:#dc2626; margin-right:8px;">Rp</span><input type="text" id="pk-saldohariini" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:800; color:#dc2626; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
-            <tr><td style="font-weight:700; color:#0284c7;">Setor Sore (Fisik Akhir)</td><td><div style="display:flex; align-items:center; background:#f0f9ff; border:1px solid #bae6fd; border-radius:6px; padding:0 10px; width:100%;"><span style="font-weight:800; color:#0284c7; margin-right:8px;">Rp</span><input type="text" id="pk-setorsore" readonly style="flex:1; background:transparent; border:none; outline:none; font-weight:800; color:#0284c7; text-align:right; padding:12px 0; min-width:0;" data-val="0"></div></td></tr>
-            <tr><td style="font-weight:700; color:#dc2626;">Status Selisih (Fisik - Sistem)</td><td><input type="text" id="pk-selisih-teks" readonly style="background:#fefce8; font-weight:800; text-align:center;"></td></tr>
+            <!-- DATA KAS TELLER (ESTIM) -->
+            <tr style="background:#ede9fe;"><td colspan="2" style="padding:10px 12px; font-weight:700; color:#7c3aed; font-size:0.95rem;">📊 Data Kas Teller (Estim)</td></tr>
+            <tr><td>Mutasi Debet</td><td><input type="text" id="pk-estim-debet" style="width:100%; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#0284c7; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></td></tr>
+            <tr><td>Mutasi Kredit</td><td><input type="text" id="pk-estim-kredit" style="width:100%; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#dc2626; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></td></tr>
+
+            <!-- MUTASI DEBET -->
+            <tr style="background:#e0f2fe;"><td colspan="2" style="padding:10px 12px; font-weight:700; color:#0369a1; font-size:0.95rem;">📥 MUTASI DEBET</td></tr>
+            <tr><td style="color:var(--text-muted);">Bon Pagi (Saldo Awal)</td><td><input type="text" id="pk-bonpagi" readonly onfocus="this.blur()" style="width:100%; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#0284c7; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0"></td></tr>
+            <tr id="tr-bontambahan"><td style="color:var(--text-muted);">Bon Tambahan</td><td><input type="text" id="pk-bontambahan" readonly onfocus="this.blur()" style="width:100%; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#0284c7; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0"></td></tr>
+            <tr><td>Penerimaan Kas (Debet)</td><td><input type="text" id="pk-penerimaandebet" readonly onfocus="this.blur()" style="width:100%; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#0284c7; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0"></td></tr>
+            <tr><td>Antar Teller (Debet)</td><td><input type="text" id="pk-penerimaanantar" style="width:100%; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#0284c7; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></td></tr>
+
+            <!-- MUTASI KREDIT -->
+            <tr style="background:#fce4ec;"><td colspan="2" style="padding:10px 12px; font-weight:700; color:#b91c1c; font-size:0.95rem;">📤 MUTASI KREDIT</td></tr>
+            <tr><td>Pembayaran Kas (Kredit)</td><td><input type="text" id="pk-pembayarankredit" readonly onfocus="this.blur()" style="width:100%; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#dc2626; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0"></td></tr>
+            <tr id="tr-setortambahan"><td style="color:var(--text-muted);">Setor Tambahan</td><td><input type="text" id="pk-setortambahan" readonly onfocus="this.blur()" style="width:100%; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#dc2626; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0"></td></tr>
+            <tr><td>Antar Teller (Kredit)</td><td><input type="text" id="pk-pembayaranantar" style="width:100%; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#dc2626; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></td></tr>
+
+            <!-- HASIL KALKULASI -->
+            <tr style="background:#fefce8;"><td colspan="2" style="padding:10px 12px; font-weight:700; color:#92400e; font-size:0.95rem;">🔢 HASIL KALKULASI</td></tr>
+            <tr><td style="font-weight:700; color:#dc2626;">Setor HT (Saldo Akhir Estim)</td><td><input type="text" id="pk-saldohariini" readonly onfocus="this.blur()" style="width:100%; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; outline:none; font-weight:800; color:#dc2626; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0"></td></tr>
+            <tr><td style="font-weight:700; color:#0284c7;">Setor Sore (Fisik Akhir)</td><td><input type="text" id="pk-setorsore" readonly onfocus="this.blur()" style="width:100%; background:#f0f9ff; border:1px solid #bae6fd; border-radius:6px; outline:none; font-weight:800; color:#0284c7; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0"></td></tr>
+            <tr><td style="font-weight:700; color:#dc2626;">Selisih Kas (Setor Sore - Setor HT)</td><td><input type="text" id="pk-selisih-teks" readonly onfocus="this.blur()" style="width:100%; background:#fefce8; border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:800; text-align:center; padding:12px 8px; box-sizing:border-box;"></td></tr>
           </table>
         </div>
       </div>
@@ -929,15 +1019,16 @@
         <div class="header-page">
           <div>
             <h3>CIB — Jumlah Uang Yang Dipertanggungkan</h3>
-            <p style="margin:5px 0 0 0;">Total Bon Pagi masing-masing KF per tanggal dalam satu bulan.</p>
+            <p style="margin:5px 0 0 0;">Total Bon Pagi (+ Bon Tambahan Teller/PP) per user Teller, PP & KF per tanggal.</p>
           </div>
         </div>
         <div class="form-row" style="align-items:flex-end;">
           <div class="form-group"><label>Bulan</label><input type="month" id="cib-bulan" onchange="loadCib()" style="background:var(--input-yellow);"></div>
           <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCib()">🔄 Muat Data</button></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px; background:#16a34a;" onclick="exportCibExcel()">📥 Export Excel</button></div>
         </div>
         <div class="table-responsive">
-          <table>
+          <table id="table-cib">
             <thead id="cib-head"></thead>
             <tbody id="cib-body">
               <tr><td style="text-align:center;">Pilih bulan untuk melihat data CIB.</td></tr>
@@ -960,9 +1051,10 @@
         <div class="form-row" style="align-items:flex-end;">
           <div class="form-group"><label>Bulan</label><input type="month" id="cis-bulan" onchange="loadCis()" style="background:var(--input-yellow);"></div>
           <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCis()">🔄 Muat Data</button></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px; background:#16a34a;" onclick="exportCisExcel()">📥 Export Excel</button></div>
         </div>
         <div class="table-responsive">
-          <table>
+          <table id="table-cis">
             <thead>
               <tr>
                 <th style="width:100px;">TGL</th>
@@ -973,6 +1065,171 @@
               <tr><td colspan="2" style="text-align:center;">Pilih bulan untuk melihat data CIS.</td></tr>
             </tbody>
             <tfoot id="cis-foot"></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================= -->
+      <!-- PAGE: CIT — Cash In Transit (KF & PP)         -->
+      <!-- ============================================= -->
+      <div id="page-cit" class="page role-page-ht">
+        <div class="header-page">
+          <div>
+            <h3>CIT — Cash In Transit (Uang Yang Dipertanggungkan)</h3>
+            <p style="margin:5px 0 0 0;">Nilai terbesar (Bon Pagi vs Setor Sore) masing-masing user PP & KF per tanggal.</p>
+          </div>
+        </div>
+        <div class="form-row" style="align-items:flex-end;">
+          <div class="form-group"><label>Bulan</label><input type="month" id="cit-bulan" onchange="loadCit()" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCit()">🔄 Muat Data</button></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px; background:#16a34a;" onclick="exportCitExcel()">📥 Export Excel</button></div>
+        </div>
+        <div class="table-responsive">
+          <table id="table-cit">
+            <thead id="cit-head"></thead>
+            <tbody id="cit-body">
+              <tr><td style="text-align:center;">Pilih bulan untuk melihat data CIT.</td></tr>
+            </tbody>
+            <tfoot id="cit-foot"></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================= -->
+      <!-- PAGE: Data ATM (KF & Teller)                   -->
+      <!-- ============================================= -->
+      <div id="data-atm-page" class="page">
+        <div class="header-page">
+          <div>
+            <h3>Data ATM</h3>
+            <p style="margin:5px 0 0 0;">Daftarkan ATM yang dikelola. Data ini akan muncul di dropdown Input CIT ATM.</p>
+          </div>
+        </div>
+        <input type="hidden" id="data-atm-edit-id">
+        <div class="form-row">
+          <div class="form-group"><label>Nama/ID ATM</label><input type="text" id="data-atm-nama" placeholder="Contoh: ATM001" style="text-transform:uppercase;"></div>
+          <div class="form-group"><label>Denom (Pecahan)</label><select id="data-atm-denom" style="background:var(--input-yellow); padding:14px;"><option value="100000">Rp 100.000</option><option value="50000">Rp 50.000</option></select></div>
+        </div>
+        <button class="btn-refresh" style="width:100%; font-size:1.1rem; padding:16px; margin-top:10px;" id="data-atm-btn-save" onclick="saveDataAtm()">💾 SIMPAN DATA ATM</button>
+        <div class="table-responsive" style="margin-top:20px;">
+          <table>
+            <thead><tr><th>No</th><th>Nama ATM</th><th>Denom</th><th style="width:80px;">Aksi</th></tr></thead>
+            <tbody id="data-atm-body">
+              <tr><td colspan="4" style="text-align:center;">Muat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================= -->
+      <!-- PAGE: Input CIT ATM (KF & Teller)              -->
+      <!-- ============================================= -->
+      <div id="cit-atm-input" class="page">
+        <div class="header-page">
+          <div>
+            <h3>Input CIT ATM</h3>
+            <p style="margin:5px 0 0 0;">Catat pengisian uang di mesin ATM.</p>
+          </div>
+        </div>
+        <input type="hidden" id="cit-atm-edit-id">
+        <div class="form-row">
+          <div class="form-group"><label>Tanggal Transaksi</label><input type="date" id="cit-atm-tgl" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><label>User ATM</label><select id="cit-atm-user" style="background:var(--input-yellow); padding:14px;"><option value="">-- Pilih ATM --</option></select></div>
+          <div class="form-group"><label>Nominal Pengisian (Rp)</label><input type="text" id="cit-atm-nominal" placeholder="0" style="text-align:right;" onfocus="this.select()" onblur="formatCitAtmNominal()"></div>
+        </div>
+        <button class="btn-refresh" style="width:100%; font-size:1.1rem; padding:16px; margin-top:10px;" id="cit-atm-btn-save" onclick="saveCitAtm()">💾 SIMPAN DATA CIT ATM</button>
+        <div class="table-responsive" style="margin-top:20px;">
+          <table>
+            <thead><tr><th>No</th><th>TGL</th><th>User ATM</th><th style="text-align:right;">Nominal</th><th style="width:80px;">Aksi</th></tr></thead>
+            <tbody id="cit-atm-input-body">
+              <tr><td colspan="5" style="text-align:center;">Muat data transaksi terbaru...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================= -->
+      <!-- PAGE: Input TUKAB (Teller)                     -->
+      <!-- ============================================= -->
+      <div id="tukab-input" class="page">
+        <div class="header-page">
+          <div>
+            <h3>Input TUKAB</h3>
+            <p style="margin:5px 0 0 0;">Catat transaksi TUKAB (Tunjangan Uang Kertas Antar Bank).</p>
+          </div>
+        </div>
+        <input type="hidden" id="tukab-edit-id">
+        <div class="form-row">
+          <div class="form-group"><label>Tanggal Transaksi</label><input type="date" id="tukab-tgl" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><label>Nama Bank</label><select id="tukab-bank" style="background:var(--input-yellow); font-weight:600; text-transform:uppercase;"><option value="">-- Pilih Bank --</option><option value="BNI46">BNI46</option><option value="BSI">BSI</option><option value="BCA">BCA</option><option value="BRI">BRI</option><option value="MANDIRI A. YANI">MANDIRI A. YANI</option><option value="MANDIRI PB. SUDIRMAN">MANDIRI PB. SUDIRMAN</option><option value="CIMB">CIMB</option></select></div>
+          <div class="form-group"><label>Nominal TUKAB (Rp)</label><input type="text" id="tukab-nominal" placeholder="0" style="text-align:right;" onfocus="this.select()" onblur="formatTukabNominal()"></div>
+        </div>
+        <div class="form-row" style="align-items:center; margin-bottom:10px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600;">
+            <input type="checkbox" id="tukab-status-antar" style="width:20px; height:20px; cursor:pointer;"> ✅ Sudah diantar (tidak masuk CIT TUKAB)
+          </label>
+        </div>
+        <button class="btn-refresh" style="width:100%; font-size:1.1rem; padding:16px; margin-top:10px;" id="tukab-btn-save" onclick="saveTukab()">💾 SIMPAN DATA TUKAB</button>
+        <div class="table-responsive" style="margin-top:20px;">
+          <table>
+            <thead><tr><th>No</th><th>TGL</th><th>Bank</th><th style="text-align:right;">Nominal</th><th style="text-align:center;width:50px;" title="Masuk CIT">CIT</th><th style="width:80px;">Aksi</th></tr></thead>
+            <tbody id="tukab-body">
+              <tr><td colspan="5" style="text-align:center;">Muat data transaksi terbaru...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================= -->
+      <!-- PAGE: Rekap CIT TUKAB (Head Teller)           -->
+      <!-- ============================================= -->
+      <div id="cit-tukab-rekap" class="page role-page-ht">
+        <div class="header-page">
+          <div>
+            <h3>CIT TUKAB — Rekap Transaksi TUKAB</h3>
+            <p style="margin:5px 0 0 0;">Rekap data TUKAB per bulan.</p>
+          </div>
+        </div>
+        <div class="form-row" style="align-items:flex-end;">
+          <div class="form-group"><label>Bulan</label><input type="month" id="tukab-rekap-bulan" onchange="loadCitTukab()" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCitTukab()">🔄 Muat Data</button></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px; background:#16a34a;" onclick="exportTukabExcel()">📥 Export Excel</button></div>
+        </div>
+        <div class="table-responsive">
+          <table id="table-cit-tukab">
+            <thead><tr><th>No</th><th>TGL</th><th>BANK</th><th style="text-align:right;">NOMINAL TUKAB</th></tr></thead>
+            <tbody id="cit-tukab-body">
+              <tr><td colspan="4" style="text-align:center;">Pilih bulan untuk melihat data TUKAB.</td></tr>
+            </tbody>
+            <tfoot id="cit-tukab-foot"></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================= -->
+      <!-- PAGE: Rekap CIT ATM (Head Teller)             -->
+      <!-- ============================================= -->
+      <div id="cit-atm-rekap" class="page role-page-ht">
+        <div class="header-page">
+          <div>
+            <h3>CIT ATM — Rekap Pengisian ATM</h3>
+            <p style="margin:5px 0 0 0;">Rekap data pengisian ATM per bulan.</p>
+          </div>
+        </div>
+        <div class="form-row" style="align-items:flex-end;">
+          <div class="form-group"><label>Bulan</label><input type="month" id="cit-atm-bulan" onchange="loadCitAtmRekap()" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="loadCitAtmRekap()">🔄 Muat Data</button></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px; background:#16a34a;" onclick="exportCitAtmExcel()">📥 Export Excel</button></div>
+        </div>
+        <div class="table-responsive">
+          <table id="table-cit-atm">
+            <thead>
+              <tr><th style="width:40px;">No</th><th>TGL</th><th>USER ATM</th><th style="text-align:right;">NOMINAL PENGISIAN</th></tr>
+            </thead>
+            <tbody id="cit-atm-rekap-body">
+              <tr><td colspan="4" style="text-align:center;">Pilih bulan untuk melihat data CIT ATM.</td></tr>
+            </tbody>
+            <tfoot id="cit-atm-rekap-foot"></tfoot>
           </table>
         </div>
       </div>
@@ -1020,7 +1277,7 @@
       saveBonSetorBatch:          ['POST','/bon-setor'],
       getDashboardData:           ['GET','/bon-setor','?action=dashboard','userEstim','tanggal'],
       savePosisiKas:              ['POST','/posisi-kas'],
-      getHistoryPosisiKas:        ['GET','/posisi-kas','?action=history','userEstim','bulanTahun'],
+      getHistoryPosisiKas:        ['GET','/posisi-kas','?action=history','bulanTahun','userEstim'],
       getViewPosisiTeller:        ['GET','/posisi-kas','?action=view-posisi','tanggal','kodeWilayah'],
       getRekapPosisiHarianGlobal: ['GET','/posisi-kas','?action=rekap-harian-global','tanggal','kodeWilayah'],
       getSaldoAwalHT:             ['GET','/saldo-awal-ht','tanggal','userEstim','kodeWilayah'],
@@ -1032,12 +1289,11 @@
       getLapCluis:                ['GET','/cluis','tanggal','kodeWilayah'],
       tutupBukuHT:                ['POST','/tutup-buku'],
       getPesananNasabah:          ['GET','/pesanan-nasabah','tanggal','userEstim'],
+      getPesananNasabahAll:       ['GET','/pesanan-nasabah','?action=all','tanggal'],
       savePesananNasabah:         ['POST','/pesanan-nasabah'],
       deletePesananNasabah:       ['DELETE','/pesanan-nasabah','id'],
       recalcPerkiraanDariPesanan: ['POST','/perkiraan'],
       getRekapGlobalMutasiTeller: ['GET','/bon-setor','?action=rekap-global','tanggal','kodeWilayah','tipeFilter'],
-      testKirimWAGateway:         ['POST','/notif-wa-gateway'],
-      testKirimPerkiraanH1:       ['POST','/notif-wa-gateway'],
       sendNotifPosisiKasWA:       ['POST','/notif-wa-gateway'],
       getTabularisData:           ['GET','/tabularis','periode'],
       sendLaporanHTWA:            ['POST','/notif-wa-gateway'],
@@ -1047,11 +1303,25 @@
       fetchDataHT:                ['GET','/laporan-ht','?action=history-ht','tanggal','kodeWilayah'],
       getCibData:                 ['GET','/laporan-cib-cis','?action=cib','bulan','kodeWilayah'],
       getCisData:                 ['GET','/laporan-cib-cis','?action=cis','bulan','kodeWilayah'],
+      getCitAtmRekap:             ['GET','/cit-atm','?action=rekap','bulan','kodeWilayah'],
+      getCitAtmHistory:           ['GET','/cit-atm','?action=history','kodeWilayah'],
+      saveCitAtm:                 ['POST','/cit-atm'],
+      deleteCitAtm:               ['DELETE','/cit-atm','id'],
+      getDataAtmList:             ['GET','/data-atm','?action=my','userEstim'],
+      getMyDataAtm:               ['GET','/data-atm','?action=my','userEstim'],
+      saveDataAtm:                ['POST','/data-atm'],
+      deleteDataAtm:              ['DELETE','/data-atm','id'],
+      getTukabRekap:              ['GET','/tukab','?action=rekap','bulan','kodeWilayah'],
+      getTukabHistory:            ['GET','/tukab','?action=history','tanggal','kodeWilayah'],
+      saveTukab:                  ['POST','/tukab'],
+      deleteTukab:                ['DELETE','/tukab','id'],
+      getUnitKerja:               ['GET','/unit-kerja'],
+      saveUnitKerja:              ['POST','/unit-kerja'],
+      deleteUnitKerja:            ['DELETE','/unit-kerja','id'],
     };
 
     (function(){
-      var _successCb = null, _failureCb = null;
-      function _callApi(method, endpoint, paramNames, args) {
+      function _callApi(method, endpoint, paramNames, args, successCb, failureCb) {
         var url = _API + endpoint;
         var headers = { 'Content-Type':'application/json' };
         var token = localStorage.getItem('kasmonitor_token') || '';
@@ -1060,7 +1330,6 @@
         var options = { method: method, headers: headers };
         var sp = new URLSearchParams();
 
-        // Add fixed params (those starting with ? in paramNames)
         if (paramNames) {
           for (var i = 0; i < paramNames.length; i++) {
             if (paramNames[i].indexOf('?') === 0) {
@@ -1073,26 +1342,27 @@
         if (method === 'DELETE' && args && args.length > 0) {
           url += '/' + encodeURIComponent(args[0]);
         } else if (method === 'POST' && args && args.length > 0) {
-          // Build body from paramNames + args (or use args[0] if no paramNames)
-          if (paramNames && paramNames.length > 0 && !(paramNames.length === 1 && paramNames[0].indexOf('?') === 0)) {
-            var bodyObj = {};
+          // If multiple named args, build object; otherwise send first arg directly
+          var hasNamedParams = false;
+          for (var pi = 0; paramNames && pi < paramNames.length; pi++) {
+            if (paramNames[pi].indexOf('?') !== 0) { hasNamedParams = true; break; }
+          }
+          if (hasNamedParams && args.length >= 1) {
+            var body = {};
             var ai = 0;
-            for (var k = 0; k < paramNames.length; k++) {
-              if (paramNames[k].indexOf('?') === 0) continue;
-              if (ai < args.length && args[ai] !== undefined) {
-                bodyObj[paramNames[k]] = args[ai];
-              }
+            for (var pj = 0; paramNames && pj < paramNames.length; pj++) {
+              if (paramNames[pj].indexOf('?') === 0) continue;
+              if (ai < args.length) body[paramNames[pj]] = args[ai];
               ai++;
             }
-            options.body = JSON.stringify(bodyObj);
+            options.body = JSON.stringify(body);
           } else {
             options.body = JSON.stringify(args[0]);
           }
         } else if (method === 'GET' && args && args.length > 0) {
-          // Map positional args to named params (skip fixed params)
           var argIdx = 0;
           for (var j = 0; paramNames && j < paramNames.length; j++) {
-            if (paramNames[j].indexOf('?') === 0) continue; // skip fixed
+            if (paramNames[j].indexOf('?') === 0) continue;
             if (argIdx < args.length && args[argIdx] !== undefined && args[argIdx] !== null) {
               sp.append(paramNames[j], args[argIdx]);
             }
@@ -1103,75 +1373,43 @@
         var qs = sp.toString();
         if (qs) url += '?' + qs;
 
-        return fetch(url, options).then(function(r){
-          return r.json().then(function(j){
-            if (!j.success) throw new Error(j.error || 'API Error');
-            return j.data;
-          });
+        fetch(url, options).then(function(r){
+          return r.json();
+        }).then(function(j){
+          if (!j.success) throw new Error(j.error || 'API Error');
+          if (successCb) successCb(j.data);
+        }).catch(function(err){
+          if (failureCb) failureCb(err);
+          else console.error('API Error:', err);
         });
       }
 
-      window.google = { script: { run: new Proxy({}, {
-        get: function(_, name) {
-          // Handle withSuccessHandler/withFailureHandler — return FUNCTION that creates chain
-          if (name === 'withSuccessHandler' || name === 'withFailureHandler') {
-            return function(cb) {
-              var chain = {
-                _successCb: null,
-                _failureCb: null,
-                withSuccessHandler: function(c) { chain._successCb = c; return chain; },
-                withFailureHandler: function(c) { chain._failureCb = c; return chain; }
-              };
-              if (name === 'withSuccessHandler') chain._successCb = cb;
-              else chain._failureCb = cb;
-              // Add all GAS functions as methods on chain
-              Object.keys(_GAS_MAP).forEach(function(fnName) {
-                chain[fnName] = function() {
-                  var args = Array.prototype.slice.call(arguments);
-                  var entry = _GAS_MAP[fnName];
-                  var method = entry[0], endpoint = entry[1];
-                  var paramNames = entry.slice(2);
-                  var promise = _callApi(method, endpoint, paramNames, args);
-                  promise.then(function(data) { if (chain._successCb) chain._successCb(data); })
-                         .catch(function(err) { if (chain._failureCb) chain._failureCb(err); else console.error('API Error:', err); });
-                };
-              });
-              return chain;
-            };
-          }
-          // Direct call: google.script.run.doLogin(u, p)
-          return function() {
-            var args = Array.prototype.slice.call(arguments);
-            var entry = _GAS_MAP[name];
-            if (!entry) { console.warn('GAS function not mapped:', name); return; }
-            var method = entry[0], endpoint = entry[1];
-            var paramNames = entry.slice(2);
-            var promise = _callApi(method, endpoint, paramNames, args);
-            var obj = { withSuccessHandler: function(cb) { _successCb = cb; return obj; }, withFailureHandler: function(cb) { _failureCb = cb; return obj; } };
-            // Also add all GAS functions for chaining
-            Object.keys(_GAS_MAP).forEach(function(fnName) {
-              obj[fnName] = function() {
-                var args2 = Array.prototype.slice.call(arguments);
-                var entry2 = _GAS_MAP[fnName];
-                var method2 = entry2[0], endpoint2 = entry2[1];
-                var paramNames2 = entry2.slice(2);
-                var promise2 = _callApi(method2, endpoint2, paramNames2, args2);
-                promise2.then(function(data) { if (_successCb) _successCb(data); })
-                        .catch(function(err) { if (_failureCb) _failureCb(err); else console.error('API Error:', err); });
-              };
-            });
-            setTimeout(function(){
-              promise.then(function(data){ if (_successCb) _successCb(data); })
-                     .catch(function(err){ if (_failureCb) _failureCb(err); else console.error('API Error:', err); });
-            }, 10);
-            return obj;
-          };
-        }
-      }) } };
+      // Build google.script.run with all GAS functions
+      var _run = { _scb: null, _fcb: null };
+      _run.withSuccessHandler = function(cb) { _run._scb = cb; return _run; };
+      _run.withFailureHandler = function(cb) { _run._fcb = cb; return _run; };
+
+      // Add all GAS functions as methods
+      Object.keys(_GAS_MAP).forEach(function(fnName) {
+        _run[fnName] = function() {
+          var args = Array.prototype.slice.call(arguments);
+          var entry = _GAS_MAP[fnName];
+          var method = entry[0], endpoint = entry[1];
+          var paramNames = entry.slice(2);
+          // Add delay to allow withSuccessHandler/withFailureHandler chain
+          var scb = _run._scb, fcb = _run._fcb;
+          _run._scb = null; _run._fcb = null; // reset for next call
+          setTimeout(function(){
+            _callApi(method, endpoint, paramNames, args, scb, fcb);
+          }, 10);
+        };
+      });
+
+      window.google = { script: { run: _run } };
     })();
 
     let currentUser = {}; let globalHistoryData = []; let allUsersData = []; let globalPosisiHT = []; let globalHistoryPosisi = [];
-    let currentRekapFisik = { bonPagi: 0, bonTambahan: 0, setorTambahan: 0, setorSore: 0, penerimaanDebet: 0, pembayaranKredit: 0, penerimaanAntar: 0, pembayaranAntar: 0 };
+    let currentRekapFisik = { bonPagi: 0, bonTambahan: 0, setorTambahan: 0, setorSore: 0, penerimaanDebet: 0, pembayaranKredit: 0, penerimaanAntar: 0, pembayaranAntar: 0, estimDebet: 0, estimKredit: 0 };
     window.currentLapMutasiType = 'SETOR';
     
     // Inisialisasi Halaman Cetak KF
@@ -1188,6 +1426,14 @@ function initCetakKF(type) {
 }
 
     // --- Tambahkan fungsi helper ini di bagian atas tag <script> ---
+function getLocalDateString() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = ("0" + (d.getMonth() + 1)).slice(-2);
+  const day = ("0" + d.getDate()).slice(-2);
+  return `${year}-${month}-${day}`;
+}
+
 function initLapCluis() {
       document.getElementById('cluis-tgl').value = getLocalDateString();
       loadLapCluis();
@@ -1371,6 +1617,62 @@ function initLapCluis() {
     // =============================================
     // CIB: Bon Pagi per KF per Tanggal
     // =============================================
+    function _fmtTgl(tgl) { return tgl.substring(8,10) + '-' + tgl.substring(5,7) + '-' + tgl.substring(2,4); }
+    function _exportTable(tableId, prefix, bulan) {
+      var table = document.getElementById(tableId);
+      if (!table) return;
+      var html = table.outerHTML;
+      var blob = new Blob(["﻿" + html], { type: "application/vnd.ms-excel" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = prefix + "_" + (bulan || "data") + ".xls";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    // ===== Shared helpers: fetch users from Supabase (service key, bypass RLS) =====
+    function _fetchUsersCib(callback) {
+      var SVC = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8";
+      var hdrs = { "apikey": SVC, "Authorization": "Bearer " + SVC };
+      var REST = "https://jwsfsczgyqphoyflpjnm.supabase.co/rest/v1";
+      fetch(REST + "/users?select=user_estim,nama_user,nama_unit,role&role=in.(teller,pp,kf)&order=user_estim", { headers: hdrs })
+        .then(function(r) { return r.json(); })
+        .then(function(users) {
+          // Sort: Teller first, then PP, then KF
+          var teller = [], pp = [], kf = [];
+          for (var i = 0; i < users.length; i++) {
+            if (users[i].role === 'teller') teller.push(users[i]);
+            else if (users[i].role === 'pp') pp.push(users[i]);
+            else kf.push(users[i]);
+          }
+          teller.sort(function(a,b) { return (a.user_estim||'').localeCompare(b.user_estim||''); });
+          pp.sort(function(a,b) { return (a.user_estim||'').localeCompare(b.user_estim||''); });
+          kf.sort(function(a,b) { return (a.user_estim||'').localeCompare(b.user_estim||''); });
+          callback(null, teller.concat(pp).concat(kf), hdrs, REST);
+        })
+        .catch(function(err) { callback(err); });
+    }
+    function _fetchUsersPpKf(callback) {
+      var SVC = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8";
+      var hdrs = { "apikey": SVC, "Authorization": "Bearer " + SVC };
+      var REST = "https://jwsfsczgyqphoyflpjnm.supabase.co/rest/v1";
+      fetch(REST + "/users?select=user_estim,nama_user,nama_unit,role&role=in.(pp,kf)&order=user_estim", { headers: hdrs })
+        .then(function(r) { return r.json(); })
+        .then(function(users) {
+          // Sort: PP first, then KF
+          var pp = [], kf = [];
+          for (var i = 0; i < users.length; i++) {
+            if (users[i].role === 'pp') pp.push(users[i]);
+            else kf.push(users[i]);
+          }
+          pp.sort(function(a,b) { return (a.user_estim||'').localeCompare(b.user_estim||''); });
+          kf.sort(function(a,b) { return (a.user_estim||'').localeCompare(b.user_estim||''); });
+          callback(null, pp.concat(kf), hdrs, REST);
+        })
+        .catch(function(err) { callback(err); });
+    }
+
+    // ===== CIB: Bon Pagi per PP & KF (direct REST — no edge function) =====
     function initCib() {
       nav('page-cib', document.querySelector('#sub-cib-cis-cit .menu-item.submenu'));
       var bulanEl = document.getElementById('cib-bulan');
@@ -1385,65 +1687,100 @@ function initLapCluis() {
       var bulan = document.getElementById('cib-bulan').value;
       if (!bulan) return;
       showLoader(true, "Memuat data CIB...");
-      google.script.run
-        .withSuccessHandler(function(data) {
-          showLoader(false);
-          renderCib(data);
-        })
-        .withFailureHandler(function(err) {
-          showLoader(false);
-          alert("Gagal memuat data CIB: " + err.message);
-        })
-        .getCibData(bulan, currentUser.kodeWilayah || 'ALL');
+      _fetchUsersCib(function(err, userList, hdrs, REST) {
+        if (err) { showLoader(false); alert("Gagal: " + err.message); return; }
+        if (userList.length === 0) { showLoader(false); renderCibEmpty(); return; }
+
+        var parts = bulan.split('-');
+        var lastDay = new Date(parseInt(parts[0]), parseInt(parts[1]), 0).getDate();
+        var startDate = bulan + '-01';
+        var endDate = bulan + '-' + String(lastDay).padStart(2, '0');
+
+        fetch(REST + "/bon_setor?select=tanggal,tipe,nominal,user_estim&tanggal=gte." + startDate + "&tanggal=lte." + endDate + "&tipe=in.(BON PAGI,BON TAMBAHAN)&limit=100000", { headers: hdrs })
+          .then(function(r) { return r.json(); })
+          .then(function(rows) {
+            showLoader(false);
+            var userEstimSet = {};
+            for (var i = 0; i < userList.length; i++) { userEstimSet[userList[i].user_estim] = userList[i]; }
+
+            var allDates = [];
+            for (var d = 1; d <= lastDay; d++) { allDates.push(bulan + '-' + String(d).padStart(2, '0')); }
+
+            var matrix = {};
+            for (var dd = 0; dd < allDates.length; dd++) {
+              matrix[allDates[dd]] = {};
+              for (var u = 0; u < userList.length; u++) { matrix[allDates[dd]][userList[u].user_estim] = 0; }
+            }
+
+            for (var r = 0; r < rows.length; r++) {
+              var row = rows[r];
+              if (!userEstimSet[row.user_estim]) continue;
+              var tgl = String(row.tanggal).substring(0, 10);
+              if (!matrix[tgl]) continue;
+              var role = userEstimSet[row.user_estim].role;
+              var isTellerOrPP = (role === 'teller' || role === 'pp');
+              // BON PAGI → all users; BON TAMBAHAN → teller & PP
+              if (row.tipe === 'BON PAGI' || (row.tipe === 'BON TAMBAHAN' && isTellerOrPP)) {
+                matrix[tgl][row.user_estim] += (row.nominal || 0);
+              }
+            }
+            renderCib(userList, allDates, matrix);
+          })
+          .catch(function(err) { showLoader(false); alert("Gagal: " + err.message); });
+      });
     }
 
-    function renderCib(data) {
+    function renderCibEmpty() {
+      document.getElementById('cib-head').innerHTML = '<tr><th>TGL</th><th>JUMLAH</th></tr>';
+      document.getElementById('cib-body').innerHTML = '<tr><td colspan="2" style="text-align:center;">Tidak ada data user Teller/PP/KF.</td></tr>';
+      document.getElementById('cib-foot').innerHTML = '';
+    }
+
+    function renderCib(userList, allDates, matrix) {
       var headEl = document.getElementById('cib-head');
       var bodyEl = document.getElementById('cib-body');
       var footEl = document.getElementById('cib-foot');
 
-      // Header: TGL | KF1 | KF2 | ... | JUMLAH
       var html = '<tr><th style="width:80px;">TGL</th>';
-      for (var i = 0; i < data.kfList.length; i++) {
-        var roleBadge = data.kfList[i].role === 'kf' ? 'KF' : 'TLR';
-        html += '<th style="text-align:right;">' + data.kfList[i].namaUnit + '<br><small style="color:#6b7280;">' + data.kfList[i].userEstim + ' <b>[' + roleBadge + ']</b></small></th>';
+      for (var i = 0; i < userList.length; i++) {
+        var roleBadge = userList[i].role === 'pp' ? 'PP' : (userList[i].role === 'teller' ? 'TLR' : 'KF');
+        html += '<th style="text-align:right;">' + (userList[i].nama_unit || userList[i].nama_user || userList[i].user_estim) + '<br><small style="color:#6b7280;">' + userList[i].user_estim + ' <b>[' + roleBadge + ']</b></small></th>';
       }
       html += '<th style="text-align:right; background:#fef2f2; color:#dc2626;">JUMLAH</th></tr>';
       headEl.innerHTML = html;
 
-      // Body
       html = '';
-      var totalsPerKf = {};
-      for (var i = 0; i < data.kfList.length; i++) {
-        totalsPerKf[data.kfList[i].userEstim] = 0;
-      }
-      var grandTotal = 0;
+      var totalsPerUser = {};
+      for (var u = 0; u < userList.length; u++) { totalsPerUser[userList[u].user_estim] = 0; }
 
-      for (var d = 0; d < data.allDates.length; d++) {
-        var tgl = data.allDates[d];
-        var row = data.matrix[tgl] || {};
-        html += '<tr>';
-        html += '<td style="font-weight:600;">' + tgl.substring(8) + '</td>';
+      for (var d = 0; d < allDates.length; d++) {
+        var tgl = allDates[d];
+        var dObj = new Date(tgl + 'T00:00:00');
+        var isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
+        var rowStyle = isWeekend ? 'background:#fff7ed;' : '';
+        html += '<tr style="' + rowStyle + '">';
+        html += '<td style="font-weight:600;">' + _fmtTgl(tgl) + ' <small style="color:#6b7280;">' + ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()] + '</small></td>';
         var rowTotal = 0;
-        for (var k = 0; k < data.kfList.length; k++) {
-          var ue = data.kfList[k].userEstim;
-          var val = row[ue] || 0;
+        for (var k = 0; k < userList.length; k++) {
+          var ue = userList[k].user_estim;
+          var val = matrix[tgl][ue] || 0;
           rowTotal += val;
-          totalsPerKf[ue] += val;
+          totalsPerUser[ue] += val;
           html += '<td style="text-align:right;">' + (val > 0 ? val.toLocaleString('id-ID') : '0') + '</td>';
         }
         html += '<td style="text-align:right; font-weight:700; background:#fef2f2;">' + (rowTotal > 0 ? rowTotal.toLocaleString('id-ID') : '0') + '</td>';
         html += '</tr>';
       }
 
-      // Grand total row
+      var grandTotal = 0;
       html += '<tr style="font-weight:bold; background:#f8fafc;">';
       html += '<td style="font-weight:800;">TOTAL</td>';
-      for (var j = 0; j < data.kfList.length; j++) {
-        var t = totalsPerKf[data.kfList[j].userEstim];
+      for (var j = 0; j < userList.length; j++) {
+        var t = totalsPerUser[userList[j].user_estim];
+        grandTotal += t;
         html += '<td style="text-align:right;">' + (t > 0 ? t.toLocaleString('id-ID') : '0') + '</td>';
       }
-      html += '<td style="text-align:right; font-weight:800; background:#dc2626; color:#fff;">' + data.grandTotal.toLocaleString('id-ID') + '</td>';
+      html += '<td style="text-align:right; font-weight:800; background:#dc2626; color:#fff;">' + grandTotal.toLocaleString('id-ID') + '</td>';
       html += '</tr>';
 
       bodyEl.innerHTML = html;
@@ -1491,16 +1828,624 @@ function initLapCluis() {
         var isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
         var rowStyle = isWeekend ? 'background:#fff7ed;' : '';
         html += '<tr style="' + rowStyle + '">';
-        html += '<td style="font-weight:600;">' + tgl.substring(8) + ' <small style="color:#6b7280;">' + ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()] + '</small></td>';
+        html += '<td style="font-weight:600;">' + _fmtTgl(tgl) + ' <small style="color:#6b7280;">' + ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()] + '</small></td>';
         html += '<td style="text-align:right; font-weight:600;">Rp ' + saldo.toLocaleString('id-ID') + '</td>';
         html += '</tr>';
       }
 
       bodyEl.innerHTML = html;
 
-      // Footer: grand total (sum of all daily balances)
       footEl.innerHTML = '<tr style="font-weight:bold; background:#f8fafc;">' +
         '<td style="font-weight:800;">TOTAL</td>' +
+        '<td style="text-align:right; font-weight:800;">Rp ' + data.grandTotal.toLocaleString('id-ID') + '</td>' +
+        '</tr>';
+    }
+
+    // =============================================
+    // CIT — Cash In Transit (PP & KF)
+    // Max(Bon Pagi, Setor Sore) per user per tgl
+    // Direct Supabase REST, reuses _fetchUsersPpKf
+    // =============================================
+    function initCit() {
+      nav('page-cit', document.querySelectorAll('#sub-cib-cis-cit .menu-item.submenu')[2]);
+      var bulanEl = document.getElementById('cit-bulan');
+      if (!bulanEl.value) {
+        var now = new Date();
+        bulanEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+      }
+      loadCit();
+    }
+
+    function loadCit() {
+      var bulan = document.getElementById('cit-bulan').value;
+      if (!bulan) return;
+      showLoader(true, "Memuat data CIT...");
+      _fetchUsersPpKf(function(err, userList, hdrs, REST) {
+        if (err) { showLoader(false); alert("Gagal: " + err.message); return; }
+        if (userList.length === 0) { showLoader(false); renderCitEmpty(); return; }
+
+        var parts = bulan.split('-');
+        var lastDay = new Date(parseInt(parts[0]), parseInt(parts[1]), 0).getDate();
+        var startDate = bulan + '-01';
+        var endDate = bulan + '-' + String(lastDay).padStart(2, '0');
+
+        fetch(REST + "/bon_setor?select=tanggal,tipe,nominal,user_estim&tanggal=gte." + startDate + "&tanggal=lte." + endDate + "&tipe=in.(BON PAGI,SETOR SORE)&limit=100000", { headers: hdrs })
+          .then(function(r) { return r.json(); })
+          .then(function(rows) {
+            showLoader(false);
+            var userEstimSet = {};
+            for (var i = 0; i < userList.length; i++) { userEstimSet[userList[i].user_estim] = userList[i]; }
+
+            var allDates = [];
+            for (var d = 1; d <= lastDay; d++) { allDates.push(bulan + '-' + String(d).padStart(2, '0')); }
+
+            // Build matrix: per user per date → {bon, setor}
+            var matrix = {};
+            for (var dd = 0; dd < allDates.length; dd++) {
+              matrix[allDates[dd]] = {};
+              for (var u = 0; u < userList.length; u++) {
+                matrix[allDates[dd]][userList[u].user_estim] = { bon: 0, setor: 0 };
+              }
+            }
+
+            for (var r = 0; r < rows.length; r++) {
+              var row = rows[r];
+              if (!userEstimSet[row.user_estim]) continue;
+              var tgl = String(row.tanggal).substring(0, 10);
+              if (!matrix[tgl] || !matrix[tgl][row.user_estim]) continue;
+              if (row.tipe === 'BON PAGI') {
+                matrix[tgl][row.user_estim].bon += (row.nominal || 0);
+              } else if (row.tipe === 'SETOR SORE') {
+                matrix[tgl][row.user_estim].setor += (row.nominal || 0);
+              }
+            }
+
+            renderCit(userList, allDates, matrix);
+          })
+          .catch(function(err) { showLoader(false); alert("Gagal: " + err.message); });
+      });
+    }
+
+    function renderCitEmpty() {
+      document.getElementById('cit-head').innerHTML = '<tr><th>TGL</th><th>JUMLAH</th></tr>';
+      document.getElementById('cit-body').innerHTML = '<tr><td colspan="2" style="text-align:center;">Tidak ada data user PP/KF.</td></tr>';
+      document.getElementById('cit-foot').innerHTML = '';
+    }
+
+    function renderCit(userList, allDates, matrix) {
+      var headEl = document.getElementById('cit-head');
+      var bodyEl = document.getElementById('cit-body');
+      var footEl = document.getElementById('cit-foot');
+
+      var html = '<tr><th style="width:80px;">TGL</th>';
+      for (var i = 0; i < userList.length; i++) {
+        var roleBadge = userList[i].role === 'pp' ? 'PP' : 'KF';
+        html += '<th style="text-align:right;">' + (userList[i].nama_user || userList[i].user_estim) + '<br><small style="color:#6b7280;">' + userList[i].user_estim + ' <b>[' + roleBadge + ']</b></small></th>';
+      }
+      html += '<th style="text-align:right; background:#fef2f2; color:#dc2626;">JUMLAH</th></tr>';
+      headEl.innerHTML = html;
+
+      html = '';
+      var totalsPerUser = {};
+      for (var u = 0; u < userList.length; u++) { totalsPerUser[userList[u].user_estim] = 0; }
+
+      for (var d = 0; d < allDates.length; d++) {
+        var tgl = allDates[d];
+        var dObj = new Date(tgl + 'T00:00:00');
+        var isWeekend = dObj.getDay() === 0 || dObj.getDay() === 6;
+        var rowStyle = isWeekend ? 'background:#fff7ed;' : '';
+        html += '<tr style="' + rowStyle + '">';
+        html += '<td style="font-weight:600;">' + _fmtTgl(tgl) + ' <small style="color:#6b7280;">' + ['Mgg','Sen','Sel','Rab','Kam','Jum','Sab'][dObj.getDay()] + '</small></td>';
+        var rowTotal = 0;
+        for (var k = 0; k < userList.length; k++) {
+          var ue = userList[k].user_estim;
+          var bs = matrix[tgl][ue];
+          var maxVal = bs.bon >= bs.setor ? bs.bon : bs.setor; // MAX(bon, setor)
+          rowTotal += maxVal;
+          totalsPerUser[ue] += maxVal;
+          html += '<td style="text-align:right;">' + (maxVal > 0 ? maxVal.toLocaleString('id-ID') : '0') + '</td>';
+        }
+        html += '<td style="text-align:right; font-weight:700; background:#fef2f2;">' + (rowTotal > 0 ? rowTotal.toLocaleString('id-ID') : '0') + '</td>';
+        html += '</tr>';
+      }
+
+      var grandTotal = 0;
+      html += '<tr style="font-weight:bold; background:#f8fafc;">';
+      html += '<td style="font-weight:800;">TOTAL</td>';
+      for (var j = 0; j < userList.length; j++) {
+        var t = totalsPerUser[userList[j].user_estim];
+        grandTotal += t;
+        html += '<td style="text-align:right;">' + (t > 0 ? t.toLocaleString('id-ID') : '0') + '</td>';
+      }
+      html += '<td style="text-align:right; font-weight:800; background:#dc2626; color:#fff;">' + grandTotal.toLocaleString('id-ID') + '</td>';
+      html += '</tr>';
+
+      bodyEl.innerHTML = html;
+      footEl.innerHTML = '';
+    }
+
+    // =============================================
+    // CIT ATM — Input (KF & Teller)
+    // =============================================
+    // =============================================
+    // TUKAB — Input (Teller) + Notif WA
+    // =============================================
+    function initTukabInput() {
+      var tglEl = document.getElementById('tukab-tgl');
+      if (!tglEl.value) {
+        var now = new Date();
+        tglEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      }
+      document.getElementById('tukab-edit-id').value = '';
+      document.getElementById('tukab-bank').value = '';
+      document.getElementById('tukab-nominal').value = '';
+      document.getElementById('tukab-status-antar').checked = false;
+      document.getElementById('tukab-btn-save').innerHTML = '💾 SIMPAN DATA TUKAB';
+      loadTukabHistory();
+    }
+
+    function formatTukabNominal() {
+      var el = document.getElementById('tukab-nominal');
+      var raw = el.value.replace(/[^0-9]/g, '');
+      var num = parseInt(raw) || 0;
+      el.setAttribute('data-val', num);
+      el.value = num > 0 ? num.toLocaleString('id-ID') : '';
+    }
+
+    function getTukabNominal() {
+      return parseInt(document.getElementById('tukab-nominal').getAttribute('data-val')) || 0;
+    }
+
+    function saveTukab() {
+      var tgl = document.getElementById('tukab-tgl').value;
+      var bank = document.getElementById('tukab-bank').value.trim();
+      formatTukabNominal();
+      var nominal = getTukabNominal();
+      var editId = document.getElementById('tukab-edit-id').value;
+
+      if (!tgl) { alert('Tanggal harus diisi!'); return; }
+      if (!bank) { alert('Nama Bank harus diisi!'); return; }
+      if (nominal <= 0) { alert('Nominal TUKAB harus > 0!'); return; }
+
+      var data = {
+        tglTransaksi: tgl,
+        bank: bank,
+        nominalTukab: nominal,
+        statusAntar: document.getElementById('tukab-status-antar').checked,
+        userEstim: currentUser.userEstim || '',
+        kodeWilayah: currentUser.kodeWilayah || '',
+        kodeCabang: currentUser.kodeCabang || ''
+      };
+      if (editId) { data.id = parseInt(editId); }
+
+      showLoader(true, editId ? "Update data TUKAB..." : "Menyimpan data TUKAB...");
+      google.script.run
+        .withSuccessHandler(function() {
+          showLoader(false);
+          showToast(false);
+          document.getElementById('tukab-edit-id').value = '';
+          document.getElementById('tukab-bank').value = '';
+          document.getElementById('tukab-nominal').value = '';
+          document.getElementById('tukab-btn-save').innerHTML = '💾 SIMPAN DATA TUKAB';
+          loadTukabHistory();
+        })
+        .withFailureHandler(function(err) { showLoader(false); alert('Gagal: ' + err.message); })
+        .saveTukab(data);
+    }
+
+    function loadTukabHistory() {
+      showLoader(true, "Memuat history TUKAB...");
+      google.script.run
+        .withSuccessHandler(function(data) {
+          showLoader(false);
+          renderTukabHistory(data);
+        })
+        .withFailureHandler(function() {
+          showLoader(false);
+          document.getElementById('tukab-body').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ef4444;">Gagal memuat data</td></tr>';
+        })
+        .getTukabHistory(document.getElementById('tukab-tgl').value, currentUser.kodeWilayah || 'ALL');
+    }
+
+    function renderTukabHistory(data) {
+      var bodyEl = document.getElementById('tukab-body');
+      if (!data.list || data.list.length === 0) {
+        bodyEl.innerHTML = '<tr><td colspan="6" style="text-align:center;">Belum ada data TUKAB untuk tanggal ini.</td></tr>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < data.list.length; i++) {
+        var r = data.list[i];
+        html += '<tr>';
+        html += '<td>' + r.no + '</td>';
+        html += '<td style="font-weight:600;">' + _fmtTgl(r.tglTransaksi) + '</td>';
+        html += '<td>' + r.bank + '</td>';
+        html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalTukab.toLocaleString('id-ID') + '</td>';
+        html += '<td style="text-align:center;">' + (r.statusAntar ? '✅' : '❌') + '</td>';
+        html += '<td style="white-space:nowrap;">';
+        html += '<button onclick="editTukab(' + r.id + ',\'' + r.tglTransaksi + '\',\'' + r.bank + '\',' + r.nominalTukab + ',' + (r.statusAntar ? 'true' : 'false') + ')" style="background:#f59e0b;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;margin-right:3px;font-size:0.75rem;">✏️</button>';
+        html += '<button onclick="deleteTukab(' + r.id + ')" style="background:#ef4444;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.75rem;">🗑️</button>';
+        html += '</td></tr>';
+      }
+      bodyEl.innerHTML = html;
+    }
+
+    function editTukab(id, tgl, bank, nominal, statusAntar) {
+      document.getElementById('tukab-edit-id').value = id;
+      document.getElementById('tukab-tgl').value = tgl;
+      document.getElementById('tukab-bank').value = bank;
+      document.getElementById('tukab-nominal').value = nominal.toLocaleString('id-ID');
+      document.getElementById('tukab-nominal').setAttribute('data-val', nominal);
+      document.getElementById('tukab-status-antar').checked = (statusAntar === true || statusAntar === 'true');
+      document.getElementById('tukab-btn-save').innerHTML = '✏️ UPDATE DATA TUKAB';
+    }
+
+    function deleteTukab(id) {
+      if (!confirm('Yakin hapus data TUKAB ini?')) return;
+      showLoader(true, "Menghapus...");
+      google.script.run
+        .withSuccessHandler(function() { showLoader(false); showToast(false); loadTukabHistory(); })
+        .withFailureHandler(function(err) { showLoader(false); alert('Gagal: ' + err.message); })
+        .deleteTukab(id);
+    }
+
+    // =============================================
+    // CIT TUKAB — Rekap (Head Teller)
+    // =============================================
+    function initCitTukab() {
+      nav('cit-tukab-rekap', document.querySelectorAll('#sub-cib-cis-cit .menu-item.submenu')[4]);
+      var bulanEl = document.getElementById('tukab-rekap-bulan');
+      if (!bulanEl.value) {
+        var now = new Date();
+        bulanEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+      }
+      loadCitTukab();
+    }
+
+    function loadCitTukab() {
+      var bulan = document.getElementById('tukab-rekap-bulan').value;
+      if (!bulan) return;
+      showLoader(true, "Memuat data TUKAB...");
+      google.script.run
+        .withSuccessHandler(function(data) {
+          showLoader(false);
+          renderCitTukab(data);
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          alert("Gagal memuat data TUKAB: " + err.message);
+        })
+        .getTukabRekap(bulan, currentUser.kodeWilayah || 'ALL');
+    }
+
+    function renderCitTukab(data) {
+      var bodyEl = document.getElementById('cit-tukab-body');
+      var footEl = document.getElementById('cit-tukab-foot');
+
+      if (!data.list || data.list.length === 0) {
+        bodyEl.innerHTML = '<tr><td colspan="4" style="text-align:center;">Tidak ada data TUKAB untuk bulan ini.</td></tr>';
+        footEl.innerHTML = '';
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < data.list.length; i++) {
+        var r = data.list[i];
+        html += '<tr>';
+        html += '<td>' + r.no + '</td>';
+        html += '<td style="font-weight:600;">' + _fmtTgl(r.tglTransaksi) + '</td>';
+        html += '<td>' + r.bank + '</td>';
+        html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalTukab.toLocaleString('id-ID') + '</td>';
+        html += '</tr>';
+      }
+      bodyEl.innerHTML = html;
+
+      footEl.innerHTML = '<tr style="font-weight:bold; background:#f8fafc;">' +
+        '<td colspan="3" style="text-align:right; font-weight:800;">TOTAL (Belum Diantar)</td>' +
+        '<td style="text-align:right; font-weight:800;">Rp ' + data.grandTotal.toLocaleString('id-ID') + '</td>' +
+        '</tr>';
+    }
+
+    // =============================================
+    // DATA ATM — Kelola data ATM per KF/Teller
+    // =============================================
+    function initDataAtm() {
+      document.getElementById('data-atm-edit-id').value = '';
+      document.getElementById('data-atm-nama').value = '';
+      document.getElementById('data-atm-denom').value = '100000';
+      document.getElementById('data-atm-btn-save').innerHTML = '💾 SIMPAN DATA ATM';
+      loadDataAtmList();
+    }
+
+    function loadDataAtmList() {
+      showLoader(true, "Memuat data ATM...");
+      google.script.run
+        .withSuccessHandler(function(data) {
+          showLoader(false);
+          renderDataAtmList(data);
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          document.getElementById('data-atm-body').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#ef4444;">Gagal memuat data</td></tr>';
+        })
+        .getDataAtmList(currentUser.userEstim, currentUser.kodeWilayah || 'ALL');
+    }
+
+    function renderDataAtmList(data) {
+      var bodyEl = document.getElementById('data-atm-body');
+      if (!data.list || data.list.length === 0) {
+        bodyEl.innerHTML = '<tr><td colspan="4" style="text-align:center;">Belum ada data ATM. Daftarkan ATM di form atas.</td></tr>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < data.list.length; i++) {
+        var r = data.list[i];
+        var denomLabel = r.denom === '50000' ? 'Rp 50.000' : 'Rp 100.000';
+        html += '<tr>';
+        html += '<td>' + (i + 1) + '</td>';
+        html += '<td style="font-weight:600;">' + r.namaAtm + '</td>';
+        html += '<td>' + denomLabel + '</td>';
+        html += '<td style="white-space:nowrap;">';
+        html += '<button onclick="editDataAtm(' + r.id + ',\'' + r.namaAtm + '\',\'' + r.denom + '\')" style="background:#f59e0b;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;margin-right:3px;font-size:0.75rem;">✏️</button>';
+        html += '<button onclick="deleteDataAtm(' + r.id + ')" style="background:#ef4444;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.75rem;">🗑️</button>';
+        html += '</td></tr>';
+      }
+      bodyEl.innerHTML = html;
+    }
+
+    function saveDataAtm() {
+      var nama = document.getElementById('data-atm-nama').value.trim();
+      var denom = document.getElementById('data-atm-denom').value;
+      var editId = document.getElementById('data-atm-edit-id').value;
+      if (!nama) { alert('Nama ATM harus diisi!'); return; }
+
+      var data = {
+        namaAtm: nama,
+        denom: denom,
+        userEstim: currentUser.userEstim || '',
+        kodeWilayah: currentUser.kodeWilayah || '',
+        kodeCabang: currentUser.kodeCabang || ''
+      };
+      if (editId) { data.id = parseInt(editId); }
+
+      showLoader(true, editId ? "Update data ATM..." : "Menyimpan data ATM...");
+      google.script.run
+        .withSuccessHandler(function() {
+          showLoader(false);
+          showToast(false);
+          document.getElementById('data-atm-edit-id').value = '';
+          document.getElementById('data-atm-nama').value = '';
+          document.getElementById('data-atm-denom').value = '100000';
+          document.getElementById('data-atm-btn-save').innerHTML = '💾 SIMPAN DATA ATM';
+          loadDataAtmList();
+        })
+        .withFailureHandler(function(err) { showLoader(false); alert('Gagal: ' + err.message); })
+        .saveDataAtm(data);
+    }
+
+    function editDataAtm(id, nama, denom) {
+      document.getElementById('data-atm-edit-id').value = id;
+      document.getElementById('data-atm-nama').value = nama;
+      document.getElementById('data-atm-denom').value = denom;
+      document.getElementById('data-atm-btn-save').innerHTML = '✏️ UPDATE DATA ATM';
+      document.getElementById('data-atm-nama').focus();
+    }
+
+    function deleteDataAtm(id) {
+      if (!confirm('Yakin hapus data ATM ini?')) return;
+      showLoader(true, "Menghapus...");
+      google.script.run
+        .withSuccessHandler(function() { showLoader(false); showToast(false); loadDataAtmList(); })
+        .withFailureHandler(function(err) { showLoader(false); alert('Gagal menghapus: ' + err.message); })
+        .deleteDataAtm(id);
+    }
+
+    // =============================================
+    // CIT ATM — populate dropdown from db_atm
+    // =============================================
+    function initCitAtmInput() {
+      var tglEl = document.getElementById('cit-atm-tgl');
+      if (!tglEl.value) {
+        var now = new Date();
+        tglEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      }
+      document.getElementById('cit-atm-edit-id').value = '';
+      document.getElementById('cit-atm-user').value = '';
+      document.getElementById('cit-atm-nominal').value = '';
+      document.getElementById('cit-atm-btn-save').innerHTML = '💾 SIMPAN DATA CIT ATM';
+      loadCitAtmDropdown();
+      loadCitAtmHistory();
+    }
+
+    function loadCitAtmDropdown() {
+      var sel = document.getElementById('cit-atm-user');
+      google.script.run
+        .withSuccessHandler(function(data) {
+          sel.innerHTML = '<option value="">-- Pilih ATM --</option>';
+          for (var i = 0; i < data.list.length; i++) {
+            var r = data.list[i];
+            var denomLabel = r.denom === '50000' ? '50rb' : '100rb';
+            sel.innerHTML += '<option value="' + r.namaAtm + '">' + r.namaAtm + ' (' + denomLabel + ')</option>';
+          }
+          if (data.list.length === 0) {
+            sel.innerHTML += '<option value="" disabled>-- Daftarkan ATM di menu Data ATM --</option>';
+          }
+        })
+        .withFailureHandler(function() {
+          sel.innerHTML = '<option value="">-- Gagal memuat --</option>';
+        })
+        .getMyDataAtm(currentUser.userEstim);
+    }
+
+    function formatCitAtmNominal() {
+      var el = document.getElementById('cit-atm-nominal');
+      var raw = el.value.replace(/[^0-9]/g, '');
+      var num = parseInt(raw) || 0;
+      el.setAttribute('data-val', num);
+      el.value = num > 0 ? num.toLocaleString('id-ID') : '';
+    }
+
+    function getCitAtmNominal() {
+      return parseInt(document.getElementById('cit-atm-nominal').getAttribute('data-val')) || 0;
+    }
+
+    function saveCitAtm() {
+      var tgl = document.getElementById('cit-atm-tgl').value;
+      var userAtm = document.getElementById('cit-atm-user').value.trim();
+      formatCitAtmNominal();
+      var nominal = getCitAtmNominal();
+      var editId = document.getElementById('cit-atm-edit-id').value;
+
+      if (!tgl) { alert('Tanggal harus diisi!'); return; }
+      if (!userAtm) { alert('User ATM harus diisi!'); return; }
+      if (nominal <= 0) { alert('Nominal pengisian harus > 0!'); return; }
+
+      var data = {
+        tglTransaksi: tgl,
+        userAtm: userAtm,
+        nominalPengisian: nominal,
+        kodeWilayah: currentUser.kodeWilayah || '',
+        kodeCabang: currentUser.kodeCabang || ''
+      };
+      if (editId) { data.id = parseInt(editId); }
+
+      showLoader(true, editId ? "Update data CIT ATM..." : "Menyimpan data CIT ATM...");
+      google.script.run
+        .withSuccessHandler(function() {
+          showLoader(false);
+          showToast(false);
+          document.getElementById('cit-atm-edit-id').value = '';
+          document.getElementById('cit-atm-user').value = '';
+          document.getElementById('cit-atm-nominal').value = '';
+          document.getElementById('cit-atm-btn-save').innerHTML = '💾 SIMPAN DATA CIT ATM';
+          loadCitAtmHistory();
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          alert('Gagal: ' + err.message);
+        })
+        .saveCitAtm(data);
+    }
+
+    function loadCitAtmHistory() {
+      showLoader(true, "Memuat history...");
+      google.script.run
+        .withSuccessHandler(function(data) {
+          showLoader(false);
+          renderCitAtmHistory(data);
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          document.getElementById('cit-atm-input-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ef4444;">Gagal memuat data</td></tr>';
+        })
+        .getCitAtmHistory(currentUser.kodeWilayah || 'ALL');
+    }
+
+    function renderCitAtmHistory(data) {
+      var bodyEl = document.getElementById('cit-atm-input-body');
+      if (!data.list || data.list.length === 0) {
+        bodyEl.innerHTML = '<tr><td colspan="5" style="text-align:center;">Belum ada data transaksi CIT ATM.</td></tr>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < data.list.length; i++) {
+        var r = data.list[i];
+        html += '<tr>';
+        html += '<td>' + r.no + '</td>';
+        html += '<td style="font-weight:600;">' + _fmtTgl(r.tglTransaksi) + '</td>';
+        html += '<td>' + r.userAtm + '</td>';
+        html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalPengisian.toLocaleString('id-ID') + '</td>';
+        html += '<td style="white-space:nowrap;">';
+        html += '<button onclick="editCitAtm(' + r.id + ',\'' + r.tglTransaksi + '\',\'' + r.userAtm + '\',' + r.nominalPengisian + ')" style="background:#f59e0b;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;margin-right:3px;font-size:0.75rem;">✏️</button>';
+        html += '<button onclick="deleteCitAtm(' + r.id + ')" style="background:#ef4444;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.75rem;">🗑️</button>';
+        html += '</td>';
+        html += '</tr>';
+      }
+      bodyEl.innerHTML = html;
+    }
+
+    function editCitAtm(id, tgl, user, nominal) {
+      document.getElementById('cit-atm-edit-id').value = id;
+      document.getElementById('cit-atm-tgl').value = tgl;
+      var sel = document.getElementById('cit-atm-user');
+      // Pastikan dropdown sudah terisi, lalu pilih yg sesuai
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === user) { sel.selectedIndex = i; break; }
+      }
+      document.getElementById('cit-atm-nominal').value = nominal.toLocaleString('id-ID');
+      document.getElementById('cit-atm-nominal').setAttribute('data-val', nominal);
+      document.getElementById('cit-atm-btn-save').innerHTML = '✏️ UPDATE DATA CIT ATM';
+    }
+
+    function deleteCitAtm(id) {
+      if (!confirm('Yakin hapus data CIT ATM ini?')) return;
+      showLoader(true, "Menghapus...");
+      google.script.run
+        .withSuccessHandler(function() {
+          showLoader(false);
+          showToast(false);
+          loadCitAtmHistory();
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          alert('Gagal menghapus: ' + err.message);
+        })
+        .deleteCitAtm(id);
+    }
+
+    // =============================================
+    // CIT ATM — Rekap (Head Teller)
+    // =============================================
+    function initCitAtmRekap() {
+      nav('cit-atm-rekap', document.querySelectorAll('#sub-cib-cis-cit .menu-item.submenu')[3]);
+      var bulanEl = document.getElementById('cit-atm-bulan');
+      if (!bulanEl.value) {
+        var now = new Date();
+        bulanEl.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+      }
+      loadCitAtmRekap();
+    }
+
+    function loadCitAtmRekap() {
+      var bulan = document.getElementById('cit-atm-bulan').value;
+      if (!bulan) return;
+      showLoader(true, "Memuat data CIT ATM...");
+      google.script.run
+        .withSuccessHandler(function(data) {
+          showLoader(false);
+          renderCitAtmRekap(data);
+        })
+        .withFailureHandler(function(err) {
+          showLoader(false);
+          alert("Gagal memuat data CIT ATM: " + err.message);
+        })
+        .getCitAtmRekap(bulan, currentUser.kodeWilayah || 'ALL');
+    }
+
+    function renderCitAtmRekap(data) {
+      var bodyEl = document.getElementById('cit-atm-rekap-body');
+      var footEl = document.getElementById('cit-atm-rekap-foot');
+
+      if (!data.list || data.list.length === 0) {
+        bodyEl.innerHTML = '<tr><td colspan="4" style="text-align:center;">Tidak ada data CIT ATM untuk bulan ini.</td></tr>';
+        footEl.innerHTML = '';
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < data.list.length; i++) {
+        var r = data.list[i];
+        html += '<tr>';
+        html += '<td>' + r.no + '</td>';
+        html += '<td style="font-weight:600;">' + _fmtTgl(r.tglTransaksi) + '</td>';
+        html += '<td>' + r.userAtm + '</td>';
+        html += '<td style="text-align:right; font-weight:600;">Rp ' + r.nominalPengisian.toLocaleString('id-ID') + '</td>';
+        html += '</tr>';
+      }
+      bodyEl.innerHTML = html;
+
+      footEl.innerHTML = '<tr style="font-weight:bold; background:#f8fafc;">' +
+        '<td colspan="3" style="text-align:right; font-weight:800;">TOTAL</td>' +
         '<td style="text-align:right; font-weight:800;">Rp ' + data.grandTotal.toLocaleString('id-ID') + '</td>' +
         '</tr>';
     }
@@ -1656,7 +2601,7 @@ function loadLapPosisiHarian() {
             <thead>
               <tr>
                 <th style="text-align:left; width:60%;">URAIAN POSISI KAS</th>
-                <th style="text-align:right; width:40%;">JUMLAH NOMINAL (RP)</th>
+                <th style="text-align:right; width:40%;">NOMINAL (RP)</th>
               </tr>
             </thead>
             <tbody>
@@ -1933,7 +2878,7 @@ function formatTglIndo(dateStr) {
         let pecahans = configUang[catName];
         if (!pecahans) return '';
         let html = `<tr><th colspan="4" style="background:#fde047; text-align:center; padding:1px; border:1px solid #000; font-size:5pt;">${title}</th></tr>`;
-        html += `<tr style="background:#f3f4f6;"><th style="width:20%; border:1px solid #000; font-size:4pt;">PEC</th><th style="width:35%; border:1px solid #000; font-size:4pt;">LBR/KPG</th><th style="width:5%; border:1px solid #000;"></th><th style="width:40%; border:1px solid #000; font-size:4pt;">NOMINAL</th></tr>`;
+        html += `<tr style="background:#f3f4f6;"><th style="width:20%; border:1px solid #000; font-size:4pt;">PEC</th><th style="width:35%; border:1px solid #000; font-size:4pt;">LBR/KPG</th><th style="width:5%; border:1px solid #000;"></th><th style="max-width:45%; word-break:break-word; border:1px solid #000; font-size:4pt;">NOMINAL</th></tr>`;
         let subLembar = 0, subNominal = 0;
         pecahans.forEach(p => {
             let item = (mapData[catName] && mapData[catName][p]) ? mapData[catName][p] : {lembar: 0, nominal: 0};
@@ -2144,11 +3089,11 @@ function formatTglIndo(dateStr) {
         </div>
 
         <div class="signature-section">
-            <div style="width:40%;">
+            <div style="max-width:45%; word-break:break-word;">
                 Dibuat Oleh,<br><br><br><br>
                 <b style="text-decoration:underline;">${tellerName}</b><br>Teller KF
             </div>
-            <div style="width:40%;">
+            <div style="max-width:45%; word-break:break-word;">
                 Mengetahui / Disetujui Oleh,<br><br><br><br>
                 <b style="text-decoration:underline;">${pimkasName}</b><br>Pimpinan Kas<br><br>
             </div>
@@ -2189,7 +3134,7 @@ function formatTglIndo(dateStr) {
     function showLoader(show, msg="Memproses...") { document.getElementById('loader-msg').innerText = msg; document.getElementById('global-loader').style.display = show ? 'flex' : 'none'; }
     function showToast(isError = false) { const toast = document.getElementById(isError ? 'toast-error' : 'toast'); toast.style.display = 'block'; setTimeout(() => toast.style.display = 'none', 3000); }
     function generateIdTrx() { let ue = currentUser.userEstim || ''; let prefix = ue.slice(-7).toUpperCase() || 'USR'; return prefix + '-' + Date.now(); }
-
+    
     function formatRpAlign(value) {
         if(isNaN(parseInt(value))) return value;
         return `<div style="display:flex; justify-content:space-between; align-items:center; width:100%; min-width:80px;"><span style="color:#64748b; margin-right:15px; font-weight:500;">Rp</span><span style="text-align:right; flex-grow:1;">${parseInt(value).toLocaleString('id-ID')}</span></div>`;
@@ -2282,35 +3227,25 @@ function formatTglIndo(dateStr) {
         calcPerkiraanTeller();
     } 
    
-function formatRupiahPosisi(el) { 
-  // Hanya izinkan angka dan satu tanda koma (desimal Indonesia)
+function formatRupiahPosisi(el) {
+  // Simpel & proven: seperti Setor Sore, hanya izinkan angka + satu koma desimal
   let val = el.value.replace(/[^0-9,]/g, '');
-  let parts = val.split(',');
-  
-  // Batasi maksimal 1 tanda koma di dalam input
-  if (parts.length > 2) { 
-    parts = [parts[0], parts.slice(1).join('')]; 
+  let commaIdx = val.indexOf(',');
+  if (commaIdx >= 0) {
+    // Ada koma: integer sebelum koma, maks 2 digit desimal setelah koma
+    let intPart = val.substring(0, commaIdx).replace(/\D/g, '') || '0';
+    let decPart = val.substring(commaIdx + 1).replace(/\D/g, '').substring(0, 2);
+    let num = parseInt(intPart, 10) || 0;
+    let dec = parseInt(decPart.padEnd(2, '0'), 10) || 0;
+    el.setAttribute('data-val', num + (dec / 100));
+    el.value = num.toLocaleString('id-ID') + ',' + decPart.padEnd(2, '0');
+  } else {
+    // Tidak ada koma: integer biasa seperti Setor Sore
+    let raw = val.replace(/\D/g, '');
+    el.setAttribute('data-val', raw || '0');
+    el.value = raw ? parseInt(raw, 10).toLocaleString('id-ID') : '';
   }
-  
-  // Batasi maksimal 2 digit desimal di belakang koma
-  if (parts[1] !== undefined) { 
-    parts[1] = parts[1].substring(0, 2); 
-  }
-  
-  let integerPart = parts[0];
-  let decimalPart = parts[1];
-  
-  // Format ribuan pada bagian angka bulat
-  let formattedInteger = integerPart ? parseInt(integerPart, 10).toLocaleString('id-ID') : '';
-  
-  // Tampilkan format ke layar (gabungkan bulat dan desimal)
-  el.value = decimalPart !== undefined ? formattedInteger + ',' + decimalPart : formattedInteger;
-  
-  // Simpan nilai asli komputer (dengan titik) ke dalam atribut untuk perhitungan
-  let floatVal = decimalPart !== undefined ? integerPart + '.' + decimalPart : integerPart;
-  el.setAttribute('data-val', floatVal || 0); 
-  
-  calcPosisi(); 
+  calcPosisi();
 }
 
     function formatRupiahNominal(el, kategori, pecahan, type) {
@@ -2343,9 +3278,20 @@ function formatRupiahPosisi(el) {
 
     function initPerkiraanTeller() {
       let tglEl = document.getElementById('pt-tgl');
-      if(!tglEl.value) { 
+      // Disable pilih tanggal mundur (hanya hari ini atau setelahnya)
+      var today = new Date();
+      tglEl.min = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      if(!tglEl.value) {
           showLoader(true, "Mengecek Hari Kerja...");
-          google.script.run.withSuccessHandler((dateStr) => { tglEl.value = dateStr; loadPerkiraanTeller(); }).getServerNextWorkingDay();
+          google.script.run
+            .withSuccessHandler((dateStr) => { showLoader(false); tglEl.value = dateStr; loadPerkiraanTeller(); })
+            .withFailureHandler((err) => {
+              showLoader(false);
+              alert("Gagal mengecek hari kerja: " + err.message);
+              tglEl.value = new Date().toISOString().split('T')[0];
+              loadPerkiraanTeller();
+            })
+            .getServerNextWorkingDay();
       } else { loadPerkiraanTeller(); }
     }
     
@@ -2377,16 +3323,27 @@ function formatRupiahPosisi(el) {
           body: JSON.stringify({action: 'perkiraan-kf', tanggal: tglSimpan, kodeWilayah: wilSimpan})
         }).then(function(r){ return r.json(); }).then(function(resp){
           if(resp && resp.success) console.log('✅ Notif WA perkiraan-kf terkirim');
-          else { console.warn('⚠️ Notif WA perkiraan-kf gagal:', resp); alert('⚠️ Notifikasi WA gagal terkirim!\n' + (resp && resp.error ? resp.error : 'Unknown error')); }
-        }).catch(function(e){ console.error('❌ Notif WA error:', e); alert('⚠️ Notifikasi WA gagal: ' + e.message); });
+          else console.warn('⚠️ Notif WA gagal:', resp);
+        }).catch(function(e){ console.error('❌ Notif WA error:', e); });
       }).savePerkiraanTeller(obj);
     }
 
     function initPerkiraanHT() {
       let tglEl = document.getElementById('pht-tgl');
-      if(!tglEl.value) { 
+      // Disable pilih tanggal mundur (hanya hari ini atau setelahnya)
+      var today = new Date();
+      tglEl.min = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      if(!tglEl.value) {
           showLoader(true, "Mengecek Hari Kerja...");
-          google.script.run.withSuccessHandler((dateStr) => { tglEl.value = dateStr; loadPerkiraanHT(); }).getServerNextWorkingDay();
+          google.script.run
+            .withSuccessHandler((dateStr) => { showLoader(false); tglEl.value = dateStr; loadPerkiraanHT(); })
+            .withFailureHandler((err) => {
+              showLoader(false);
+              alert("Gagal mengecek hari kerja: " + err.message);
+              tglEl.value = new Date().toISOString().split('T')[0];
+              loadPerkiraanHT();
+            })
+            .getServerNextWorkingDay();
       } else { loadPerkiraanHT(); }
     }
 
@@ -2457,6 +3414,16 @@ function loadPerkiraanHT() {
       document.getElementById('pht-terbilang-setor').innerText = grandSetor > 0 ? terbilang(grandSetor) + " Rupiah" : "-";
       document.getElementById('pht-terbilang-bon').innerText = grandBon > 0 ? terbilang(grandBon) + " Rupiah" : "-";
 
+      // --- DETAIL PESANAN NASABAH ---
+      google.script.run
+        .withSuccessHandler(function(pesananRes) {
+          renderPesananDetail(pesananRes);
+        })
+        .withFailureHandler(function() {
+          document.getElementById('pht-pesanan-body').innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ef4444;">Gagal memuat data pesanan</td></tr>';
+        })
+        .getPesananNasabahAll(tgl);
+
       // --- ANALISA TUKAB (DENGAN ESTIMASI SETORAN) ---
       let k100 = parseFloat(res.khasanah100) || 0;
       let k50 = parseFloat(res.khasanah50) || 0;
@@ -2494,16 +3461,62 @@ function loadPerkiraanHT() {
            if (hasil100 > 0) msgPecahan += `<br>- Kekurangan pecahan 100.000 sebesar Rp ${hasil100.toLocaleString('id-ID')}`;
            if (hasil50 > 0) msgPecahan += `<br>- Kekurangan pecahan 50.000 sebesar Rp ${hasil50.toLocaleString('id-ID')}`;
            
-           statusEl.innerHTML = `<div style="color:#b45309; padding:12px; border-radius:8px; background:#fef3c7; border:1px solid #fde68a;">⚠️ <b>PERHATIAN:</b> Dari jumlah nominal keseluruhan kebutuhan kas tercukupi, namun jika dipilah berdasarkan pecahan terdapat kekurangan: ${msgPecahan}</div>`;
+           statusEl.innerHTML = `<div style="color:#b45309; padding:12px; border-radius:8px; background:#fef3c7; border:1px solid #fde68a;">⚠️ <b>PERHATIAN:</b> Dari NOMINAL keseluruhan kebutuhan kas tercukupi, namun jika dipilah berdasarkan pecahan terdapat kekurangan: ${msgPecahan}</div>`;
         } else {
            statusEl.innerHTML = `<div style="color:#dc2626; padding:12px; border-radius:8px; background:#fef2f2; border:1px solid #fecaca;">🚨 <b>PERLU TUKAB:</b> Saldo Khasanah tidak mencukupi, butuh tambahan fisik keseluruhan sejumlah Rp ${grandTukab.toLocaleString('id-ID')}</div>`;
         }
       } else {
         statusEl.innerHTML = `<div style="color:#059669; padding:12px; border-radius:8px; background:#f0fdf4; border:1px solid #bbf7d0;">✅ <b>AMAN:</b> Saldo Khasanah & Estimasi Setoran mencukupi kebutuhan.</div>`;
       }
+
+      // Auto-trigger notif WA TUKAB jika ada kekurangan
+      if (grandTukab > 0) {
+        google.script.run
+          .withSuccessHandler(function(r) { console.log('✅ Notif TUKAB auto-terkirim'); })
+          .withFailureHandler(function(e) { console.warn('⚠️ Notif TUKAB gagal:', e.message); })
+          .sendAnalisaTukabWA({action: "analisa-tukab", tanggal: tgl, kodeWilayah: currentUser.kodeWilayah || 'ALL'});
+      }
     })
     .getRekapPerkiraanHT(tgl, currentUser.kodeWilayah, todayISO);
 }
+
+    function renderPesananDetail(data) {
+      var bodyEl = document.getElementById('pht-pesanan-body');
+      var footEl = document.getElementById('pht-pesanan-foot');
+      var list = data || [];
+
+      if (list.length === 0) {
+        bodyEl.innerHTML = '<tr><td colspan="5" style="text-align:center;">Tidak ada pesanan nasabah untuk tanggal ini.</td></tr>';
+        footEl.innerHTML = '';
+        return;
+      }
+
+      var html = '';
+      var tot100 = 0, tot50 = 0;
+      for (var i = 0; i < list.length; i++) {
+        var r = list[i];
+        var total = r.p100k + r.p50k;
+        tot100 += r.p100k;
+        tot50 += r.p50k;
+        html += '<tr>';
+        html += '<td style="font-weight:600;">' + r.namaNasabah + '</td>';
+        html += '<td style="text-align:right;">' + (r.p100k > 0 ? r.p100k.toLocaleString('id-ID') : '-') + '</td>';
+        html += '<td style="text-align:right;">' + (r.p50k > 0 ? r.p50k.toLocaleString('id-ID') : '-') + '</td>';
+        html += '<td style="text-align:right; font-weight:700;">Rp ' + total.toLocaleString('id-ID') + '</td>';
+        html += '<td><small style="color:#6b7280;">' + (r.userEstim || '-') + '</small></td>';
+        html += '</tr>';
+      }
+      bodyEl.innerHTML = html;
+
+      var grandTotal = tot100 + tot50;
+      footEl.innerHTML = '<tr style="font-weight:bold; background:#dcfce7;">' +
+        '<td style="font-weight:800; color:#047857;">TOTAL</td>' +
+        '<td style="text-align:right; color:#047857;">Rp ' + tot100.toLocaleString('id-ID') + '</td>' +
+        '<td style="text-align:right; color:#047857;">Rp ' + tot50.toLocaleString('id-ID') + '</td>' +
+        '<td style="text-align:right; font-weight:800; color:#047857;">Rp ' + grandTotal.toLocaleString('id-ID') + '</td>' +
+        '<td></td>' +
+        '</tr>';
+    }
 
     function loadDataPegawai() { 
   // 1. Isi data teller default
@@ -2519,7 +3532,7 @@ function loadPerkiraanHT() {
     let rowPimkas = inputPimkas.closest('.form-row');
     let judulPimkas = rowPimkas ? rowPimkas.previousElementSibling : null;
 
-    if (role === 'teller') {
+    if (role === 'teller' || role === 'pp') {
       if (rowPimkas) rowPimkas.style.display = 'none';
       if (judulPimkas && judulPimkas.tagName === 'H4') judulPimkas.style.display = 'none';
     } else {
@@ -2558,11 +3571,17 @@ function loadPerkiraanHT() {
           document.getElementById('fn-waktu').value = res.waktu || '16:00';
           document.getElementById('fn-kf-target').value = res.targetKF || '';
           document.getElementById('fn-tukab-target').value = res.targetTukab || '';
+          document.getElementById('fn-input-tukab-target').value = res.targetInputTukab || '';
           document.getElementById('fn-h1-target').value = res.targetPerkiraanH1 || '';
           document.getElementById('fn-h1-waktu').value = res.waktuPerkiraanH1 || '07:00';
           if(document.getElementById('fn-posisi-kf-target')) {
            document.getElementById('fn-posisi-kf-target').value = res.targetPosisiKas || '';
         }
+          // Load toggle notifikasi
+          let enabled = res.notifEnabled !== undefined ? res.notifEnabled : true;
+          document.getElementById('fn-notif-enabled').checked = enabled;
+          document.getElementById('fn-notif-label').innerText = enabled ? 'AKTIF' : 'NONAKTIF';
+          document.getElementById('fn-notif-label').style.color = enabled ? '#059669' : '#dc2626';
         }
       }).withFailureHandler((err) => {
         showLoader(false);
@@ -2579,9 +3598,11 @@ function loadPerkiraanHT() {
      waktu: document.getElementById('fn-waktu').value,
      targetKF: document.getElementById('fn-kf-target').value,
      targetTukab: document.getElementById('fn-tukab-target').value,
+     targetInputTukab: document.getElementById('fn-input-tukab-target').value,
      waktuPerkiraanH1: document.getElementById('fn-h1-waktu').value,
      targetPerkiraanH1: document.getElementById('fn-h1-target').value,
-     targetPosisiKas: document.getElementById('fn-posisi-kf-target') ? document.getElementById('fn-posisi-kf-target').value : ''
+     targetPosisiKas: document.getElementById('fn-posisi-kf-target') ? document.getElementById('fn-posisi-kf-target').value : '',
+     notifEnabled: document.getElementById('fn-notif-enabled').checked
   };
 
   showLoader(true, "Menyimpan Setelan...");
@@ -2590,32 +3611,47 @@ function loadPerkiraanHT() {
   }).saveSettingWAGateway(obj);
 }
 
-    function testKirimWAGateway() {
-      let tgl = getLocalDateString();
-      let wil = currentUser.kodeWilayah || 'ALL';
-      showLoader(true, "Mengirim Pesan Test HT...");
-      google.script.run.withSuccessHandler((res) => {
-        showLoader(false); alert("Respon Pengiriman API: " + res);
-      }).withFailureHandler((err) => {
-        showLoader(false); alert("Gagal Kirim: " + err.message);
-      }).testKirimWAGateway(tgl, wil);
-    }
-
-    function testKirimPerkiraanH1Btn() {
-      let wil = currentUser.kodeWilayah || 'ALL';
-      showLoader(true, "Mengirim Pesan Test Summary H-1...");
-      google.script.run.withSuccessHandler((res) => {
-        showLoader(false); alert("Respon Pengiriman API Perkiraan H-1: " + res);
-      }).withFailureHandler((err) => {
-        showLoader(false); alert("Gagal Kirim: " + err.message);
-      }).testKirimPerkiraanH1(wil);
-    }
+function onToggleNotif() {
+  let enabled = document.getElementById('fn-notif-enabled').checked;
+  let lbl = document.getElementById('fn-notif-label');
+  lbl.innerText = enabled ? 'AKTIF' : 'NONAKTIF';
+  lbl.style.color = enabled ? '#059669' : '#dc2626';
+}
 
     function clearFormUser() { document.getElementById('u-id').value = ''; document.getElementById('u-wilayah').value = ''; document.getElementById('u-kode').value = ''; document.getElementById('u-unit').value = '';
-      document.getElementById('u-user').value = ''; document.getElementById('u-pass').value = ''; document.getElementById('u-role').value = 'teller'; document.getElementById('u-estim').value = ''; }
+      document.getElementById('u-user').value = ''; document.getElementById('u-pass').value = ''; document.getElementById('u-role').value = 'teller'; document.getElementById('u-estim').value = ''; document.getElementById('u-ref-unit').value = ''; }
     function loadUsers() { showLoader(true);
       google.script.run.withSuccessHandler((res) => { showLoader(false); allUsersData = res; let html = ""; res.forEach((u, idx) => { html += `<tr><td>${u.kodeWilayah}</td><td>${u.kodeCabang}</td><td>${u.namaUnit}</td><td>${u.namaUser}</td><td><b style="color:var(--primary-red);">${u.role.toUpperCase()}</b></td><td>${u.userEstim}</td><td><button class="btn-action btn-edit" onclick="editUser(${idx})">Edit</button> <button class="btn-action btn-delete" onclick="hapusUser('${u.id}')">Hapus</button></td></tr>`; }); document.getElementById('user-body').innerHTML = html; }).getAllUsers();
+      loadUnitKerjaForDropdown(); // Refresh dropdown Unit Kerja
     }
+    function pilihUnitKerja(ukId) { if (!ukId) { document.getElementById('u-wilayah').value = ''; document.getElementById('u-kode').value = ''; document.getElementById('u-unit').value = ''; return; }
+      let found = allUnitKerjaData.find(function(uk) { return String(uk.id) === String(ukId); });
+      if (found) { document.getElementById('u-wilayah').value = found.kode_wilayah || ''; document.getElementById('u-kode').value = found.kode_cabang || ''; document.getElementById('u-unit').value = found.nama_unit || ''; }
+    }
+    // ===== UNIT KERJA CRUD (direct Supabase REST — no edge function needed) =====
+    var allUnitKerjaData = [];
+    var _UK_BASE = "https://jwsfsczgyqphoyflpjnm.supabase.co/rest/v1/unit_kerja";
+    var _UK_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MDM0MjYsImV4cCI6MjA5NzE3OTQyNn0.seVnStDF6xsLum4N1075J6uPncMPiCsANU7YROMfisU";
+    var _UK_SVC = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8";
+    function _ukHeaders(svc) { var h = { "Content-Type":"application/json", "apikey": svc ? _UK_SVC : _UK_ANON }; if (svc) h["Authorization"] = "Bearer " + _UK_SVC; return h; }
+    function loadUnitKerjaForDropdown() {
+      fetch(_UK_BASE + "?select=*&order=id", { headers: _ukHeaders(false) }).then(function(r) { return r.json(); }).then(function(res) { allUnitKerjaData = res; var sel = document.getElementById('u-ref-unit'); if (!sel) return; var curVal = sel.value; sel.innerHTML = '<option value="">-- Pilih Unit Kerja --</option>'; res.forEach(function(uk) { sel.innerHTML += '<option value="'+uk.id+'">'+uk.nama_unit+' — '+uk.nama_wilayah+' ('+uk.nama_cabang+')</option>'; }); sel.value = curVal; }).catch(function() {});
+    }
+    function loadUnitKerja() { showLoader(true);
+      fetch(_UK_BASE + "?select=*&order=id", { headers: _ukHeaders(false) }).then(function(r) { return r.json(); }).then(function(res) { showLoader(false); allUnitKerjaData = res; var html = ""; res.forEach(function(uk, idx) { html += '<tr><td>'+(uk.nip||'')+'</td><td>'+uk.nama_pegawai+'</td><td>'+uk.nama_unit+'</td><td>'+uk.kode_wilayah+'</td><td>'+uk.nama_wilayah+'</td><td>'+uk.kode_cabang+'</td><td>'+uk.nama_cabang+'</td><td><button class="btn-action btn-edit" onclick="editUnitKerja('+idx+')">Edit</button> <button class="btn-action btn-delete" onclick="hapusUnitKerja(\''+uk.id+'\')">Hapus</button></td></tr>'; }); document.getElementById('uk-body').innerHTML = html || '<tr><td colspan="8" style="text-align:center;">Belum ada data unit kerja.</td></tr>'; }).catch(function(err) { showLoader(false); alert('Gagal memuat data unit kerja: ' + err.message); });
+    }
+    function simpanUnitKerja() { var dataObj = { nip: document.getElementById('uk-nip').value, nama_pegawai: document.getElementById('uk-nama-pegawai').value, nama_unit: document.getElementById('uk-nama-unit').value, kode_cabang: document.getElementById('uk-kode-cabang').value, nama_cabang: document.getElementById('uk-nama-cabang').value, kode_wilayah: document.getElementById('uk-kode-wilayah').value, nama_wilayah: document.getElementById('uk-nama-wilayah').value };
+      if (!dataObj.nama_pegawai || !dataObj.nama_unit) { alert('Nama Pegawai dan Nama Unit wajib diisi!'); return; } showLoader(true);
+      var id = document.getElementById('uk-id').value;
+      var url = id ? (_UK_BASE + '?id=eq.' + encodeURIComponent(id)) : _UK_BASE;
+      var method = id ? 'PATCH' : 'POST';
+      fetch(url, { method: method, headers: _ukHeaders(true), body: JSON.stringify(dataObj) }).then(function(r) { if (!r.ok) return r.text().then(function(t) { throw new Error(t); }); showLoader(false); showToast(false); clearFormUnitKerja(); loadUnitKerja(); }).catch(function(err) { showLoader(false); alert('Gagal menyimpan: ' + err.message); });
+    }
+    function clearFormUnitKerja() { document.getElementById('uk-id').value = ''; document.getElementById('uk-nip').value = ''; document.getElementById('uk-nama-pegawai').value = ''; document.getElementById('uk-nama-unit').value = ''; document.getElementById('uk-kode-cabang').value = ''; document.getElementById('uk-nama-cabang').value = ''; document.getElementById('uk-kode-wilayah').value = ''; document.getElementById('uk-nama-wilayah').value = ''; }
+    function editUnitKerja(idx) { var uk = allUnitKerjaData[idx]; document.getElementById('uk-id').value = uk.id; document.getElementById('uk-nip').value = uk.nip || ''; document.getElementById('uk-nama-pegawai').value = uk.nama_pegawai || ''; document.getElementById('uk-nama-unit').value = uk.nama_unit || ''; document.getElementById('uk-kode-cabang').value = uk.kode_cabang || ''; document.getElementById('uk-nama-cabang').value = uk.nama_cabang || ''; document.getElementById('uk-kode-wilayah').value = uk.kode_wilayah || ''; document.getElementById('uk-nama-wilayah').value = uk.nama_wilayah || ''; }
+    function hapusUnitKerja(id) { if (confirm('Hapus Unit Kerja ini?')) { showLoader(true);
+      fetch(_UK_BASE + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE', headers: _ukHeaders(true) }).then(function(r) { if (!r.ok) return r.text().then(function(t) { throw new Error(t); }); showLoader(false); showToast(false); loadUnitKerja(); }).catch(function(err) { showLoader(false); alert('Gagal menghapus: ' + err.message); });
+    }}
     function simpanUser() { let dataObj = { id: document.getElementById('u-id').value, kodeWilayah: document.getElementById('u-wilayah').value, kodeCabang: document.getElementById('u-kode').value, namaUnit: document.getElementById('u-unit').value, namaUser: document.getElementById('u-user').value, role: document.getElementById('u-role').value, userEstim: document.getElementById('u-estim').value, password: document.getElementById('u-pass').value };
       if(!dataObj.kodeWilayah || !dataObj.kodeCabang || !dataObj.userEstim) { alert('Isi Kode Wilayah, Cabang, Estim!'); return; } showLoader(true); google.script.run.withSuccessHandler(()=>{ showLoader(false); showToast(false); clearFormUser(); loadUsers(); }).saveUserData(dataObj);
     }
@@ -2630,8 +3666,18 @@ function loadPerkiraanHT() {
     function resetFormHT() { setTodayDates(); resetFormVals('ht'); }
 
     function bukaTrx(mode, el) {
-      nav('trx-kas', el); 
-      resetTrxKas(); 
+      nav('trx-kas', el);
+      resetTrxKas();
+      // Tombol simpan: SETOR SORE di bawah, lainnya di atas
+      let topBtn = document.getElementById('btn-simpan-top');
+      let botBtn = document.getElementById('btn-simpan-bottom');
+      if (mode === 'SETOR SORE') {
+        if (topBtn) topBtn.style.display = 'none';
+        if (botBtn) botBtn.style.display = 'block';
+      } else {
+        if (topBtn) topBtn.style.display = 'flex';
+        if (botBtn) botBtn.style.display = 'none';
+      }
       let selectEl = document.getElementById('trx-tipe');
       selectEl.innerHTML = ''; 
       let panelBonPagi = document.getElementById('panel-bon-pagi'); 
@@ -2646,7 +3692,7 @@ function loadPerkiraanHT() {
          if(scopeEl) { scopeEl.value = 'HEAD TELLER'; scopeEl.disabled = true; } 
       }
       else if(mode === 'BON PAGI') { 
-         if (role === 'teller' || role === 'kf') { 
+         if (role === 'teller' || role === 'pp' || role === 'kf') {
             document.getElementById('trx-title').innerText = "Input Bon Pagi (Dari Head Teller)";
             selectEl.innerHTML = '<option value="BON PAGI">Bon Pagi Dari Head Teller</option>'; 
          } else { 
@@ -2665,19 +3711,19 @@ function loadPerkiraanHT() {
          }).getPreviousWorkingDayBackend(tglSkrg);
 
          if(scopeEl) { 
-            if(role === 'teller' || role === 'kf') { scopeEl.value = 'HEAD TELLER'; scopeEl.disabled = true; } 
-            else { scopeEl.value = 'KHASANAH'; scopeEl.disabled = false; } 
-         } 
-      } 
-      else if(mode === 'TAMBAHAN') { 
+            if(role === 'teller' || role === 'pp' || role === 'kf') { scopeEl.value = 'HEAD TELLER'; scopeEl.disabled = true; }
+            else { scopeEl.value = 'KHASANAH'; scopeEl.disabled = false; }
+         }
+      }
+      else if(mode === 'TAMBAHAN') {
          document.getElementById('trx-title').innerText = "Input Bon / Setor Tambahan";
-         selectEl.innerHTML = '<option value="BON TAMBAHAN">Bon Tambahan Dari HeadTeller</option><option value="SETOR TAMBAHAN">Setor Tambahan Ke HeadTeller</option>'; 
-         selectEl.disabled = false; 
+         selectEl.innerHTML = '<option value="BON TAMBAHAN">Bon Tambahan Dari HeadTeller</option><option value="SETOR TAMBAHAN">Setor Tambahan Ke HeadTeller</option>';
+         selectEl.disabled = false;
          panelBonPagi.style.display = 'none';
-         if(scopeEl) { scopeEl.value = 'KHASANAH'; scopeEl.disabled = false; } 
-      } 
-      else if(mode === 'SETOR SORE') { 
-         if (role === 'teller' || role === 'kf') { 
+         if(scopeEl) { scopeEl.value = 'KHASANAH'; scopeEl.disabled = true; }
+      }
+      else if(mode === 'SETOR SORE') {
+         if (role === 'teller' || role === 'pp' || role === 'kf') {
             document.getElementById('trx-title').innerText = "Input Setor Sore (Ke Head Teller)";
             selectEl.innerHTML = '<option value="SETOR SORE">Setor Sore Ke Head Teller</option>'; 
          } else { 
@@ -2687,9 +3733,9 @@ function loadPerkiraanHT() {
          selectEl.disabled = true; 
          panelBonPagi.style.display = 'none';
          if(scopeEl) { 
-            if(role === 'teller' || role === 'kf') { scopeEl.value = 'HEAD TELLER'; scopeEl.disabled = true; } 
-            else { scopeEl.value = 'KHASANAH'; scopeEl.disabled = false; } 
-         } 
+            if(role === 'teller' || role === 'pp' || role === 'kf') { scopeEl.value = 'HEAD TELLER'; scopeEl.disabled = true; }
+            else { scopeEl.value = 'KHASANAH'; scopeEl.disabled = false; }
+         }
          loadSuggestedSetorSore();
       }
     }
@@ -2721,22 +3767,22 @@ function loadPerkiraanHT() {
       let role = currentUser.role ? currentUser.role.toLowerCase() : '';
       let html = "";
       for (const [kategori, pecahanArr] of Object.entries(configUang)) {
-        if (kategori === 'Lainnya' && role !== 'teller' && role !== 'kf') continue;
-        if (kategori === 'ULE Campuran' && role !== 'kf' && role !== 'teller') continue;
+        if (kategori === 'Lainnya' && role !== 'teller' && role !== 'pp' && role !== 'kf') continue;
+        if (kategori === 'ULE Campuran' && role !== 'kf' && role !== 'teller' && role !== 'pp') continue;
         if (kategori === 'UTLE Campuran' && role !== 'kf') continue;
         let catId = kategori.replace(/ /g,'');
-        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:25px; margin-bottom:10px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;"><h4 style="margin:0; color:var(--text-main); font-weight:700;">${kategori}</h4><span style="font-weight:700; color:var(--primary-red); background:var(--light-red); padding:4px 12px; border-radius:6px; font-size:0.95rem;" id="subtotal_trx_${catId}">Rp 0</span></div><div class="table-responsive"><table><tr><th style="text-align:right;">Pecahan/Keterangan</th><th style="display:none;">Lembar</th><th style="text-align:right;">Jumlah Nominal</th></tr>`;
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:25px; margin-bottom:10px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;"><h4 style="margin:0; color:var(--text-main); font-weight:700;">${kategori}</h4><span style="font-weight:700; color:var(--primary-red); background:var(--light-red); padding:4px 12px; border-radius:6px; font-size:0.95rem;" id="subtotal_trx_${catId}">Rp 0</span></div><div class="table-responsive"><table><tr><th style="text-align:right;">PECAHAN</th><th style="display:none;">Lembar</th><th style="text-align:right;">NOMINAL</th></tr>`;
         pecahanArr.forEach(p => { 
           let safePecahan = String(p).replace(/ /g,''); let id = `trx_${catId}_${safePecahan}`; let labelPecahan = isNaN(p) ? p : formatRpAlign(p);
-          html += `<tr><td style="font-weight:600; width:40%;">${labelPecahan}</td><td style="display:none;"><input type="hidden" id="lembar_${id}" value="0"></td><td><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 12px; width:100%;"><span style="font-weight:700; color:#475569; margin-right:8px;">Rp</span><input type="text" id="jumlah_${id}" data-val="0" oninput="formatRupiahNominal(this, '${kategori}', '${p}', 'trx')" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:12px 0; font-size:1rem; font-family:inherit; min-width:0;"></div></td></tr>`; 
+          html += `<tr><td style="font-weight:600; max-width:45%; word-break:break-word;">${labelPecahan}</td><td style="display:none;"><input type="hidden" id="lembar_${id}" value="0"></td><td style="max-width:100%;"><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#475569; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="jumlah_${id}" data-val="0" oninput="formatRupiahNominal(this, '${kategori}', '${p}', 'trx')" placeholder="0" style="flex:1; min-width:0; max-width:100%; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:12px 0; font-size:1rem; font-family:inherit; box-sizing:border-box;"></div></td></tr>`;
         });
         html += `</table></div>`;
       } document.getElementById('trx-container').innerHTML = html;
     }
 
     function resetTrxKas() { document.getElementById('trx-idtrx').value = generateIdTrx(); resetFormVals('trx'); setTodayDates();
-      if(document.getElementById('trx-scope')) { let role = currentUser.role ? currentUser.role.toLowerCase() : ''; document.getElementById('trx-scope').value = (role === 'teller' || role === 'kf') ? 'HEAD TELLER' : 'KHASANAH'; document.getElementById('trx-scope').disabled = (role === 'teller' || role === 'kf');
-      } 
+      if(document.getElementById('trx-scope')) { let role = currentUser.role ? currentUser.role.toLowerCase() : ''; let tipeEl = document.getElementById('trx-tipe'); let tipe = tipeEl ? tipeEl.value : ''; if (tipe === 'BON TAMBAHAN' || tipe === 'SETOR TAMBAHAN') { document.getElementById('trx-scope').value = 'KHASANAH'; document.getElementById('trx-scope').disabled = true; } else { document.getElementById('trx-scope').value = (role === 'teller' || role === 'pp' || role === 'kf') ? 'HEAD TELLER' : 'KHASANAH'; document.getElementById('trx-scope').disabled = (role === 'teller' || role === 'pp' || role === 'kf'); }
+      }
     }
 
     function simpanTrxKas() {
@@ -2806,18 +3852,7 @@ function loadPerkiraanHT() {
 }
     
     function batalTransaksi(idTrx) { if(!confirm('YAKIN INGIN MEMBATALKAN?\nFisik uang di transaksi ini akan terhapus total.')) return;
-      showLoader(true, "Membatalkan...");
-      google.script.run
-        .withSuccessHandler((res) => {
-          showLoader(false);
-          if(res) { showToast(false); closeModal(); loadHistoryBonSetor(); }
-          else { alert("Gagal membatalkan: data tidak ditemukan."); }
-        })
-        .withFailureHandler((err) => {
-          showLoader(false);
-          alert("Gagal membatalkan transaksi.\n" + (err.message || err));
-        })
-        .deleteTransaksiFisik(idTrx);
+      showLoader(true, "Membatalkan..."); google.script.run.withSuccessHandler((res) => { showLoader(false); if(res) { showToast(false); closeModal(); loadHistoryBonSetor(); } else { alert("Gagal membatalkan."); } }).deleteTransaksiFisik(idTrx);
     }
 
    function renderInputKhasanah() {
@@ -2828,10 +3863,10 @@ function loadPerkiraanHT() {
         if (kategori === 'ULE Campuran' || kategori === 'UTLE Campuran' || kategori === 'Lainnya') continue;
         
         let catId = kategori.replace(/ /g,'');
-        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:25px; margin-bottom:10px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;"><h4 style="margin:0; color:var(--primary-red); font-weight:700;">${kategori}</h4><span style="font-weight:700; color:var(--primary-red); background:var(--light-red); padding:4px 12px; border-radius:6px; font-size:0.95rem;" id="subtotal_ht_${catId}">Rp 0</span></div><div class="table-responsive"><table><tr><th style="text-align:right;">Pecahan/Keterangan</th><th style="display:none;">Lembar</th><th style="text-align:right;">Nominal Fisik</th></tr>`;
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:25px; margin-bottom:10px; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;"><h4 style="margin:0; color:var(--primary-red); font-weight:700;">${kategori}</h4><span style="font-weight:700; color:var(--primary-red); background:var(--light-red); padding:4px 12px; border-radius:6px; font-size:0.95rem;" id="subtotal_ht_${catId}">Rp 0</span></div><div class="table-responsive"><table><tr><th style="text-align:right;">PECAHAN</th><th style="display:none;">Lembar</th><th style="text-align:right;">Nominal Fisik</th></tr>`;
         pecahanArr.forEach(p => { 
           let safePecahan = String(p).replace(/ /g,''); let id = `ht_${catId}_${safePecahan}`; let labelPecahan = isNaN(p) ? p : formatRpAlign(p);
-          html += `<tr><td style="width:40%; font-weight:600;">${labelPecahan}</td><td style="display:none;"><input type="hidden" id="ht-lembar_${id}" value="0"></td><td style="width:60%;"><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 12px; width:100%;"><span style="font-weight:700; color:#475569; margin-right:8px;">Rp</span><input type="text" id="ht-jumlah_${id}" data-val="0" oninput="formatRupiahNominal(this, '${kategori}', '${p}', 'ht')" placeholder="0" style="flex:1; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:12px 0; font-size:1rem; font-family:inherit; min-width:0;"></div></td></tr>`; 
+          html += `<tr><td style="font-weight:600; max-width:45%; word-break:break-word;">${labelPecahan}</td><td style="display:none;"><input type="hidden" id="ht-lembar_${id}" value="0"></td><td style="max-width:100%;"><div style="display:flex; align-items:center; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; padding:0 8px; width:100%; max-width:100%; box-sizing:border-box;"><span style="font-weight:700; color:#475569; margin-right:6px; flex-shrink:0;">Rp</span><input type="text" id="ht-jumlah_${id}" data-val="0" oninput="formatRupiahNominal(this, '${kategori}', '${p}', 'ht')" placeholder="0" style="flex:1; min-width:0; max-width:100%; background:transparent; border:none; outline:none; font-weight:700; text-align:right; padding:12px 0; font-size:1rem; font-family:inherit; box-sizing:border-box;"></div></td></tr>`;
         });
         html += `</table></div>`;
       } document.getElementById('ht-input-container').innerHTML = html;
@@ -2865,9 +3900,9 @@ function loadPerkiraanHT() {
       if(terbilangEl) { terbilangEl.innerText = (total > 0) ? "# " + terbilang(total).toUpperCase() + " RUPIAH #" : "-"; }
     }
 
-    function initPosisiKasTeller() { ['pk-penerimaandebet', 'pk-penerimaanantar', 'pk-pembayarankredit', 'pk-pembayaranantar', 'pk-selisih-pembulatan', 'pk-saldohariini', 'pk-selisih-teks'].forEach(id => { let el = document.getElementById(id); if (el) { el.value = ''; if (el.hasAttribute('data-val')) el.setAttribute('data-val', 0); } });
+    function initPosisiKasTeller() { ['pk-estim-debet', 'pk-estim-kredit', 'pk-penerimaandebet', 'pk-penerimaanantar', 'pk-pembayarankredit', 'pk-pembayaranantar', 'pk-saldohariini', 'pk-selisih-teks'].forEach(id => { let el = document.getElementById(id); if (el) { el.value = ''; if (el.hasAttribute('data-val')) el.setAttribute('data-val', 0); } });
       setTodayDates(); loadDataPosisiKas(); }
-    
+
    function loadDataPosisiKas() { 
   let tgl = document.getElementById('pk-tanggal').value; 
   if(!tgl) return; showLoader(true);
@@ -2877,53 +3912,64 @@ function loadPerkiraanHT() {
     currentRekapFisik = res; 
     
     // Terapkan opsi desimal ke pembacaan display
-    let opt = { maximumFractionDigits: 2 };
+    let opt = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
     
     document.getElementById('pk-bonpagi').value = res.bonPagi.toLocaleString('id-ID', opt); 
     document.getElementById('pk-bontambahan').value = res.bonTambahan.toLocaleString('id-ID', opt); 
     document.getElementById('pk-setortambahan').value = res.setorTambahan.toLocaleString('id-ID', opt); 
     document.getElementById('pk-setorsore').value = res.setorSore.toLocaleString('id-ID', opt); 
     
-    if(res.isSaved) { 
-      document.getElementById('pk-penerimaandebet').value = parseFloat(res.penerimaanDebet).toLocaleString('id-ID', opt); 
-      document.getElementById('pk-penerimaandebet').setAttribute('data-val', res.penerimaanDebet); 
-      
-      document.getElementById('pk-penerimaanantar').value = parseFloat(res.penerimaanAntar).toLocaleString('id-ID', opt); 
+    if(res.isSaved) {
+      document.getElementById('pk-estim-debet').value = parseFloat(res.estimDebet).toLocaleString('id-ID', opt);
+      document.getElementById('pk-estim-debet').setAttribute('data-val', res.estimDebet);
+
+      document.getElementById('pk-estim-kredit').value = parseFloat(res.estimKredit).toLocaleString('id-ID', opt);
+      document.getElementById('pk-estim-kredit').setAttribute('data-val', res.estimKredit);
+
+      document.getElementById('pk-penerimaanantar').value = parseFloat(res.penerimaanAntar).toLocaleString('id-ID', opt);
       document.getElementById('pk-penerimaanantar').setAttribute('data-val', res.penerimaanAntar); 
-      
-      document.getElementById('pk-pembayarankredit').value = parseFloat(res.pembayaranKredit).toLocaleString('id-ID', opt); 
-      document.getElementById('pk-pembayarankredit').setAttribute('data-val', res.pembayaranKredit);
       
       document.getElementById('pk-pembayaranantar').value = parseFloat(res.pembayaranAntar).toLocaleString('id-ID', opt); 
       document.getElementById('pk-pembayaranantar').setAttribute('data-val', res.pembayaranAntar); 
       
-      document.getElementById('pk-selisih-pembulatan').value = res.selisihPembulatan; 
     } 
         calcPosisi(); 
      }).getRekapTrxFisikTeller(tgl, currentUser.userEstim);
     }
 
-function calcPosisi() { 
-  let selisihBulat = parseFloat(document.getElementById('pk-selisih-pembulatan').value) || 0; 
-  let pDebet = parseFloat(document.getElementById('pk-penerimaandebet').getAttribute('data-val')) || 0;
-  let pAntar = parseFloat(document.getElementById('pk-penerimaanantar').getAttribute('data-val')) || 0; 
-  let pKredit = parseFloat(document.getElementById('pk-pembayarankredit').getAttribute('data-val')) || 0; 
-  let pBAntar = parseFloat(document.getElementById('pk-pembayaranantar').getAttribute('data-val')) || 0;
-  
-  let modalAwal = currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan;
-  let sHariIni = modalAwal + pDebet + pAntar - pKredit - pBAntar + selisihBulat;
-  
-  document.getElementById('pk-saldohariini').value = sHariIni.toLocaleString('id-ID', {maximumFractionDigits: 2}); 
-  
-  let fisikAkhir = currentRekapFisik.setorSore + currentRekapFisik.setorTambahan;
-  let selisih = fisikAkhir - sHariIni; 
-  
-  let teksStatus = document.getElementById('pk-selisih-teks'); 
-  // Konversi selisih ke 2 desimal di layar status agar lebih akurat jika kurang/lebih
-  let clr = selisih === 0 ? '#059669' : '#dc2626'; 
-  let str = selisih === 0 ? "BALANCE (Klop)" : (selisih > 0 ? `Lebih Rp ${selisih.toLocaleString('id-ID', {maximumFractionDigits: 2})}` : `Kurang Rp ${Math.abs(selisih).toLocaleString('id-ID', {maximumFractionDigits: 2})}`); 
-  
-  teksStatus.value = str; 
+function calcPosisi() {
+  let estimDebet = parseFloat(document.getElementById('pk-estim-debet').getAttribute('data-val')) || 0;
+  let estimKredit = parseFloat(document.getElementById('pk-estim-kredit').getAttribute('data-val')) || 0;
+  let antarDebet = parseFloat(document.getElementById('pk-penerimaanantar').getAttribute('data-val')) || 0;
+  let antarKredit = parseFloat(document.getElementById('pk-pembayaranantar').getAttribute('data-val')) || 0;
+  let bonPagi = currentRekapFisik.bonPagi || 0;
+  let bonTambahan = currentRekapFisik.bonTambahan || 0;
+  let setorTambahan = currentRekapFisik.setorTambahan || 0;
+
+  // Penerimaan = Estim Kredit - (Bon Pagi + Bon Tambahan) + Setor Tambahan
+  let penerimaan = estimKredit - (bonPagi + bonTambahan) + setorTambahan;
+  document.getElementById('pk-penerimaandebet').value = penerimaan.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById('pk-penerimaandebet').setAttribute('data-val', penerimaan);
+
+  // Pembayaran = Estim Debet
+  let pembayaran = estimDebet;
+  document.getElementById('pk-pembayarankredit').value = pembayaran.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById('pk-pembayarankredit').setAttribute('data-val', pembayaran);
+
+  // Setor HT = Estim Kredit - Estim Debet + Antar Teller (Debet) - Antar Teller (Kredit)
+  let setorHT = estimKredit - estimDebet + antarDebet - antarKredit;
+  document.getElementById('pk-saldohariini').value = setorHT.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById('pk-saldohariini').setAttribute('data-val', setorHT);
+
+  // Selisih = Setor Sore - Setor HT
+  let setorSore = currentRekapFisik.setorSore || 0;
+  let selisih = setorSore - setorHT;
+
+  let teksStatus = document.getElementById('pk-selisih-teks');
+  let clr = selisih === 0 ? '#059669' : '#dc2626';
+  let str = selisih === 0 ? "BALANCE (Klop)" : (selisih > 0 ? `Lebih Rp ${selisih.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : `Kurang Rp ${Math.abs(selisih).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+
+  teksStatus.value = str;
   teksStatus.style.color = clr;
 }
 
@@ -2932,17 +3978,21 @@ function simpanPosisiManual() {
   
   if (sFisikTotal <= 0) { if(!confirm('Total Fisik Setor Sore & Tambahan masih 0. Lanjut?')) return; } 
   
-  let pDebet = parseFloat(document.getElementById('pk-penerimaandebet').getAttribute('data-val')) || 0;
-  let pAntar = parseFloat(document.getElementById('pk-penerimaanantar').getAttribute('data-val')) || 0; 
-  let pKredit = parseFloat(document.getElementById('pk-pembayarankredit').getAttribute('data-val')) || 0; 
+  let estimDebet = parseFloat(document.getElementById('pk-estim-debet').getAttribute('data-val')) || 0;
+  let estimKredit = parseFloat(document.getElementById('pk-estim-kredit').getAttribute('data-val')) || 0;
+  let pAntar = parseFloat(document.getElementById('pk-penerimaanantar').getAttribute('data-val')) || 0;
   let pBAntar = parseFloat(document.getElementById('pk-pembayaranantar').getAttribute('data-val')) || 0;
-  let selisihBulat = parseFloat(document.getElementById('pk-selisih-pembulatan').value) || 0; 
-  
-  let sKemarin = currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan; 
-  let sHariIni = sKemarin + pDebet + pAntar - pKredit - pBAntar + selisihBulat; 
-  
-  let selisih = sFisikTotal - sHariIni;
-  if (selisih !== 0) { if(!confirm(`Kas selisih Rp ${selisih.toLocaleString('id-ID', {maximumFractionDigits: 2})}. Lanjut simpan?`)) return; } 
+
+  // Penerimaan = Estim Kredit - (Bon Pagi + Bon Tambahan) + Setor Tambahan
+  let penerimaan = estimKredit - (currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan) + currentRekapFisik.setorTambahan;
+  // Pembayaran = Estim Debet
+  let pembayaran = estimDebet;
+  // Setor HT = Estim Kredit - Estim Debet + Antar Teller (Debet) - Antar Teller (Kredit)
+  let setorHT = estimKredit - estimDebet + pAntar - pBAntar;
+
+  let sKemarin = currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan;
+  let selisih = currentRekapFisik.setorSore - setorHT;
+  if (selisih !== 0) { if(!confirm(`Selisih Kas Rp ${selisih.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})}. Lanjut simpan?`)) return; } 
   
   let dataObj = { 
      Role: currentUser.role,                     
@@ -2951,16 +4001,18 @@ function simpanPosisiManual() {
      UserEstim: currentUser.userEstim, 
      NamaUnit: currentUser.namaUnit,
      SaldoKemarin: sKemarin, 
-     PenerimaanDebet: pDebet, 
+     PenerimaanDebet: penerimaan, 
      PenerimaanAntarTeller: pAntar, 
-     PembayaranKredit: pKredit, 
+     PembayaranKredit: pembayaran, 
      PembayaranAntarTeller: pBAntar, 
-     SaldoHariIni: sHariIni, 
+     SaldoHariIni: setorHT, 
      SaldoFisik: sFisikTotal, 
      Selisih: selisih, 
      KodeCabang: currentUser.kodeCabang, 
      KodeWilayah: currentUser.kodeWilayah, 
-     SelisihPembulatan: selisihBulat 
+     SelisihPembulatan: 0,
+     EstimDebet: estimDebet,
+     EstimKredit: estimKredit
   };
   
   showLoader(true, "Menyimpan EOD..."); 
@@ -2972,10 +4024,7 @@ function simpanPosisiManual() {
         
         // TRIGGER WA MANDIRI: kirim notif posisi kas via Supabase endpoint
         if (dataObj.Role && dataObj.Role.toLowerCase() === 'kf') {
-           google.script.run
-             .withSuccessHandler(function(r) { console.log('✅ Notif WA posisi kas terkirim'); })
-             .withFailureHandler(function(e) { alert('⚠️ Notifikasi WA gagal terkirim!\n' + e.message); console.error('❌ Notif WA error:', e); })
-             .sendNotifPosisiKasWA({action: "posisi-kas", data: dataObj});
+           google.script.run.sendNotifPosisiKasWA({action: "posisi-kas", data: dataObj});
         }
     })
     .withFailureHandler((err) => {
@@ -3049,10 +4098,10 @@ function loadDashboardHT() {
   showLoader(true, "Memuat Rekap Wilayah...");
   google.script.run.withSuccessHandler((res) => {
     showLoader(false);
-    document.getElementById('ht-awal').innerText = "Rp " + res.saldoAwal.toLocaleString('id-ID');
-    document.getElementById('ht-akhir').innerText = "Rp " + res.saldoAkhirKhasanah.toLocaleString('id-ID');
-    document.getElementById('ht-tot-bon').innerText = "Rp " + res.totalBonTeller.toLocaleString('id-ID');
-    document.getElementById('ht-tot-setor').innerText = "Rp " + res.totalSetorTeller.toLocaleString('id-ID');
+    document.getElementById('ht-awal').innerText = "Rp " + ((res.saldoAwal || 0)).toLocaleString('id-ID');
+    document.getElementById('ht-akhir').innerText = "Rp " + ((res.saldoAkhirKhasanah || res.saldoAkhir || 0)).toLocaleString('id-ID');
+    document.getElementById('ht-tot-bon').innerText = "Rp " + ((res.totalBonTeller || res.bonHariIni || 0)).toLocaleString('id-ID');
+    document.getElementById('ht-tot-setor').innerText = "Rp " + ((res.totalSetorTeller || res.setorHariIni || 0)).toLocaleString('id-ID');
   }).getRekapHeadTeller(todayISO, currentUser.kodeWilayah);
 }
 
@@ -3336,14 +4385,18 @@ function loadDashboardHT() {
       }).getDataPejabatHT(currentUser.kodeWilayah);
     }
     
-    function initPesananNasabah() { 
+    function initPesananNasabah() {
       let tglEl = document.getElementById('pn-tgl');
-      if(!tglEl.value) { 
+      // Disable pilih tanggal mundur (hanya hari ini atau setelahnya)
+      var today = new Date();
+      tglEl.min = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      if(!tglEl.value) {
           showLoader(true, "Mengecek Hari Kerja...");
           google.script.run
-            .withSuccessHandler((dateStr) => { 
-              tglEl.value = dateStr; 
-              loadPesananNasabah(); 
+            .withSuccessHandler((dateStr) => {
+              showLoader(false);
+              tglEl.value = dateStr;
+              loadPesananNasabah();
             })
             .withFailureHandler((err) => {
               showLoader(false);
@@ -3353,8 +4406,8 @@ function loadDashboardHT() {
               loadPesananNasabah();
             })
             .getServerNextWorkingDay();
-      } else { 
-        loadPesananNasabah(); 
+      } else {
+        loadPesananNasabah();
       }
     }
 
@@ -3476,7 +4529,7 @@ function executePrintSingleSlip(item, pegawai, pejabat) {
     let pecahans = configUang[catName];
     if (!pecahans) return '';
     let html = `<tr><th colspan="4" style="background:#fde047; text-align:center; padding:1px; border:1px solid #000; font-size:5pt;">${title}</th></tr>`;
-    html += `<tr style="background:#f3f4f6;"><th style="width:20%; border:1px solid #000; font-size:4pt;">PEC</th><th style="width:35%; border:1px solid #000; font-size:4pt;">LBR/KPG</th><th style="width:5%; border:1px solid #000;"></th><th style="width:40%; border:1px solid #000; font-size:4pt;">NOMINAL</th></tr>`;
+    html += `<tr style="background:#f3f4f6;"><th style="width:20%; border:1px solid #000; font-size:4pt;">PEC</th><th style="width:35%; border:1px solid #000; font-size:4pt;">LBR/KPG</th><th style="width:5%; border:1px solid #000;"></th><th style="max-width:45%; word-break:break-word; border:1px solid #000; font-size:4pt;">NOMINAL</th></tr>`;
     let subLembar = 0, subNominal = 0;
     
     pecahans.forEach(p => {
@@ -3720,7 +4773,7 @@ function renderBodyTabularis(data) {
 
       // Penggabungan Baris Tanggal Efektif (Hanya dicetak di baris paling atas/SALDO AWAL)
       if (idx === 0) {
-        bodyHTML += `<td rowspan="5" style="position: sticky; left: 0; background: #ffffff; z-index: 10; text-align: center; font-weight: bold; border: 1px solid var(--border-color); vertical-align: middle;">${row.tanggal}</td>`;
+        var parts = row.tanggal.split("-"); var tglFmt = parts[2] + "-" + parts[1] + "-" + parts[0].substring(2); bodyHTML += `<td rowspan="5" style="position: sticky; left: 0; background: #ffffff; z-index: 10; text-align: center; font-weight: bold; border: 1px solid var(--border-color); vertical-align: middle;">${tglFmt}</td>`;
       }
 
       // Kolom Keterangan dengan posisi mengambang (sticky left) saat horizontal-scroll dilakukan
@@ -3777,8 +4830,43 @@ function formatRpTab(angka) {
   if (!val || val === 0) return '-';
   return val.toLocaleString('id-ID');
 }
-  </script>
-// Fungsi Paksa Responsive HP
+  
+function exportCibExcel() { var b = document.getElementById('cib-bulan'); _exportTable('table-cib','CIB', b ? b.value : ''); }
+function exportCisExcel() { var b = document.getElementById('cis-bulan'); _exportTable('table-cis','CIS', b ? b.value : ''); }
+function exportCitExcel() { var b = document.getElementById('cit-bulan'); _exportTable('table-cit','CIT', b ? b.value : ''); }
+function exportTukabExcel() { var b = document.getElementById('tukab-rekap-bulan'); _exportTable('table-cit-tukab','CIT_TUKAB', b ? b.value : ''); }
+function exportCitAtmExcel() { var b = document.getElementById('cit-atm-bulan'); _exportTable('table-cit-atm','CIT_ATM', b ? b.value : ''); }
+
+function exportTabularisExcel() {
+  var table = document.getElementById("table-tabularis-data");
+  if (!table) return;
+  var periode = document.getElementById("filter-bulan-tabularis").value || "data";
+  var html = table.outerHTML;
+  var blob = new Blob(["﻿" + html], {type: "application/vnd.ms-excel"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "Laporan_Tabularis_" + periode + ".xls";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function exportTabularisPDF() {
+  var table = document.getElementById("table-tabularis-data");
+  if (!table) return;
+  var periode = document.getElementById("filter-bulan-tabularis").value || "";
+  var w = window.open("", "", "width=1300,height=800");
+  w.document.write("<html><head><title>Laporan Tabularis " + periode + "</title>");
+  w.document.write("<style>@page{size:A3 landscape;margin:6mm}body{font-family:Arial;font-size:7pt}table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:2px 4px;text-align:right}th{background:#f0f0f0!important;font-weight:bold}h3{text-align:center;margin:0 0 5px;font-size:11pt}</style>");
+  w.document.write("</head><body><h3>LAPORAN TABULARIS - Periode: " + periode + "</h3>");
+  w.document.write(table.outerHTML);
+  w.document.write("</body></html>");
+  w.document.close();
+  w.focus();
+  setTimeout(function(){ w.print(); }, 500);
+}
+</script>
+
 <script>
   function terapkanCSSMobile() {
     // 1. Amankan area Login
