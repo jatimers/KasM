@@ -32,9 +32,9 @@ INSERT INTO setting_wa_gateway (
 SELECT
   kode_wilayah,
   COALESCE(NULLIF(token_kf, ''), token, '') as api_key,
-  no_hp, waktu,
+  no_hp, waktu::TIME,
   target_kf, target_tukab, target_input_tukab,
-  waktu_perkiraan_h1, target_perkiraan_h1, target_posisi_kas,
+  waktu_perkiraan_h1::TIME, target_perkiraan_h1, target_posisi_kas,
   notif_enabled
 FROM setting_fonnte
 WHERE token != '' OR token_kf != ''
