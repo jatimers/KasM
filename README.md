@@ -34,7 +34,7 @@ kas-monitor/
 │       ├── hari-libur/     # GET/POST/DELETE /api/hari-libur
 │       ├── pesanan-nasabah/# GET/POST/DELETE /api/pesanan-nasabah
 │       ├── perkiraan/      # GET/POST /api/perkiraan
-│       ├── setting-fonnte/ # GET/POST /api/setting-fonnte
+│       ├── setting-wa-gateway/ # GET/POST /api/setting-wa-gateway (✅ WA Gateway)
 │       ├── pejabat-ht/     # GET/POST /api/pejabat-ht
 │       ├── next-working-day/# GET /api/next-working-day
 │       ├── laporan-ht/     # GET /api/laporan-ht
@@ -42,7 +42,9 @@ kas-monitor/
 │       ├── tutup-buku/     # POST /api/tutup-buku
 │       ├── dashboard/      # GET /api/dashboard
 │       ├── tabularis/      # GET /api/tabularis
-│       └── notif-fonnte/   # POST /api/notif-fonnte
+│       └── notif-wa-gateway/ # POST /api/notif-wa-gateway (✅ WA Gateway)
+│       ├── notif-fonnte/   # [DEPRECATED] POST /api/notif-fonnte (diganti di atas)
+│       └── setting-fonnte/ # [DEPRECATED] GET/POST /api/setting-fonnte (diganti di atas)
 └── .github/
     └── workflows/
         └── deploy.yml      # Auto-deploy ke GitHub Pages
