@@ -1099,20 +1099,52 @@
 
       window.google = { script: { run: new Proxy({}, {
         get: function(_, name) {
+          // Handle withSuccessHandler/withFailureHandler — return chainable object
+          if (name === 'withSuccessHandler' || name === 'withFailureHandler') {
+            var chain = {
+              _successCb: null,
+              _failureCb: null,
+              withSuccessHandler: function(cb) { chain._successCb = cb; return chain; },
+              withFailureHandler: function(cb) { chain._failureCb = cb; return chain; }
+            };
+            // Add all GAS functions as methods on chain
+            Object.keys(_GAS_MAP).forEach(function(fnName) {
+              chain[fnName] = function() {
+                var args = Array.prototype.slice.call(arguments);
+                var entry = _GAS_MAP[fnName];
+                var method = entry[0], endpoint = entry[1];
+                var paramNames = entry.slice(2);
+                var promise = _callApi(method, endpoint, paramNames, args);
+                promise.then(function(data) { if (chain._successCb) chain._successCb(data); })
+                       .catch(function(err) { if (chain._failureCb) chain._failureCb(err); else console.error('API Error:', err); });
+              };
+            });
+            return chain;
+          }
+          // Direct call: google.script.run.doLogin(u, p)
           return function() {
             var args = Array.prototype.slice.call(arguments);
             var entry = _GAS_MAP[name];
-            if (!entry) { console.warn('GAS function not mapped:', name);
-              var dummy = { withSuccessHandler:function(cb){ _successCb=cb; return dummy; }, withFailureHandler:function(cb){ _failureCb=cb; return dummy; } };
-              return dummy;
-            }
+            if (!entry) { console.warn('GAS function not mapped:', name); return; }
             var method = entry[0], endpoint = entry[1];
             var paramNames = entry.slice(2);
             var promise = _callApi(method, endpoint, paramNames, args);
             var obj = { withSuccessHandler: function(cb) { _successCb = cb; return obj; }, withFailureHandler: function(cb) { _failureCb = cb; return obj; } };
+            // Also add all GAS functions for chaining
+            Object.keys(_GAS_MAP).forEach(function(fnName) {
+              obj[fnName] = function() {
+                var args2 = Array.prototype.slice.call(arguments);
+                var entry2 = _GAS_MAP[fnName];
+                var method2 = entry2[0], endpoint2 = entry2[1];
+                var paramNames2 = entry2.slice(2);
+                var promise2 = _callApi(method2, endpoint2, paramNames2, args2);
+                promise2.then(function(data) { if (_successCb) _successCb(data); })
+                        .catch(function(err) { if (_failureCb) _failureCb(err); else console.error('API Error:', err); });
+              };
+            });
             setTimeout(function(){
-              promise.then(function(data){ if(_successCb) _successCb(data); })
-                     .catch(function(err){ if(_failureCb) _failureCb(err); else console.error('API Error:', err); });
+              promise.then(function(data){ if (_successCb) _successCb(data); })
+                     .catch(function(err){ if (_failureCb) _failureCb(err); else console.error('API Error:', err); });
             }, 10);
             return obj;
           };
