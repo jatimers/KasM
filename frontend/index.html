@@ -1099,27 +1099,31 @@
 
       window.google = { script: { run: new Proxy({}, {
         get: function(_, name) {
-          // Handle withSuccessHandler/withFailureHandler — return chainable object
+          // Handle withSuccessHandler/withFailureHandler — return FUNCTION that creates chain
           if (name === 'withSuccessHandler' || name === 'withFailureHandler') {
-            var chain = {
-              _successCb: null,
-              _failureCb: null,
-              withSuccessHandler: function(cb) { chain._successCb = cb; return chain; },
-              withFailureHandler: function(cb) { chain._failureCb = cb; return chain; }
-            };
-            // Add all GAS functions as methods on chain
-            Object.keys(_GAS_MAP).forEach(function(fnName) {
-              chain[fnName] = function() {
-                var args = Array.prototype.slice.call(arguments);
-                var entry = _GAS_MAP[fnName];
-                var method = entry[0], endpoint = entry[1];
-                var paramNames = entry.slice(2);
-                var promise = _callApi(method, endpoint, paramNames, args);
-                promise.then(function(data) { if (chain._successCb) chain._successCb(data); })
-                       .catch(function(err) { if (chain._failureCb) chain._failureCb(err); else console.error('API Error:', err); });
+            return function(cb) {
+              var chain = {
+                _successCb: null,
+                _failureCb: null,
+                withSuccessHandler: function(c) { chain._successCb = c; return chain; },
+                withFailureHandler: function(c) { chain._failureCb = c; return chain; }
               };
-            });
-            return chain;
+              if (name === 'withSuccessHandler') chain._successCb = cb;
+              else chain._failureCb = cb;
+              // Add all GAS functions as methods on chain
+              Object.keys(_GAS_MAP).forEach(function(fnName) {
+                chain[fnName] = function() {
+                  var args = Array.prototype.slice.call(arguments);
+                  var entry = _GAS_MAP[fnName];
+                  var method = entry[0], endpoint = entry[1];
+                  var paramNames = entry.slice(2);
+                  var promise = _callApi(method, endpoint, paramNames, args);
+                  promise.then(function(data) { if (chain._successCb) chain._successCb(data); })
+                         .catch(function(err) { if (chain._failureCb) chain._failureCb(err); else console.error('API Error:', err); });
+                };
+              });
+              return chain;
+            };
           }
           // Direct call: google.script.run.doLogin(u, p)
           return function() {
