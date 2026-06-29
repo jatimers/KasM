@@ -10,13 +10,21 @@ const WA_GATEWAY_URL = "https://wa.matradata.com/api/v1/send-message";
 const supabase = getSupabaseAdmin();
 
 async function waGatewaySend(apiKey: string, target: string, message: string): Promise<string> {
+  // Bersihkan target: hapus spasi, suffix @g.us / @s.whatsapp.net
+  let cleanTarget = target.replace(/\s+/g, "");
+  cleanTarget = cleanTarget.replace(/@g\.us$/, "").replace(/@s\.whatsapp\.net$/, "");
+
+  if (cleanTarget.length > 20) {
+    console.warn(`[waGatewaySend] Target terlalu panjang (${cleanTarget.length} char, max 20): "${cleanTarget}" — WA Gateway akan menolak`);
+  }
+
   const resp = await fetch(WA_GATEWAY_URL, {
     method: "POST",
     headers: {
       "X-API-Key": apiKey,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ to: target.replace(/\s+/g, ""), text: message }),
+    body: JSON.stringify({ to: cleanTarget, text: message }),
   });
   return resp.text();
 }
