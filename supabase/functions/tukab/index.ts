@@ -125,7 +125,7 @@ Deno.serve(async (req: Request) => {
         try {
           const SB_URL = Deno.env.get("SB_URL") ?? "";
           const SB_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "";
-          await fetch(`${SB_URL}/functions/v1/notif-fonnte`, {
+          await fetch(`${SB_URL}/functions/v1/notif-wa-gateway`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

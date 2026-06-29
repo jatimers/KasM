@@ -140,6 +140,28 @@ Deno.serve(async (req: Request) => {
         .upsert(record, { onConflict: "tanggal, user_estim" });
 
       if (error) throw error;
+
+      // Auto-trigger notifikasi analisa kebutuhan TUKAB setelah simpan
+      try {
+        const SB_URL = Deno.env.get("SB_URL") ?? "";
+        const SB_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "";
+        const kdWil = obj.kodeWilayah || obj.kode_wilayah || "ALL";
+        fetch(`${SB_URL}/functions/v1/notif-wa-gateway`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${SB_KEY}`
+          },
+          body: JSON.stringify({
+            action: "analisa-tukab",
+            tanggal: obj.tanggal,
+            kodeWilayah: kdWil
+          })
+        }).catch(e => console.warn("[perkiraan] Notif TUKAB gagal:", e.message));
+      } catch (e) {
+        console.warn("[perkiraan] Gagal trigger notif TUKAB:", e);
+      }
+
       return successResponse("Saved");
     }
 
