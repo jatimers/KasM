@@ -38,7 +38,7 @@
     .spinner { border: 4px solid #f1f5f9; border-top: 4px solid var(--primary); border-radius: 50%; width: 45px; height: 45px; animation: spin 0.8s linear infinite; margin-bottom: 15px; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     
-    #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; flex-direction: column; }
+    #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 50%, #ecfdf5 100%); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; flex-direction: column; }
     .login-box { background: var(--surface); padding: 40px 35px; border-radius: 16px; border-top: 6px solid var(--primary); box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; width: 100%; max-width: 400px; }
     .login-icon { background: var(--primary); width: 80px; height: 80px; border-radius: 20px; display: flex; justify-content: center; align-items: center; margin: 0 auto 25px; box-shadow: 0 4px 10px rgba(22,163,123,0.3); }
     .login-box label { color: #1e293b; font-weight: 700; font-size: 0.9rem; display: block; text-align: left; margin-bottom: 8px; text-transform: none; letter-spacing: 0; }
@@ -52,7 +52,7 @@
     .hamburger { background: none; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; }
     
     .sidebar { width: 260px; min-width: 260px; background: var(--sidebar-bg); border-right: 1px solid var(--sidebar-active); display: flex; flex-direction: column; overflow: hidden; transition: 0.3s; z-index: 99; height: 100vh; }
-    .sidebar h2 { text-align: center; margin: 0; padding: 25px 20px; font-size: 1.1rem; border-bottom: 1px solid var(--sidebar-active); color: #f1f5f9; background: var(--sidebar-bg); flex-shrink: 0; }
+    .sidebar h2 { text-align: center; margin: 0; padding: 25px 20px; font-size: 1.1rem; border-bottom: 1px solid var(--sidebar-active); color: #f1f5f9; background: linear-gradient(180deg, #111c2e 0%, var(--sidebar-bg) 100%); flex-shrink: 0; }
     .sidebar-scroll { flex: 1; overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
     .sidebar-logout-top { flex-shrink: 0; padding: 8px 16px; }
     .sidebar-footer { flex-shrink: 0; border-top: 1px solid var(--sidebar-active); }
@@ -64,7 +64,7 @@
     .submenu.active { background: #1a2332; border-left: 4px solid var(--sidebar-active-border); color: #f1f5f9;}
     
     .role-menu { display: none; }
-    .role-title { font-size: 0.75rem; color: var(--text-muted); margin: 20px 20px 5px; font-weight: 700; letter-spacing: 0.5px;}
+    .role-title { font-size: 0.75rem; color: #94a3b8; margin: 20px 20px 5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;}
 
     .main-wrapper { flex: 1; display: none; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; background: var(--bg-color); }
     .main-content { flex: 1; padding: 30px; overflow-y: auto; overflow-x: hidden; scroll-behavior: smooth; }
@@ -216,34 +216,34 @@
   <div id="login-screen">
     <div class="login-box">
       <div class="login-icon"><svg width="32" height="40" viewBox="0 0 24 32" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="28" rx="4" ry="4"></rect><line x1="12" y1="23" x2="12.01" y2="23"></line></svg></div>
-      <h2 style="color: #1e293b; margin: 0 0 8px 0; font-weight: 800; font-size: 1.6rem;">Aplikasi Kas Monitor</h2>
+      <h2 style="color: #1e293b; margin: 0 0 8px 0; font-weight: 800; font-size: 1.6rem;">Kas Monitor</h2>
       <p style="color: #64748b; font-size: 0.95rem; margin-top: 0; margin-bottom: 30px;">Unit Operasional Dana</p>
-      <div style="text-align: left;"><label>Kode User</label><input type="text" id="username"></div>
-      <div style="text-align: left;"><label>Password</label><input type="password" id="password"></div>
-      <button onclick="login()">LOGIN</button>
+      <div style="text-align: left;"><label>Kode User</label><input type="text" id="username" placeholder="Masukkan kode user" autocomplete="username"></div>
+      <div style="text-align: left;"><label>Password</label><input type="password" id="password" placeholder="Masukkan password" autocomplete="current-password"></div>
+      <button onclick="login()">MASUK</button>
       <p id="login-msg" style="color: #ef4444; font-size: 0.85rem; display: none; font-weight:600; margin-top:15px;"></p>
-      <div class="footer-login">2026 by PN99</div>
+      <div class="footer-login">Kas Monitor v2 &copy; 2026</div>
     </div>
   </div>
 
   <div class="mobile-header">
-    <div style="font-weight: 700; font-size: 1.2rem;">KAS OPERASIONAL</div>
-    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div style="font-weight: 700; font-size: 1.2rem;">KAS MONITOR</div>
+    <button class="hamburger" onclick="toggleSidebar()" style="color:#94a3b8;">☰</button>
   </div>
 
   <div class="sidebar" id="sidebar">
     <h2>
-      <span id="unit-name" style="font-size:0.9rem; font-weight:700; color:var(--text-main);"></span><br>
-      <span id="user-role-name" style="font-size:0.8rem; color:var(--text-muted); font-weight:500;"></span><br>
-      <span id="user-kode-wilayah" style="font-size:0.75rem; display:block; margin-top:8px; font-weight:600; color:var(--primary-red);"></span>
-      <span id="user-kode-cabang" style="font-size:0.75rem; display:block; color:var(--text-muted);"></span>
+      <span id="unit-name" style="font-size:0.9rem; font-weight:700; color:#f1f5f9;"></span><br>
+      <span id="user-role-name" style="font-size:0.8rem; color:#94a3b8; font-weight:500;"></span><br>
+      <span id="user-kode-wilayah" style="font-size:0.75rem; display:block; margin-top:8px; font-weight:600; color:#34d399;"></span>
+      <span id="user-kode-cabang" style="font-size:0.75rem; display:block; color:#94a3b8;"></span>
     </h2>
     <div class="sidebar-logout-top">
-      <button onclick="logout()" style="width:100%; padding:10px; background:#dc2626; color:white; border:none; border-radius:6px; font-weight:700; font-size:0.9rem; cursor:pointer;">🚪 LOGOUT</button>
+      <button onclick="logout()" style="width:100%; padding:10px; background:#ef4444; color:white; border:none; border-radius:6px; font-weight:700; font-size:0.9rem; cursor:pointer; transition:0.2s;">🚪 LOGOUT</button>
     </div>
     <div class="sidebar-scroll">
     <div class="role-menu menu-admin">
-      <div class="role-title">ADMINISTRATOR</div>
+      <div class="role-title" style="color:#94a3b8;">ADMINISTRATOR</div>
       <div class="menu-item active" onclick="nav('kelola-user', this); loadUsers();">👥 Kelola User</div>
       <div class="menu-item" onclick="nav('kelola-unit-kerja', this); loadUnitKerja();">🏢 Kelola Unit Kerja</div>
       <div class="menu-item" onclick="nav('setelan-libur', this); loadHariLibur();">📅 Setelan Hari Libur</div>
@@ -251,7 +251,7 @@
     </div>
 
     <div class="role-menu menu-ht">
-      <div class="role-title">OPERASIONAL DANA LUMAJANG</div>
+      <div class="role-title" style="color:#94a3b8;">OPERASIONAL DANA LUMAJANG</div>
       <div class="menu-item" onclick="nav('dashboard-ht', this); loadDashboardHT();">🏛️ Dashboard</div>
       <div class="menu-item" onclick="toggleSubmenu('sub-ops-khs')">▼ OPS. KHASANAH</div>
       <div id="sub-ops-khs" class="submenu-container">
@@ -285,10 +285,10 @@
       </div>
       </div>
       <div class="role-menu menu-teller">
-      <div class="role-title">OPERASIONAL TELLER</div>
+      <div class="role-title" style="color:#94a3b8;">OPERASIONAL TELLER</div>
       <div class="menu-item" onclick="nav('dashboard', this); loadDashboardTeller();">📊 Dashboard Teller</div>
       <div class="menu-item" onclick="nav('data-pegawai', this); loadDataPegawai();">🧑‍💼 Data Pegawai</div>
-      <div class="menu-item" style="background: #f8fafc;" onclick="nav('pesanan-nasabah', this); initPesananNasabah();">👤 Input Pesanan Nasabah</div>
+      <div class="menu-item" style="background: #1a2332;" onclick="nav('pesanan-nasabah', this); initPesananNasabah();">👤 Input Pesanan Nasabah</div>
       <div class="menu-item" onclick="nav('perkiraan-ht', this); initPerkiraanHT();">📅 Rekap Perk.Bon/Setor</div>
       <div class="menu-item" onclick="nav('tukab-input', this); initTukabInput();">🚛 Input TUKAB</div>
       <div class="menu-item" onclick="toggleSubmenu('sub-trx-teller')">▼ TRANSAKSI KAS FISIK</div>
@@ -308,10 +308,10 @@
       <div class="menu-item" onclick="nav('cit-atm-input', this); initCitAtmInput();">💵 Input CIT ATM</div>
     </div>
       <div class="role-menu menu-kf">
-      <div class="role-title">OPERASIONAL KF</div>
+      <div class="role-title" style="color:#94a3b8;">OPERASIONAL KF</div>
       <div class="menu-item" onclick="nav('dashboard', this); loadDashboardTeller();">📊 Dashboard KF</div>
       <div class="menu-item" onclick="nav('data-pegawai', this); loadDataPegawai();">🧑‍💼 Data Pegawai</div>
-      <div class="menu-item" style="background: #f8fafc;" onclick="nav('perkiraan-teller', this); initPerkiraanTeller();">📅 Perkiraan Bon/Setor</div>
+      <div class="menu-item" style="background: #1a2332;" onclick="nav('perkiraan-teller', this); initPerkiraanTeller();">📅 Perkiraan Bon/Setor</div>
       <div class="menu-item" onclick="toggleSubmenu('sub-trx-kf')">▼ TRANSAKSI KAS FISIK</div>
       <div id="sub-trx-kf" class="submenu-container open">
         <div class="menu-item submenu" onclick="bukaTrx('SALDO AWAL', this)">💼 Saldo Awal (Migrasi)</div>
@@ -333,13 +333,13 @@
       <div class="menu-item" onclick="nav('cit-atm-input', this); initCitAtmInput();">💵 Input CIT ATM</div>
     </div>
     <div class="role-menu menu-capem">
-      <div class="role-title">OPERASIONAL CAPEM</div>
-      <div class="menu-item active" style="background: #f8fafc;" onclick="nav('perkiraan-teller', this); initPerkiraanTeller();">📅 Perkiraan Bon/Setor</div>
+      <div class="role-title" style="color:#94a3b8;">OPERASIONAL CAPEM</div>
+      <div class="menu-item active" style="background: #1a2332;" onclick="nav('perkiraan-teller', this); initPerkiraanTeller();">📅 Perkiraan Bon/Setor</div>
     </div>
     </div>
     <div class="sidebar-footer">
       <div class="menu-item" style="color: #ef4444; font-weight: 600;" onclick="logout()">🚪 Logout</div>
-      <div style="text-align: center; padding: 20px; font-size: 0.75rem; color: var(--text-muted);">2026 by PN99</div>
+      <div style="text-align: center; padding: 20px; font-size: 0.75rem; color:#64748b;">2026 by PN99</div>
     </div>
   </div>
 
