@@ -1649,9 +1649,9 @@ function initLapCluis() {
     }
     // ===== Shared helpers: fetch users from Supabase (service key, bypass RLS) =====
     function _fetchUsersCib(callback) {
-      var SVC = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8";
+      var SVC = CONFIG.SUPABASE_ANON_KEY;
       var hdrs = { "apikey": SVC, "Authorization": "Bearer " + SVC };
-      var REST = "https://jwsfsczgyqphoyflpjnm.supabase.co/rest/v1";
+      var REST = CONFIG.SUPABASE_URL + "/rest/v1";
       fetch(REST + "/users?select=user_estim,nama_user,nama_unit,role&role=in.(teller,pp,kf)&order=user_estim", { headers: hdrs })
         .then(function(r) { return r.json(); })
         .then(function(users) {
@@ -1670,9 +1670,9 @@ function initLapCluis() {
         .catch(function(err) { callback(err); });
     }
     function _fetchUsersPpKf(callback) {
-      var SVC = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8";
+      var SVC = CONFIG.SUPABASE_ANON_KEY;
       var hdrs = { "apikey": SVC, "Authorization": "Bearer " + SVC };
-      var REST = "https://jwsfsczgyqphoyflpjnm.supabase.co/rest/v1";
+      var REST = CONFIG.SUPABASE_URL + "/rest/v1";
       fetch(REST + "/users?select=user_estim,nama_user,nama_unit,role&role=in.(pp,kf)&order=user_estim", { headers: hdrs })
         .then(function(r) { return r.json(); })
         .then(function(users) {
@@ -3334,7 +3334,7 @@ function formatRupiahPosisi(el) {
         // Trigger notifikasi WA: kirim rekap perkiraan ke KF
         var tglSimpan = obj.tanggal;
         var wilSimpan = obj.kodeWilayah || 'ALL';
-        fetch('https://jwsfsczgyqphoyflpjnm.supabase.co/functions/v1/notif-wa-gateway', {
+        fetch(CONFIG.API_URL + '/notif-wa-gateway', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({action: 'perkiraan-kf', tanggal: tglSimpan, kodeWilayah: wilSimpan})
@@ -3647,9 +3647,9 @@ function onToggleNotif() {
     }
     // ===== UNIT KERJA CRUD (direct Supabase REST — no edge function needed) =====
     var allUnitKerjaData = [];
-    var _UK_BASE = "https://jwsfsczgyqphoyflpjnm.supabase.co/rest/v1/unit_kerja";
-    var _UK_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MDM0MjYsImV4cCI6MjA5NzE3OTQyNn0.seVnStDF6xsLum4N1075J6uPncMPiCsANU7YROMfisU";
-    var _UK_SVC = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8";
+    var _UK_BASE = CONFIG.SUPABASE_URL + "/rest/v1/unit_kerja";
+    var _UK_ANON = CONFIG.SUPABASE_ANON_KEY;
+    var _UK_SVC = CONFIG.SUPABASE_ANON_KEY;
     function _ukHeaders(svc) { var h = { "Content-Type":"application/json", "apikey": svc ? _UK_SVC : _UK_ANON }; if (svc) h["Authorization"] = "Bearer " + _UK_SVC; return h; }
     function loadUnitKerjaForDropdown() {
       fetch(_UK_BASE + "?select=*&order=id", { headers: _ukHeaders(false) }).then(function(r) { return r.json(); }).then(function(res) { allUnitKerjaData = res; var sel = document.getElementById('u-ref-unit'); if (!sel) return; var curVal = sel.value; sel.innerHTML = '<option value="">-- Pilih Unit Kerja --</option>'; res.forEach(function(uk) { sel.innerHTML += '<option value="'+uk.id+'">'+uk.nama_unit+' — '+uk.nama_wilayah+' ('+uk.nama_cabang+')</option>'; }); sel.value = curVal; }).catch(function() {});
