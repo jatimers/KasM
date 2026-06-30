@@ -3951,8 +3951,8 @@ function calcPosisi() {
   document.getElementById('pk-penerimaandebet').value = penerimaan.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   document.getElementById('pk-penerimaandebet').setAttribute('data-val', penerimaan);
 
-  // Pembayaran = Estim Debet
-  let pembayaran = estimDebet;
+  // Pembayaran = Estim Debet - Antar Teller (Kredit)
+  let pembayaran = estimDebet - antarKredit;
   document.getElementById('pk-pembayarankredit').value = pembayaran.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   document.getElementById('pk-pembayarankredit').setAttribute('data-val', pembayaran);
 
@@ -3961,9 +3961,9 @@ function calcPosisi() {
   document.getElementById('pk-saldohariini').value = setorHT.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   document.getElementById('pk-saldohariini').setAttribute('data-val', setorHT);
 
-  // Selisih = Setor HT - Setor Sore
+  // Selisih = Setor Sore - Setor HT
   let setorSore = currentRekapFisik.setorSore || 0;
-  let selisih = setorHT - setorSore;
+  let selisih = setorSore - setorHT;
 
   let teksStatus = document.getElementById('pk-selisih-teks');
   let clr = selisih === 0 ? '#059669' : '#dc2626';
@@ -3985,13 +3985,13 @@ function simpanPosisiManual() {
 
   // Penerimaan = Estim Kredit - (Bon Pagi + Bon Tambahan) + Setor Tambahan - Antar Teller (Debet)
   let penerimaan = estimKredit - (currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan) + currentRekapFisik.setorTambahan - pAntar;
-  // Pembayaran = Estim Debet
-  let pembayaran = estimDebet;
+  // Pembayaran = Estim Debet - Antar Teller (Kredit)
+  let pembayaran = estimDebet - pBAntar;
   // Setor HT = Bon Pagi + Bon Tambahan + Penerimaan + Antar Teller (Debet) - Pembayaran - Setor Tambahan - Antar Teller (Kredit)
   let setorHT = currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan + penerimaan + pAntar - pembayaran - currentRekapFisik.setorTambahan - pBAntar;
 
   let sKemarin = currentRekapFisik.bonPagi + currentRekapFisik.bonTambahan;
-  let selisih = setorHT - currentRekapFisik.setorSore;
+  let selisih = currentRekapFisik.setorSore - setorHT;
   if (selisih !== 0) { if(!confirm(`Selisih Kas Rp ${selisih.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})}. Lanjut simpan?`)) return; } 
   
   let dataObj = { 
