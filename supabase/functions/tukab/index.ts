@@ -120,28 +120,7 @@ Deno.serve(async (req: Request) => {
         const { data: inserted, error } = await supabase.from("db_tukab").insert(record).select("id");
         if (error) throw error;
         const newId = inserted?.[0]?.id ?? null;
-
-        // Trigger notifikasi WA TUKAB
-        try {
-          const SB_URL = Deno.env.get("SB_URL") ?? "";
-          const SB_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "";
-          await fetch(`${SB_URL}/functions/v1/notif-wa-gateway`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${SB_KEY}`
-            },
-            body: JSON.stringify({
-              action: "tukab",
-              idTransaksi: newId,
-              bank: record.bank,
-              nominal: record.nominal_tukab,
-              userEstim: record.user_estim,
-            })
-          });
-        } catch (_) { /* notif failure shouldn't block save */ }
-
-        return successResponse("Saved");
+        return successResponse({ id: newId, saved: true });
       }
     }
 

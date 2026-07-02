@@ -2043,7 +2043,7 @@ function initLapCluis() {
 
       showLoader(true, editId ? "Update data TUKAB..." : "Menyimpan data TUKAB...");
       google.script.run
-        .withSuccessHandler(function() {
+        .withSuccessHandler(function(res) {
           showLoader(false);
           showToast(false);
           document.getElementById('tukab-edit-id').value = '';
@@ -2051,6 +2051,18 @@ function initLapCluis() {
           document.getElementById('tukab-nominal').value = '';
           document.getElementById('tukab-btn-save').innerHTML = '💾 SIMPAN DATA TUKAB';
           loadTukabHistory();
+          // Trigger notifikasi WA: minta input TUKAB (hanya untuk data baru)
+          if (!editId) {
+            var savedId = (res && res.id) ? res.id : '-';
+            fetch(CONFIG.API_URL + '/notif-wa-gateway', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({action: 'tukab', idTransaksi: String(savedId), bank: bank, nominal: nominal})
+            }).then(function(r){ return r.json(); }).then(function(resp){
+              if(resp && resp.success) console.log('✅ Notif WA tukab terkirim');
+              else console.warn('⚠️ Notif WA tukab gagal:', resp);
+            }).catch(function(e){ console.error('❌ Notif WA tukab error:', e); });
+          }
         })
         .withFailureHandler(function(err) { showLoader(false); alert('Gagal: ' + err.message); })
         .saveTukab(data);
