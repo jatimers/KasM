@@ -10,8 +10,14 @@ const WA_GATEWAY_URL = "https://wa.matradata.com/api/v1/send-message";
 const supabase = getSupabaseAdmin();
 
 async function waGatewaySend(apiKey: string, target: string, message: string): Promise<string> {
-  // Bersihkan spasi, pertahankan format penuh (provider support 100 char)
-  const cleanTarget = target.replace(/\s+/g, "");
+  // Bersihkan spasi
+  let cleanTarget = target.replace(/\s+/g, "");
+
+  // Jika bukan group (@g.us), tambahkan suffix @c.us untuk personal chat
+  // WA Gateway perlu suffix agar routing ke nomor personal berfungsi
+  if (!cleanTarget.includes("@")) {
+    cleanTarget = cleanTarget + "@c.us";
+  }
 
   const resp = await fetch(WA_GATEWAY_URL, {
     method: "POST",
