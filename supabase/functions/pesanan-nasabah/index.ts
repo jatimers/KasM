@@ -90,6 +90,27 @@ Deno.serve(async (req: Request) => {
         waktu_input: waktuNow,
       }, { onConflict: "tanggal, user_estim" });
 
+      // Trigger notifikasi analisa TUKAB via WA Gateway
+      try {
+        const SB_URL = Deno.env.get("SB_URL") ?? "";
+        const SB_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "";
+        const kdWil = obj.kodeWilayah || obj.kode_wilayah || "ALL";
+        fetch(`${SB_URL}/functions/v1/notif-wa-gateway`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${SB_KEY}`
+          },
+          body: JSON.stringify({
+            action: "analisa-tukab",
+            tanggal: obj.tanggal,
+            kodeWilayah: kdWil
+          })
+        }).catch(e => console.warn("[pesanan-nasabah] Notif TUKAB gagal:", e.message));
+      } catch (e) {
+        console.warn("[pesanan-nasabah] Gagal trigger notif TUKAB:", e);
+      }
+
       return successResponse("Saved");
     }
 
