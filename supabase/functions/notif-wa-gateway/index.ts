@@ -121,6 +121,10 @@ async function sendPosisiKas(dataObj: any, setting: any): Promise<string> {
   const totalBonH1 = Number(perkiraan.p100k_bon || 0) + Number(perkiraan.p50k_bon || 0);
   const totalSetorH1 = Number(perkiraan.p100k_setor || 0) + Number(perkiraan.p50k_setor || 0);
 
+  const setorHT = Number(dataObj.SaldoHariIni || 0);
+  const setorSore = Number(dataObj.SaldoFisik || 0);
+  const selisih = setorSore - setorHT;
+
   let msg = "*LAPORAN POSISI KAS KF*\n";
   msg += "Tanggal: " + formatTglIndo(dataObj.Tanggal) + "\n";
   msg += "Unit Kerja: " + (dataObj.NamaUnit || "-") + " / " + dataObj.UserEstim + "\n";
@@ -130,8 +134,9 @@ async function sendPosisiKas(dataObj: any, setting: any): Promise<string> {
   msg += "Penerimaan Antar Teller: Rp " + Number(dataObj.PenerimaanAntarTeller || 0).toLocaleString("id-ID") + "\n";
   msg += "Pembayaran Kas: Rp " + Number(dataObj.PembayaranKredit || 0).toLocaleString("id-ID") + "\n";
   msg += "Pembayaran Antar Teller: Rp " + Number(dataObj.PembayaranAntarTeller || 0).toLocaleString("id-ID") + "\n";
-  msg += "Setor Sore: Rp " + Number(dataObj.SaldoFisik || 0).toLocaleString("id-ID") + "\n";
-  msg += "Selisih Kas: Rp " + Number(dataObj.SelisihPembulatan || 0).toLocaleString("id-ID") + "\n";
+  msg += "Setor HT: Rp " + setorHT.toLocaleString("id-ID") + "\n";
+  msg += "Setor Sore: Rp " + setorSore.toLocaleString("id-ID") + "\n";
+  msg += "Selisih Kas: Rp " + selisih.toLocaleString("id-ID") + "\n";
   msg += "--------------------------------\n";
   msg += "*Estimasi Kas H+1 (" + formatTglIndo(tglH1) + ")*\n";
   msg += "Bon: Rp " + totalBonH1.toLocaleString("id-ID") + "\n";
