@@ -21,6 +21,22 @@ Deno.serve(async (req: Request) => {
 
   try {
     const supabase = getSupabaseClient(req);
+
+    // Helper: paginated fetch to bypass Supabase 1000-row default limit.
+    // Dipakai di saldo-kas / mutasi / history-ht untuk ambil semua baris.
+    async function fetchAll(queryBuilder: any): Promise<any[]> {
+      let all: any[] = [], start = 0, size = 900;
+      while (true) {
+        const { data, error } = await queryBuilder.range(start, start + size - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all = all.concat(data);
+        if (data.length < size) break;
+        start += size;
+      }
+      return all;
+    }
+
     const url = new URL(req.url);
     const action = url.searchParams.get("action") ?? "saldo-kas";
     const tgl = url.searchParams.get("tanggal") ?? "";
@@ -38,14 +54,13 @@ Deno.serve(async (req: Request) => {
         userMap[normalizeUnit(u.user_estim)] = u.nama_unit + " (" + cleanStr(u.nama_user) + ")";
       }
 
-      // Get latest snapshot date from saldo_awal_ht
-      const { data: snapshots } = await supabase
-        .from("saldo_awal_ht")
-        .select("*")
-        .lte("tanggal", tgl);
+      // Get latest snapshot date from saldo_awal_ht (paginated — bypass 1000-row limit)
+      const snapshots = await fetchAll(
+        supabase.from("saldo_awal_ht").select("*").lte("tanggal", tgl)
+      );
 
       // Filter by wilayah
-      const filteredSnapshots = (snapshots || []).filter(
+      const filteredSnapshots = snapshots.filter(
         (s: Record<string, unknown>) => kodeWilayah === "ALL" || cleanStr(s.kode_wilayah as string) === kodeWilayah
       );
 
@@ -72,23 +87,13 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // Get bon_setor mutations (paginated to avoid 1000-row limit)
-      let bonData: any[] = [];
-      let pageStart = 0;
-      const pageSize = 900;
-      while (true) {
-        const { data: page } = await supabase
-          .from("bon_setor")
-          .select("*")
+      // Get bon_setor mutations (paginated — bypass 1000-row limit)
+      const bonData = await fetchAll(
+        supabase.from("bon_setor").select("*")
           .gte("tanggal", latestSnapshotDate || tgl)
           .lte("tanggal", tgl)
-          .range(pageStart, pageStart + pageSize - 1)
-          .order("tanggal");
-        if (!page || page.length === 0) break;
-        bonData = bonData.concat(page);
-        if (page.length < pageSize) break;
-        pageStart += pageSize;
-      }
+          .order("tanggal")
+      );
 
       const tellerCashboxes: Record<string, number> = {};
 
@@ -180,11 +185,9 @@ Deno.serve(async (req: Request) => {
         userMap[normalizeUnit(u.user_estim)] = u.nama_unit + " (" + cleanStr(u.nama_user) + ")";
       }
 
-      const { data: bonData } = await supabase
-        .from("bon_setor")
-        .select("*")
-        .eq("tanggal", tgl)
-        .limit(100000);
+      const bonData = await fetchAll(
+        supabase.from("bon_setor").select("*").eq("tanggal", tgl)
+      );
 
       const rincian: Record<string, { kategori: string; pecahan: number | string; lembar: number; nominal: number; order: number }> = {};
       let total = 0;
@@ -269,13 +272,11 @@ Deno.serve(async (req: Request) => {
 
     // fetchDataHT - simple history
     if (action === "history-ht") {
-      const { data: bonData } = await supabase
-        .from("bon_setor")
-        .select("*")
-        .eq("tanggal", tgl)
-        .limit(100000);
+      const bonData = await fetchAll(
+        supabase.from("bon_setor").select("*").eq("tanggal", tgl)
+      );
 
-      const filtered = (bonData || []).filter((row: Record<string, unknown>) => {
+      const filtered = bonData.filter((row: Record<string, unknown>) => {
         if (kodeWilayah !== "ALL" && cleanStr(row.kode_wilayah as string) !== kodeWilayah) return false;
         return true;
       });

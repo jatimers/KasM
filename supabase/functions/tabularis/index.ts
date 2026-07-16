@@ -31,6 +31,21 @@ Deno.serve(async (req: Request) => {
 
   try {
     const supabase = getSupabaseClient(req);
+
+    // Helper: paginated fetch to bypass Supabase 1000-row default limit.
+    async function fetchAll(queryBuilder: any): Promise<any[]> {
+      let all: any[] = [], start = 0, size = 900;
+      while (true) {
+        const { data, error } = await queryBuilder.range(start, start + size - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all = all.concat(data);
+        if (data.length < size) break;
+        start += size;
+      }
+      return all;
+    }
+
     const url = new URL(req.url);
     const periode = url.searchParams.get("periode") ?? ""; // Format: YYYY-MM
 
@@ -63,8 +78,8 @@ Deno.serve(async (req: Request) => {
     // Running saldo init from saldo_awal_ht
     const runningSaldo = createBlankSchema(listTeller, listKF);
 
-    const { data: htData } = await supabase.from("saldo_awal_ht").select("*").limit(100000);
-    for (const row of (htData || [])) {
+    const htData = await fetchAll(supabase.from("saldo_awal_ht").select("*").order("tanggal"));
+    for (const row of htData) {
       const jenisUang = String(row.kategori).toUpperCase().trim();
       const pcn = String(row.pecahan).trim();
       const nom = Number(row.nominal) || 0;
@@ -81,20 +96,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // Get all bon_setor (paginated to bypass 1000-row limit)
-    let bonData: any[] = [];
-    let pageStart = 0;
-    const pageSize = 900;
-    while (true) {
-      const { data: page } = await supabase
-        .from("bon_setor")
-        .select("*")
-        .range(pageStart, pageStart + pageSize - 1)
-        .order("tanggal");
-      if (!page || page.length === 0) break;
-      bonData = bonData.concat(page);
-      if (page.length < pageSize) break;
-      pageStart += pageSize;
-    }
+    const bonData = await fetchAll(
+      supabase.from("bon_setor").select("*").order("tanggal")
+    );
 
     // Process pre-period mutations
     const currentMonthTrans: Array<Record<string, unknown>> = [];
