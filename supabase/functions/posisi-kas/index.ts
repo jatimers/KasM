@@ -169,9 +169,10 @@ Deno.serve(async (req: Request) => {
           rekap.userTerdata++;
         }
 
-        // saldoHariIni = saldoFisik (= grandTotal dari laporan-ht)
-        // karena mutasi KHASANAH (SETOR TAMBAHAN/BON TAMBAHAN) tidak tercermin
-        // di aggregasi posisi_kas teller, sehingga selisih selalu = 0
+        // saldoHariIni = grandTotal prev + mutasi teller (rumus lama)
+        rekap.saldoHariIni = rekap.saldoKemarin + rekap.penerimaanDebet + rekap.penerimaanAntar - rekap.pembayaranKredit - rekap.pembayaranAntar;
+
+        // saldoFisik = grandTotal dari laporan-ht (vault + teller cashboxes)
         try {
           const laporRes = await fetch(
             `${Deno.env.get("SB_URL")}/functions/v1/laporan-ht?action=saldo-kas&tanggal=${tgl}&kodeWilayah=${kodeWilayah}`,
@@ -191,8 +192,10 @@ Deno.serve(async (req: Request) => {
           }
         }
 
-        rekap.saldoHariIni = rekap.saldoFisik;
-        rekap.selisih = 0;
+        // selisih = saldoFisik - saldoHariIni
+        // Catatan: selisih besar (>1jt) menandakan ada mutasi KHASANAH
+        // (SETOR TAMBAHAN/BON TAMBAHAN) yang belum tercermin di posisi_kas teller
+        rekap.selisih = rekap.saldoFisik - rekap.saldoHariIni;
 
         return successResponse(rekap);
       }
