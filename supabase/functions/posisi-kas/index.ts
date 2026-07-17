@@ -131,6 +131,7 @@ Deno.serve(async (req: Request) => {
           saldoKemarin: 0, penerimaanDebet: 0, penerimaanAntar: 0,
           pembayaranKredit: 0, pembayaranAntar: 0, saldoHariIni: 0,
           saldoFisik: 0, selisih: 0, userTerdata: 0,
+          totalBonTambahan: 0, totalSetorTambahan: 0,
         };
 
         // Get saldoKemarin from previous working day: query laporan-ht for grandTotal
@@ -167,6 +168,19 @@ Deno.serve(async (req: Request) => {
           rekap.pembayaranKredit += parseFloat(String(row.pembayaran_kredit)) || 0;
           rekap.pembayaranAntar += parseFloat(String(row.pembayaran_antar_teller)) || 0;
           rekap.userTerdata++;
+        }
+
+        // Hitung mutasi KHASANAH (SETOR TAMBAHAN/BON TAMBAHAN) untuk diagnosa selisih
+        const mutasiKhasanah = await fetchAll(
+          supabase.from("bon_setor").select("tipe, nominal")
+            .eq("tanggal", tgl).eq("scope", "KHASANAH")
+            .in("tipe", ["SETOR TAMBAHAN", "SETOR", "BON TAMBAHAN", "BON"])
+        );
+        for (const row of mutasiKhasanah) {
+          const t = row.tipe;
+          const n = parseFloat(String(row.nominal)) || 0;
+          if (["SETOR TAMBAHAN", "SETOR"].includes(t)) rekap.totalSetorTambahan += n;
+          else rekap.totalBonTambahan += n;
         }
 
         // saldoHariIni = saldoKemarin + mutasi teller (rumus asli)
