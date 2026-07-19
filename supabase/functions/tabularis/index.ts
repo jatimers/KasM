@@ -75,6 +75,16 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Set PP users — saldo awal selalu 0, hanya tampil setor sore
+    const ppUserSet = new Set<string>();
+    for (const u of (users || [])) {
+      const role = String(u.role).toLowerCase().trim();
+      if (role === "pp") {
+        const displayName = String(u.nama_user).trim() || String(u.user_estim).trim();
+        ppUserSet.add(displayName);
+      }
+    }
+
     // Running saldo init from saldo_awal_ht
     const runningSaldo = createBlankSchema(listTeller, listKF);
 
@@ -139,10 +149,14 @@ Deno.serve(async (req: Request) => {
         }
 
         if (jenisRaw === "BON PAGI" && scopeRaw === "HEAD TELLER") {
-          if (listTeller.includes(userTrans)) runningSaldo.teller[userTrans] -= nominal;
+          if (!ppUserSet.has(userTrans)) {
+            if (listTeller.includes(userTrans)) runningSaldo.teller[userTrans] -= nominal;
+          }
           if (listKF.includes(userTrans)) runningSaldo.kf[userTrans] -= nominal;
         } else if (jenisRaw === "SETOR SORE" && scopeRaw === "HEAD TELLER") {
-          if (listTeller.includes(userTrans)) runningSaldo.teller[userTrans] += nominal;
+          if (!ppUserSet.has(userTrans)) {
+            if (listTeller.includes(userTrans)) runningSaldo.teller[userTrans] += nominal;
+          }
           if (listKF.includes(userTrans)) runningSaldo.kf[userTrans] += nominal;
         }
       }
@@ -183,7 +197,9 @@ Deno.serve(async (req: Request) => {
         }
 
         if (tr.jenisRaw === "BON PAGI" && tr.scopeRaw === "HEAD TELLER") {
-          if (listTeller.includes(tr.userTrans as string)) dailyData["BON"].teller[tr.userTrans as string] += tr.nominal as number;
+          if (!ppUserSet.has(tr.userTrans as string)) {
+            if (listTeller.includes(tr.userTrans as string)) dailyData["BON"].teller[tr.userTrans as string] += tr.nominal as number;
+          }
           if (listKF.includes(tr.userTrans as string)) dailyData["BON"].kf[tr.userTrans as string] += tr.nominal as number;
         } else if (tr.jenisRaw === "SETOR SORE" && tr.scopeRaw === "HEAD TELLER") {
           if (listTeller.includes(tr.userTrans as string)) dailyData["SETORAN"].teller[tr.userTrans as string] += tr.nominal as number;
@@ -209,7 +225,7 @@ Deno.serve(async (req: Request) => {
       for (const t of listTeller) {
         dailyData["SISA"].teller[t] = dailyData["SALDO AWAL"].teller[t] - dailyData["BON"].teller[t];
         dailyData["SALDO AKHIR"].teller[t] = dailyData["SISA"].teller[t] + dailyData["SETORAN"].teller[t];
-        runningSaldo.teller[t] = dailyData["SALDO AKHIR"].teller[t];
+        runningSaldo.teller[t] = ppUserSet.has(t) ? 0 : dailyData["SALDO AKHIR"].teller[t];
       }
       for (const k of listKF) {
         dailyData["SISA"].kf[k] = dailyData["SALDO AWAL"].kf[k] - dailyData["BON"].kf[k];
