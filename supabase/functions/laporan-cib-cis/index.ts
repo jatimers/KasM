@@ -88,11 +88,11 @@ Deno.serve(async (req: Request) => {
         return q;
       }
 
-      // Get BON PAGI
-      const { data: bonPagiData } = await baseQuery().eq("tipe", "BON PAGI");
+      // Get BON PAGI (set high limit karena 1 bulan bisa > 1000 row pecahan)
+      const { data: bonPagiData } = await baseQuery().eq("tipe", "BON PAGI").limit(500000);
 
       // Get BON TAMBAHAN (hanya untuk teller)
-      const { data: bonTambahanData } = await baseQuery().eq("tipe", "BON TAMBAHAN");
+      const { data: bonTambahanData } = await baseQuery().eq("tipe", "BON TAMBAHAN").limit(500000);
 
       // Build matrix: tanggal → userEstim → total
       const matrix: Record<string, Record<string, number>> = {};

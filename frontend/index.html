@@ -1699,37 +1699,54 @@ function initLapCluis() {
         var startDate = bulan + '-01';
         var endDate = bulan + '-' + String(lastDay).padStart(2, '0');
 
-        fetch(REST + "/bon_setor?select=tanggal,tipe,nominal,user_estim&tanggal=gte." + startDate + "&tanggal=lte." + endDate + "&tipe=in.(BON PAGI,BON TAMBAHAN)&limit=100000", { headers: hdrs })
-          .then(function(r) { return r.json(); })
-          .then(function(rows) {
+        var allDates = [];
+        for (var d = 1; d <= lastDay; d++) { allDates.push(bulan + '-' + String(d).padStart(2, '0')); }
+
+        // Fetch per-hari untuk menghindari limit 1000 row Supabase
+        var allRows = [];
+        var fetchedDays = 0;
+        function fetchDay(idx) {
+          if (idx >= allDates.length) {
             showLoader(false);
-            var userEstimSet = {};
-            for (var i = 0; i < userList.length; i++) { userEstimSet[userList[i].user_estim] = userList[i]; }
+            processCibRows(allRows, userList, allDates, bulan);
+            return;
+          }
+          var day = allDates[idx];
+          fetch(REST + "/bon_setor?select=tanggal,tipe,nominal,user_estim&tanggal=eq." + day + "&tipe=in.(BON PAGI,BON TAMBAHAN)&limit=5000", { headers: hdrs })
+            .then(function(r) { return r.json(); })
+            .then(function(rows) {
+              allRows = allRows.concat(rows);
+              fetchedDays++;
+              fetchDay(idx + 1);
+            })
+            .catch(function(err) { showLoader(false); alert("Gagal: " + err.message); });
+        }
 
-            var allDates = [];
-            for (var d = 1; d <= lastDay; d++) { allDates.push(bulan + '-' + String(d).padStart(2, '0')); }
+        function processCibRows(rows, userList, allDates, bulan) {
+          var userEstimSet = {};
+          for (var i = 0; i < userList.length; i++) { userEstimSet[userList[i].user_estim] = userList[i]; }
 
-            var matrix = {};
-            for (var dd = 0; dd < allDates.length; dd++) {
-              matrix[allDates[dd]] = {};
-              for (var u = 0; u < userList.length; u++) { matrix[allDates[dd]][userList[u].user_estim] = 0; }
+          var matrix = {};
+          for (var dd = 0; dd < allDates.length; dd++) {
+            matrix[allDates[dd]] = {};
+            for (var u = 0; u < userList.length; u++) { matrix[allDates[dd]][userList[u].user_estim] = 0; }
+          }
+
+          for (var r = 0; r < rows.length; r++) {
+            var row = rows[r];
+            if (!userEstimSet[row.user_estim]) continue;
+            var tgl = String(row.tanggal).substring(0, 10);
+            if (!matrix[tgl]) continue;
+            var role = userEstimSet[row.user_estim].role;
+            var isTellerOrPP = (role === 'teller' || role === 'pp');
+            if (row.tipe === 'BON PAGI' || (row.tipe === 'BON TAMBAHAN' && isTellerOrPP)) {
+              matrix[tgl][row.user_estim] += (row.nominal || 0);
             }
+          }
+          renderCib(userList, allDates, matrix);
+        }
 
-            for (var r = 0; r < rows.length; r++) {
-              var row = rows[r];
-              if (!userEstimSet[row.user_estim]) continue;
-              var tgl = String(row.tanggal).substring(0, 10);
-              if (!matrix[tgl]) continue;
-              var role = userEstimSet[row.user_estim].role;
-              var isTellerOrPP = (role === 'teller' || role === 'pp');
-              // BON PAGI → all users; BON TAMBAHAN → teller & PP
-              if (row.tipe === 'BON PAGI' || (row.tipe === 'BON TAMBAHAN' && isTellerOrPP)) {
-                matrix[tgl][row.user_estim] += (row.nominal || 0);
-              }
-            }
-            renderCib(userList, allDates, matrix);
-          })
-          .catch(function(err) { showLoader(false); alert("Gagal: " + err.message); });
+        fetchDay(0);
       });
     }
 
