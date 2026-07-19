@@ -396,7 +396,7 @@
   <option value="SETOR SORE">Setor Sore</option>
   <option value="SETOR TAMBAHAN">Setor Tambahan</option>
 </select>
-      <select id="filter-user-estim" onchange="loadRekapGlobalTeller()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); font-family: inherit;">
+      <select id="filter-user-estim" onchange="renderRekapGlobalTable()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); font-family: inherit;">
   <option value="SEMUA">Semua User Estim</option>
 </select>
       <input type="date" id="rgt-tgl" class="form-control" style="padding:8px 12px; border:1px solid var(--border-color); border-radius:8px;" onchange="loadRekapGlobalTeller()">
@@ -2466,32 +2466,60 @@ function initLapCluis() {
     }
 
   let _userEstimFilterPopulated = false;
-  function populateUserEstimFilter() {
-    if (_userEstimFilterPopulated) return;
+  let _rekapGlobalCache = null;
+
+  function populateUserEstimFromData(data) {
     let sel = document.getElementById('filter-user-estim');
     if (!sel) return;
-    google.script.run
-      .withSuccessHandler(function(data) {
-        _userEstimFilterPopulated = true;
-        let seen = {};
-        let selectedVal = sel.value;
-        (data || []).forEach(function(row) {
-          let ue = (row.user_estim_teller || '').trim();
-          if (ue && !seen[ue]) {
-            seen[ue] = true;
-            let opt = document.createElement('option');
-            opt.value = ue;
-            opt.textContent = ue;
-            sel.appendChild(opt);
-          }
-        });
-        sel.value = selectedVal;
-      })
-      .getDataPegawai();
+    let currentVal = sel.value;
+    sel.innerHTML = '<option value="SEMUA">Semua User Estim</option>';
+    let seen = {};
+    (data || []).forEach(function(item) {
+      let ue = (item.userEstim || '').trim();
+      if (ue && !seen[ue]) {
+        seen[ue] = true;
+        let opt = document.createElement('option');
+        opt.value = ue;
+        opt.textContent = ue;
+        sel.appendChild(opt);
+      }
+    });
+    if (currentVal) sel.value = currentVal;
+  }
+
+  function renderRekapGlobalTable() {
+    let data = _rekapGlobalCache || [];
+    let userEstimFilter = document.getElementById('filter-user-estim');
+    let userEstimVal = (userEstimFilter && userEstimFilter.value !== "SEMUA") ? userEstimFilter.value : "";
+
+    let filteredData = data;
+    if (userEstimVal) {
+      filteredData = data.filter(function(item) { return item.userEstim === userEstimVal; });
+    }
+
+    let html = "";
+    if(!filteredData || filteredData.length === 0) {
+      html = '<tr><td colspan="4" style="text-align:center; padding:25px; color:var(--text-muted); font-style:italic;">Tidak ada riwayat mutasi mutlak dari teller pada tanggal dan tipe berkenaan.</td></tr>';
+    } else {
+      filteredData.forEach(function(item) {
+        let labelColor = "#0284c7";
+        if(item.status.includes("PAGI") || item.status.includes("AWAL")) labelColor = "#dc2626";
+        if(item.status.includes("SORE")) labelColor = "#16a34a";
+
+        let nominalFmt = typeof formatRpAlign === 'function' ? formatRpAlign(item.nominalGlobal) : '<div style="display:flex; justify-content:space-between; width:100%;"><span>Rp</span><span>' + item.nominalGlobal.toLocaleString('id-ID') + '</span></div>';
+
+        html += '<tr style="border-bottom:1px solid var(--border-color);">' +
+          '<td style="padding:12px 16px; font-family:monospace; font-weight:600; color:#475569;">' + item.idTransaksi + '</td>' +
+          '<td style="padding:12px 16px; font-weight:500;">' + item.userEstim + '</td>' +
+          '<td style="padding:12px 16px;"><span style="background:' + labelColor + '15; color:' + labelColor + '; padding:4px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; border:1px solid ' + labelColor + '30;">' + item.status + '</span></td>' +
+          '<td style="padding:12px 16px;">' + nominalFmt + '</td>' +
+          '</tr>';
+      });
+    }
+    document.getElementById('rgt-body').innerHTML = html;
   }
 
   function loadRekapGlobalTeller() {
-  populateUserEstimFilter();
   let tglInput = document.getElementById('rgt-tgl');
   if(!tglInput.value) {
     let today = new Date();
@@ -2500,11 +2528,8 @@ function initLapCluis() {
   }
   let tgl = tglInput.value;
   
-  // Tangkap nilai filter dari dropdown
   let dropdownFilter = document.getElementById('filter-tipe-jurnal');
   let tipeFilter = dropdownFilter ? dropdownFilter.value : "SEMUA";
-  let userEstimFilter = document.getElementById('filter-user-estim');
-  let userEstimVal = (userEstimFilter && userEstimFilter.value !== "SEMUA") ? userEstimFilter.value : "";
   
   showLoader(true, "Merekap Ringkasan Transaksi Teller...");
   google.script.run
@@ -2514,28 +2539,11 @@ function initLapCluis() {
     })
     .withSuccessHandler((res) => {
       showLoader(false);
-      let html = "";
-      if(!res || res.length === 0) {
-        html = `<tr><td colspan="4" style="text-align:center; padding:25px; color:var(--text-muted); font-style:italic;">Tidak ada riwayat mutasi mutlak dari teller pada tanggal dan tipe berkenaan.</td></tr>`;
-      } else {
-        res.forEach(item => {
-          let labelColor = "#0284c7"; // Default biru untuk tambahan
-          if(item.status.includes("PAGI") || item.status.includes("AWAL")) labelColor = "#dc2626"; // Merah untuk Bon Pagi
-          if(item.status.includes("SORE")) labelColor = "#16a34a"; // Hijau untuk Setor Sore
-
-          let nominalFmt = typeof formatRpAlign === 'function' ? formatRpAlign(item.nominalGlobal) : `<div style="display:flex; justify-content:space-between; width:100%;"><span>Rp</span><span>${item.nominalGlobal.toLocaleString('id-ID')}</span></div>`;
-          
-          html += `<tr style="border-bottom:1px solid var(--border-color);">
-            <td style="padding:12px 16px; font-family:monospace; font-weight:600; color:#475569;">${item.idTransaksi}</td>
-            <td style="padding:12px 16px; font-weight:500;">${item.userEstim}</td>
-            <td style="padding:12px 16px;"><span style="background:${labelColor}15; color:${labelColor}; padding:4px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; border:1px solid ${labelColor}30;">${item.status}</span></td>
-            <td style="padding:12px 16px;">${nominalFmt}</td>
-          </tr>`;
-        });
-      }
-      document.getElementById('rgt-body').innerHTML = html;
+      _rekapGlobalCache = res || [];
+      populateUserEstimFromData(_rekapGlobalCache);
+      renderRekapGlobalTable();
     })
-    .getRekapGlobalMutasiTeller(tgl, currentUser.kodeWilayah, tipeFilter, userEstimVal);
+    .getRekapGlobalMutasiTeller(tgl, currentUser.kodeWilayah, tipeFilter);
   }
 
     function exportRekapGlobalToExcel() {
