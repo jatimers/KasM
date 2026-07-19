@@ -396,6 +396,9 @@
   <option value="SETOR SORE">Setor Sore</option>
   <option value="SETOR TAMBAHAN">Setor Tambahan</option>
 </select>
+      <select id="filter-user-estim" onchange="loadRekapGlobalTeller()" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); font-family: inherit;">
+  <option value="SEMUA">Semua User Estim</option>
+</select>
       <input type="date" id="rgt-tgl" class="form-control" style="padding:8px 12px; border:1px solid var(--border-color); border-radius:8px;" onchange="loadRekapGlobalTeller()">
       <button class="btn" onclick="exportRekapGlobalToExcel()" style="padding:8px 16px; border-radius:8px; background:#16a34a; color:#fff; border:none; cursor:pointer; font-weight:600; display:flex; align-items:center; gap:5px;">
         📥 Export Excel
@@ -1293,7 +1296,7 @@
       savePesananNasabah:         ['POST','/pesanan-nasabah'],
       deletePesananNasabah:       ['DELETE','/pesanan-nasabah','id'],
       recalcPerkiraanDariPesanan: ['POST','/perkiraan'],
-      getRekapGlobalMutasiTeller: ['GET','/bon-setor','?action=rekap-global','tanggal','kodeWilayah','tipeFilter'],
+      getRekapGlobalMutasiTeller: ['GET','/bon-setor','?action=rekap-global','tanggal','kodeWilayah','tipeFilter','userEstim'],
       sendNotifPosisiKasWA:       ['POST','/notif-wa-gateway'],
       getTabularisData:           ['GET','/tabularis','periode'],
       sendLaporanHTWA:            ['POST','/notif-wa-gateway'],
@@ -2462,7 +2465,33 @@ function initLapCluis() {
         '</tr>';
     }
 
+  let _userEstimFilterPopulated = false;
+  function populateUserEstimFilter() {
+    if (_userEstimFilterPopulated) return;
+    let sel = document.getElementById('filter-user-estim');
+    if (!sel) return;
+    google.script.run
+      .withSuccessHandler(function(data) {
+        _userEstimFilterPopulated = true;
+        let seen = {};
+        let selectedVal = sel.value;
+        (data || []).forEach(function(row) {
+          let ue = (row.user_estim_teller || '').trim();
+          if (ue && !seen[ue]) {
+            seen[ue] = true;
+            let opt = document.createElement('option');
+            opt.value = ue;
+            opt.textContent = ue;
+            sel.appendChild(opt);
+          }
+        });
+        sel.value = selectedVal;
+      })
+      .getDataPegawai();
+  }
+
   function loadRekapGlobalTeller() {
+  populateUserEstimFilter();
   let tglInput = document.getElementById('rgt-tgl');
   if(!tglInput.value) {
     let today = new Date();
@@ -2474,6 +2503,8 @@ function initLapCluis() {
   // Tangkap nilai filter dari dropdown
   let dropdownFilter = document.getElementById('filter-tipe-jurnal');
   let tipeFilter = dropdownFilter ? dropdownFilter.value : "SEMUA";
+  let userEstimFilter = document.getElementById('filter-user-estim');
+  let userEstimVal = (userEstimFilter && userEstimFilter.value !== "SEMUA") ? userEstimFilter.value : "";
   
   showLoader(true, "Merekap Ringkasan Transaksi Teller...");
   google.script.run
@@ -2504,7 +2535,7 @@ function initLapCluis() {
       }
       document.getElementById('rgt-body').innerHTML = html;
     })
-    .getRekapGlobalMutasiTeller(tgl, currentUser.kodeWilayah, tipeFilter); // <-- Kirim tipeFilter ke backend
+    .getRekapGlobalMutasiTeller(tgl, currentUser.kodeWilayah, tipeFilter, userEstimVal);
   }
 
     function exportRekapGlobalToExcel() {

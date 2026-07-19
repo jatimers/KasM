@@ -280,6 +280,10 @@ Deno.serve(async (req: Request) => {
           query = query.eq("kode_wilayah", kodeWilayah);
         }
 
+        if (userEstim) {
+          query = query.eq("user_estim", userEstim);
+        }
+
         const { data, error } = await query.order("created_at");
         if (error) throw error;
 
