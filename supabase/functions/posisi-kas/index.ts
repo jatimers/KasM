@@ -28,7 +28,8 @@ Deno.serve(async (req: Request) => {
           .from("posisi_kas")
           .select("*")
           .eq("user_estim", userEstim)
-          .order("tanggal", { ascending: false });
+          .order("tanggal", { ascending: false })
+          .limit(500000);
 
         if (error) throw error;
 

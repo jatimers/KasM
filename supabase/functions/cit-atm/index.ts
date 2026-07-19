@@ -51,7 +51,7 @@ Deno.serve(async (req: Request) => {
         query = query.eq("kode_wilayah", kodeWilayah);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(500000);
       if (error) throw error;
 
       const list = (data || []).map((row, idx) => ({

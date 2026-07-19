@@ -284,7 +284,7 @@ Deno.serve(async (req: Request) => {
           query = query.eq("user_estim", userEstim);
         }
 
-        const { data, error } = await query.order("created_at");
+        const { data, error } = await query.order("created_at").limit(500000);
         if (error) throw error;
 
         const summaryMap = new Map<string, {
@@ -320,7 +320,7 @@ Deno.serve(async (req: Request) => {
       if (tgl) query = query.eq("tanggal", tgl);
       if (userEstim) query = query.eq("user_estim", userEstim);
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(500000);
       if (error) throw error;
       return successResponse(data);
     }
