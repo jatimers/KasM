@@ -479,6 +479,13 @@
           <div class="form-group" style="visibility: hidden; min-width: 200px;"></div>
         </div>
 
+        <h4 style="border-bottom: 2px solid #7c3aed; color:#7c3aed; padding-bottom:8px; margin-top:25px;">NOTIFIKASI AUTO BON PAGI (Terjadwal)</h4>
+        <div class="form-row">
+          <div class="form-group"><label>Target No HP/ID Grup (Auto Bon Pagi)</label><input type="text" id="fn-abp-target" placeholder="Cth: 6281234xxx atau ID Grup" style="background:var(--input-yellow);"></div>
+          <div class="form-group" style="visibility: hidden; min-width: 200px;"></div>
+          <div class="form-group" style="visibility: hidden; min-width: 200px;"></div>
+        </div>
+
         <div style="display:flex; gap:15px; flex-wrap:wrap; margin-top: 25px;">
           <button class="btn-refresh" style="flex:2; font-size:1.1rem; padding:15px; margin-bottom:0;" onclick="simpanWAGatewaySettings()">💾 SIMPAN SEMUA PENGATURAN</button>
         </div>
@@ -3660,6 +3667,9 @@ function loadPerkiraanHT() {
           if(document.getElementById('fn-posisi-kf-target')) {
            document.getElementById('fn-posisi-kf-target').value = res.targetPosisiKas || '';
         }
+          if(document.getElementById('fn-abp-target')) {
+           document.getElementById('fn-abp-target').value = res.targetAutoBonPagi || '';
+        }
           // Load toggle notifikasi
           let enabled = res.notifEnabled !== undefined ? res.notifEnabled : true;
           document.getElementById('fn-notif-enabled').checked = enabled;
@@ -3685,6 +3695,7 @@ function loadPerkiraanHT() {
      waktuPerkiraanH1: document.getElementById('fn-h1-waktu').value,
      targetPerkiraanH1: document.getElementById('fn-h1-target').value,
      targetPosisiKas: document.getElementById('fn-posisi-kf-target') ? document.getElementById('fn-posisi-kf-target').value : '',
+     targetAutoBonPagi: document.getElementById('fn-abp-target') ? document.getElementById('fn-abp-target').value : '',
      notifEnabled: document.getElementById('fn-notif-enabled').checked
   };
 

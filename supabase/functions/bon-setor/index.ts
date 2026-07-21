@@ -6,7 +6,7 @@
 
 import { corsHeaders, successResponse, errorResponse } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase.ts";
-import { cleanStr, normalizeUnit, formatSafeString } from "../_shared/utils.ts";
+import { cleanStr, normalizeUnit, formatSafeString, getWIBDateString } from "../_shared/utils.ts";
 
 interface BonSetorRow {
   id_transaksi: string;
@@ -327,6 +327,150 @@ Deno.serve(async (req: Request) => {
 
     // POST - Save batch (saveBonSetorBatch)
     if (req.method === "POST") {
+      const postAction = url.searchParams.get("action");
+
+      // auto-bon-pagi: automated Bon Pagi creation for all users
+      if (postAction === "auto-bon-pagi") {
+        const today = getWIBDateString();
+
+        const { data: holidays } = await supabase.from("hari_libur").select("tanggal");
+        const liburMap: Record<string, boolean> = {};
+        for (const row of (holidays || [])) {
+          const tgl = formatSafeString(row.tanggal);
+          if (tgl && tgl !== "-") liburMap[tgl] = true;
+        }
+
+        const isWorking = (ds: string) => {
+          const d = new Date(ds + "T00:00:00");
+          return d.getDay() !== 0 && d.getDay() !== 6 && !liburMap[ds];
+        };
+
+        if (!isWorking(today)) {
+          return successResponse(`Skip: ${today} bukan hari kerja`);
+        }
+
+        const pParts = today.split("-");
+        const pd = new Date(parseInt(pParts[0]), parseInt(pParts[1]) - 1, parseInt(pParts[2]));
+        pd.setDate(pd.getDate() - 1);
+        let prevDateStr = today;
+        let limit = 30;
+        while (limit > 0) {
+          const y = pd.getFullYear();
+          const m = String(pd.getMonth() + 1).padStart(2, "0");
+          const d = String(pd.getDate()).padStart(2, "0");
+          prevDateStr = `${y}-${m}-${d}`;
+          if (isWorking(prevDateStr)) break;
+          pd.setDate(pd.getDate() - 1);
+          limit--;
+        }
+
+        const { data: setorSoreUsers } = await supabase
+          .from("bon_setor")
+          .select("user_estim")
+          .eq("tanggal", prevDateStr)
+          .eq("tipe", "SETOR SORE");
+
+        const uniqueUsers = [...new Set((setorSoreUsers || []).map((r: any) => cleanStr(r.user_estim)))].filter(Boolean);
+
+        let created = 0;
+        let skipped = 0;
+        const datePart = today.replace(/-/g, "");
+
+        for (const userEstim of uniqueUsers) {
+          const { data: existingBP } = await supabase
+            .from("bon_setor")
+            .select("id")
+            .eq("tanggal", today)
+            .eq("user_estim", userEstim)
+            .eq("tipe", "BON PAGI")
+            .limit(1);
+
+          if (existingBP && existingBP.length > 0) {
+            skipped++;
+            continue;
+          }
+
+          const { data: setorSore } = await supabase
+            .from("bon_setor")
+            .select("*")
+            .eq("tanggal", prevDateStr)
+            .eq("user_estim", userEstim)
+            .eq("tipe", "SETOR SORE");
+
+          if (!setorSore || setorSore.length === 0) continue;
+
+          const idTrx = `AUTO-BP-${datePart}-${userEstim.toUpperCase()}`;
+
+          for (const row of setorSore) {
+            const nominal = parseInt(String(row.nominal)) || 0;
+            if (nominal <= 0) continue;
+
+            const safeRow: BonSetorRow = {
+              id_transaksi: idTrx,
+              tanggal: today,
+              user_estim: row.user_estim,
+              tipe: "BON PAGI",
+              kategori: row.kategori,
+              pecahan: String(row.pecahan),
+              lembar: parseInt(String(row.lembar)) || Math.floor(nominal / (parseInt(String(row.pecahan)) || 1)),
+              nominal: nominal,
+              kode_cabang: row.kode_cabang || "",
+              kode_wilayah: row.kode_wilayah || "",
+              scope: row.scope || "HEAD TELLER",
+            };
+
+            const { data: exist } = await supabase
+              .from("bon_setor")
+              .select("id_transaksi")
+              .eq("id_transaksi", safeRow.id_transaksi)
+              .eq("kategori", safeRow.kategori)
+              .eq("pecahan", safeRow.pecahan)
+              .maybeSingle();
+
+            if (exist) {
+              await supabase.from("bon_setor").update(safeRow)
+                .eq("id_transaksi", safeRow.id_transaksi)
+                .eq("kategori", safeRow.kategori)
+                .eq("pecahan", safeRow.pecahan);
+            } else {
+              await supabase.from("bon_setor").insert(safeRow);
+            }
+          }
+
+          created++;
+        }
+
+        const result = {
+          message: "Auto Bon Pagi selesai",
+          tanggal: today,
+          h1Kerja: prevDateStr,
+          totalUserSetorSore: uniqueUsers.length,
+          created,
+          skipped,
+        };
+
+        // Kirim notifikasi WA jika ada target
+        try {
+          const SB_URL = Deno.env.get("SB_URL") ?? "";
+          const SB_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "";
+          if (SB_URL && SB_KEY && (created > 0 || skipped > 0)) {
+            await fetch(`${SB_URL}/functions/v1/notif-wa-gateway`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${SB_KEY}`,
+              },
+              body: JSON.stringify({
+                action: "auto-bon-pagi",
+                data: result,
+              }),
+            });
+          }
+        } catch (_) { /* notifikasi gagal tidak membatalkan auto bon pagi */ }
+
+        return successResponse(result);
+      }
+
       const body = await req.json();
 
       if (Array.isArray(body)) {

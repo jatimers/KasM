@@ -355,6 +355,41 @@ async function sendPerkiraanH1(tgl: string, kodeWilayah: string, setting: any): 
 }
 
 // =============================================
+// AUTO BON PAGI
+// =============================================
+async function sendAutoBonPagi(result: any, setting: any): Promise<string> {
+  const apiKey = setting?.api_key;
+  const target = cleanStr(setting?.target_auto_bon_pagi || "");
+  if (!apiKey || !target) {
+    console.error("[sendAutoBonPagi] GAGAL: API Key/Target Auto Bon Pagi belum diatur");
+    return "ERROR: API Key/Target Auto Bon Pagi belum diatur";
+  }
+
+  const created = result.created || 0;
+  const skipped = result.skipped || 0;
+  const total = result.totalUserSetorSore || 0;
+  const tanggal = result.tanggal || "-";
+  const h1Kerja = result.h1Kerja || "-";
+
+  let msg = "*AUTO BON PAGI*\n";
+  msg += "Tanggal: " + formatTglIndo(tanggal) + "\n";
+  msg += "Data Setor Sore H-1: " + formatTglIndo(h1Kerja) + "\n";
+  msg += "--------------------------------\n";
+  msg += "User Setor Sore H-1: " + total + "\n";
+  msg += "Bon Pagi Dibuat: " + created + "\n";
+  msg += "Dilewati (sudah ada): " + skipped + "\n";
+  msg += "--------------------------------\n";
+  if (created > 0) {
+    msg += "Status: *BERHASIL*\n";
+  } else {
+    msg += "Status: *SEMUA SUDAH ADA*\n";
+  }
+  msg += "\n_from Cash Monitor Apps_";
+
+  return waGatewaySend(apiKey, target, msg);
+}
+
+// =============================================
 // MAIN HANDLER
 // =============================================
 Deno.serve(async (req: Request) => {
@@ -400,6 +435,10 @@ Deno.serve(async (req: Request) => {
 
       case "perkiraan-h1":
         result = await sendPerkiraanH1(tgl, kodeWilayah, setting);
+        break;
+
+      case "auto-bon-pagi":
+        result = await sendAutoBonPagi(body.data, setting);
         break;
 
       case "tukab": {
