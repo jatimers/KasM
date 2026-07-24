@@ -204,4 +204,4 @@ CREATE POLICY "Allow authenticated access" ON pesanan_nasabah FOR ALL TO authent
 -- SEED DATA
 -- =============================================
 INSERT INTO users (kode_wilayah, kode_cabang, nama_unit, nama_user, role, user_estim, password)
-VALUES ('ALL', 'ALL', 'KANTOR PUSAT', 'admin', 'admin', 'admin_super', 'super');
+VALUES ('ALL', 'ALL', 'KANTOR PUSAT', 'admin', 'admin', 'admin_super', '1d1c6d3bae548e91ed05fb0be5de30ef:2d358adfc71343099c680113f6000d084b7c2b3c0a3111f89d1b8a7c54b1d3ff2a104848e5c314696c8ac7ded53a149214850a14fe7d4da6c2bcb12737a3a52b');

@@ -26,7 +26,7 @@ SELECT cron.schedule(
   $$
   SELECT net.http_post(
     url:='https://jwsfsczgyqphoyflpjnm.supabase.co/functions/v1/notif-wa-gateway',
-    headers:='{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8"}'::jsonb,
+    headers:='{"Content-Type":"application/json","Authorization":"Bearer __SUPABASE_SERVICE_ROLE_KEY__"}'::jsonb,
     body:='{"action":"scheduled-perkiraan-h1"}'::jsonb
   )
   $$
@@ -39,7 +39,7 @@ SELECT cron.schedule(
   $$
   SELECT net.http_post(
     url:='https://jwsfsczgyqphoyflpjnm.supabase.co/functions/v1/notif-wa-gateway',
-    headers:='{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8"}'::jsonb,
+    headers:='{"Content-Type":"application/json","Authorization":"Bearer __SUPABASE_SERVICE_ROLE_KEY__"}'::jsonb,
     body:='{"action":"scheduled-laporan-ht"}'::jsonb
   )
   $$

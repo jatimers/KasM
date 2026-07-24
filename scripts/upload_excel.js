@@ -1,9 +1,16 @@
 // Upload KasM009.xlsx data to Supabase
 const XLSX = require('xlsx');
 const https = require('https');
+const crypto = require('crypto');
 
-const SB_URL = 'https://jwsfsczgyqphoyflpjnm.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3c2ZzY3pneXFwaG95Zmxwam5tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTYwMzQyNiwiZXhwIjoyMDk3MTc5NDI2fQ.wCkj-LN8oeL4TeEAYUaNk4zzV5SMeeDiF8LkZmoXXv8';
+const SB_URL = process.env.SB_URL || 'https://jwsfsczgyqphoyflpjnm.supabase.co';
+const SB_KEY = process.env.SB_SERVICE_ROLE_KEY || '';
+
+function hashPassword(plain) {
+  const salt = crypto.randomBytes(16);
+  const hash = crypto.pbkdf2Sync(plain, salt, 100000, 64, 'sha512');
+  return salt.toString('hex') + ':' + hash.toString('hex');
+}
 
 // Excel serial date → YYYY-MM-DD
 function excelDate(serial) {
@@ -110,6 +117,11 @@ async function uploadBatch(table, rows) {
 }
 
 async function main() {
+  if (!SB_KEY) {
+    console.error('ERROR: SB_SERVICE_ROLE_KEY environment variable is required');
+    process.exit(1);
+  }
+
   // Read Excel
   var wb = XLSX.readFile('D:/Project/KasM009.xlsx');
 
@@ -128,7 +140,7 @@ async function main() {
       nama_user: String(r[4] || '').replace(/'/g, '').trim(),
       role: String(r[5] || 'teller').replace(/'/g, '').trim().toLowerCase(),
       user_estim: String(r[6] || '').replace(/'/g, '').trim(),
-      password: String(r[7] || '')
+      password: hashPassword(String(r[7] || ''))
     });
     // For existing users with same user_estim, skip (already seeded)
   }
