@@ -44,6 +44,7 @@ Deno.serve(async (req: Request) => {
         waktuPerkiraanH1: formatJam(data.waktu_perkiraan_h1, "07:00"),
         targetPerkiraanH1: String(data.target_perkiraan_h1 || "").replace(/'/g, ""),
         targetPosisiKas: String(data.target_posisi_kas || "").replace(/'/g, ""),
+        targetAutoBonPagi: String(data.target_auto_bon_pagi || "").replace(/'/g, ""),
         notifEnabled: data.notif_enabled !== undefined ? data.notif_enabled : true,
       });
     }
@@ -63,6 +64,7 @@ Deno.serve(async (req: Request) => {
         waktu_perkiraan_h1: obj.waktuPerkiraanH1 || "07:00",
         target_perkiraan_h1: obj.targetPerkiraanH1 ? cleanStr(obj.targetPerkiraanH1) : "",
         target_posisi_kas: obj.targetPosisiKas ? cleanStr(obj.targetPosisiKas) : "",
+        target_auto_bon_pagi: obj.targetAutoBonPagi ? cleanStr(obj.targetAutoBonPagi) : "",
         notif_enabled: obj.notifEnabled !== undefined ? obj.notifEnabled : true,
       };
 
