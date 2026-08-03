@@ -292,6 +292,7 @@
         <div class="menu-item submenu" onclick="nav('posisi', this); initPosisiKasTeller();">🧮 Kalkulator Posisi Kas</div>
         <div class="menu-item submenu" onclick="nav('history-posisi', this); loadHistoryPosisiKas();">📜 History Posisi Kas</div>
       </div>
+      <div class="menu-item" onclick="nav('kirim-laporan-harian', this); initKirimLaporanHarian();">✉️ Kirim Laporan Akhir Hari (PDF)</div>
       <div class="menu-item" onclick="nav('data-atm-page', this); initDataAtm();">🏧 Data ATM</div>
       <div class="menu-item" onclick="nav('cit-atm-input', this); initCitAtmInput();">💵 Input CIT ATM</div>
     </div>
@@ -964,6 +965,20 @@
         </div>
       </div>
 
+      <div id="kirim-laporan-harian" class="page">
+        <div class="header-page">
+          <div>
+            <h3>Generate &amp; Kirim Laporan Akhir Hari (PDF)</h3>
+            <p style="margin: 5px 0 0 0;">Sistem mengekspor posisi harian kas, rincian saldo khasanah, setoran khasanah, pengeluaran khasanah, dan sisa dalam khasanah ke PDF, lalu otomatis mengirim email sesuai tujuan yang diatur admin.</p>
+          </div>
+        </div>
+        <div class="form-row" style="align-items: flex-end;">
+          <div class="form-group"><label>Tanggal Laporan</label><input type="date" id="klh-tgl" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="kirimLaporanHarian()">📤 GENERATE &amp; KIRIM LAPORAN</button></div>
+        </div>
+        <div id="klh-result" style="margin-top:20px;"></div>
+      </div>
+
       <div id="lap-posisi-harian" class="page role-page-ht">
         <div class="header-page">
           <div>
@@ -1290,6 +1305,7 @@
       saveSettingWAGateway:       ['POST','/setting-wa-gateway'],
       getSettingEmail:            ['GET','/setting-email'],
       saveSettingEmail:           ['POST','/setting-email'],
+      kirimLaporanHarian:         ['POST','/kirim-laporan-harian'],
       getPerkiraanTeller:         ['GET','/perkiraan','?action=teller','tanggal','userEstim'],
       savePerkiraanTeller:        ['POST','/perkiraan'],
       getRekapPerkiraanHT:        ['GET','/perkiraan','?action=rekap','tanggal','kodeWilayah','tglHariIni'],
@@ -3746,6 +3762,33 @@ function onToggleNotif() {
       if (!fromEmail || !toEmails) { alert("From Email dan Tujuan Email wajib diisi!"); return; }
       showLoader(true, "Menyimpan setting email...");
       google.script.run.withSuccessHandler(() => { showLoader(false); showToast(false); }).withFailureHandler((err) => { showLoader(false); alert("Gagal menyimpan: " + err.message); }).saveSettingEmail({ apiKey: apiKey, fromEmail: fromEmail, toEmails: toEmails });
+    }
+    function initKirimLaporanHarian() {
+      document.getElementById('klh-tgl').value = getLocalDateString();
+      document.getElementById('klh-result').innerHTML = '';
+    }
+    function kirimLaporanHarian() {
+      const tgl = document.getElementById('klh-tgl').value;
+      if (!tgl) { alert("Pilih tanggal laporan terlebih dahulu!"); return; }
+      if (!confirm("Kirim Laporan Akhir Hari untuk tanggal " + tgl + "?\nPDF akan dikirim via email ke tujuan yang diatur admin.")) return;
+      showLoader(true, "Mengekspor data & mengirim email...");
+      document.getElementById('klh-result').innerHTML = '<p style="color:var(--text-muted);">Memproses laporan...</p>';
+      google.script.run.withSuccessHandler((res) => {
+        showLoader(false);
+        document.getElementById('klh-result').innerHTML =
+          `<div class="summary-box" style="background:#ecfdf5; border-left:5px solid #059669; margin-top:10px;">
+            <p style="margin:0; font-weight:700; color:#059669;">✅ Laporan berhasil dikirim</p>
+            <p style="margin:8px 0 0 0; color:#1e293b;">Tanggal: <b>${res.tanggal || tgl}</b><br>Email tujuan: <b>${res.to || '-'}</b><br>Total Saldo Khasanah: <b>${Number(res.totalHT || 0).toLocaleString('id-ID')}</b><br>Grand Total: <b>${Number(res.grandTotal || 0).toLocaleString('id-ID')}</b></p>
+          </div>`;
+        showToast(false);
+      }).withFailureHandler((err) => {
+        showLoader(false);
+        document.getElementById('klh-result').innerHTML =
+          `<div class="summary-box" style="background:#fef2f2; border-left:5px solid #dc2626; margin-top:10px;">
+            <p style="margin:0; font-weight:700; color:#dc2626;">❌ Gagal mengirim laporan</p>
+            <p style="margin:8px 0 0 0; color:#1e293b;">${err.message}</p>
+          </div>`;
+      }).kirimLaporanHarian({ tanggal: tgl, kodeWilayah: currentUser.kodeWilayah, userEstim: currentUser.userEstim, role: currentUser.role });
     }
 
     function clearFormUser() { document.getElementById('u-id').value = ''; document.getElementById('u-wilayah').value = ''; document.getElementById('u-kode').value = ''; document.getElementById('u-unit').value = '';
