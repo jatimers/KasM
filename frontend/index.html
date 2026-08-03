@@ -235,6 +235,7 @@
       <div class="menu-item" onclick="nav('kelola-unit-kerja', this); loadUnitKerja();">🏢 Kelola Unit Kerja</div>
       <div class="menu-item" onclick="nav('setelan-libur', this); loadHariLibur();">📅 Setelan Hari Libur</div>
       <div class="menu-item" onclick="nav('setting-wa-gateway', this); loadWAGatewaySettings();">⚙️ Notifikasi WA</div>
+      <div class="menu-item" onclick="nav('setting-email', this); loadSettingEmail();">✉️ Tujuan Email Laporan</div>
     </div>
 
     <div class="role-menu menu-ht">
@@ -488,6 +489,21 @@
 
         <div style="display:flex; gap:15px; flex-wrap:wrap; margin-top: 25px;">
           <button class="btn-refresh" style="flex:2; font-size:1.1rem; padding:15px; margin-bottom:0;" onclick="simpanWAGatewaySettings()">💾 SIMPAN SEMUA PENGATURAN</button>
+        </div>
+      </div>
+
+      <div id="setting-email" class="page role-page-admin">
+        <div class="header-page"><h3>Pengaturan Tujuan Email Laporan Akhir Hari</h3></div>
+        <p style="margin:0 0 15px 0; color:var(--text-muted);">Konfigurasi pengiriman Laporan Akhir Hari (PDF) yang ditrigger oleh role Teller. Alamat pengirim (From) harus email yang sudah diverifikasi di akun Resend.</p>
+        <div class="form-row">
+          <div class="form-group"><label>Resend API Key</label><input type="password" id="se-apikey" placeholder="re_xxxxxx" style="background:var(--input-yellow);"></div>
+          <div class="form-group"><label>From Email (Pengirim)</label><input type="email" id="se-from" placeholder="laporan@domain.com" style="background:var(--input-yellow);"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Tujuan Email (lebih dari satu dipisah koma)</label><input type="text" id="se-to" placeholder="email1@domain.com, email2@domain.com" style="background:var(--input-yellow);"></div>
+        </div>
+        <div style="display:flex; gap:15px; flex-wrap:wrap; margin-top:25px;">
+          <button class="btn-refresh" style="flex:2; font-size:1.1rem; padding:15px; margin:0;" onclick="simpanSettingEmail()">💾 SIMPAN PENGATURAN</button>
         </div>
       </div>
 
@@ -1272,6 +1288,8 @@
       getPreviousWorkingDayBackend:['GET','/next-working-day','?action=prev','fromDate'],
       getSettingWAGateway:        ['GET','/setting-wa-gateway'],
       saveSettingWAGateway:       ['POST','/setting-wa-gateway'],
+      getSettingEmail:            ['GET','/setting-email'],
+      saveSettingEmail:           ['POST','/setting-email'],
       getPerkiraanTeller:         ['GET','/perkiraan','?action=teller','tanggal','userEstim'],
       savePerkiraanTeller:        ['POST','/perkiraan'],
       getRekapPerkiraanHT:        ['GET','/perkiraan','?action=rekap','tanggal','kodeWilayah','tglHariIni'],
@@ -3711,6 +3729,24 @@ function onToggleNotif() {
   lbl.innerText = enabled ? 'AKTIF' : 'NONAKTIF';
   lbl.style.color = enabled ? '#059669' : '#dc2626';
 }
+
+    function loadSettingEmail() {
+      showLoader(true);
+      google.script.run.withSuccessHandler((res) => {
+        showLoader(false);
+        document.getElementById('se-apikey').value = (res && res.apiKey) || '';
+        document.getElementById('se-from').value = (res && res.fromEmail) || '';
+        document.getElementById('se-to').value = (res && res.toEmails) || '';
+      }).withFailureHandler((err) => { showLoader(false); alert("Gagal memuat setting email: " + err.message); }).getSettingEmail();
+    }
+    function simpanSettingEmail() {
+      const apiKey = document.getElementById('se-apikey').value.trim();
+      const fromEmail = document.getElementById('se-from').value.trim();
+      const toEmails = document.getElementById('se-to').value.trim();
+      if (!fromEmail || !toEmails) { alert("From Email dan Tujuan Email wajib diisi!"); return; }
+      showLoader(true, "Menyimpan setting email...");
+      google.script.run.withSuccessHandler(() => { showLoader(false); showToast(false); }).withFailureHandler((err) => { showLoader(false); alert("Gagal menyimpan: " + err.message); }).saveSettingEmail({ apiKey: apiKey, fromEmail: fromEmail, toEmails: toEmails });
+    }
 
     function clearFormUser() { document.getElementById('u-id').value = ''; document.getElementById('u-wilayah').value = ''; document.getElementById('u-kode').value = ''; document.getElementById('u-unit').value = '';
       document.getElementById('u-user').value = ''; document.getElementById('u-pass').value = ''; document.getElementById('u-role').value = 'teller'; document.getElementById('u-estim').value = ''; document.getElementById('u-ref-unit').value = ''; }
