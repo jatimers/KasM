@@ -35,6 +35,8 @@ kas-monitor/
 │       ├── pesanan-nasabah/# GET/POST/DELETE /api/pesanan-nasabah
 │       ├── perkiraan/      # GET/POST /api/perkiraan
 │       ├── setting-wa-gateway/ # GET/POST /api/setting-wa-gateway (✅ WA Gateway)
+│       ├── setting-email/  # GET/POST /api/setting-email (✅ Email Laporan Akhir Hari)
+│       ├── kirim-laporan-harian/ # POST /api/kirim-laporan-harian (✅ Generate PDF + Kirim Email)
 │       ├── pejabat-ht/     # GET/POST /api/pejabat-ht
 │       ├── next-working-day/# GET /api/next-working-day
 │       ├── laporan-ht/     # GET /api/laporan-ht
@@ -105,6 +107,8 @@ supabase functions deploy tutup-buku --no-verify-jwt
 supabase functions deploy dashboard --no-verify-jwt
 supabase functions deploy tabularis --no-verify-jwt
 supabase functions deploy notif-fonnte --no-verify-jwt
+supabase functions deploy setting-email --no-verify-jwt
+supabase functions deploy kirim-laporan-harian --no-verify-jwt
 ```
 
 Set environment variables untuk setiap function:
@@ -147,6 +151,8 @@ const CONFIG = {
 | GET/POST/DELETE | `/api/pesanan-nasabah` | Pesanan nasabah |
 | GET/POST | `/api/perkiraan` | Perkiraan bon/setor |
 | GET/POST | `/api/setting-fonnte` | Setting notifikasi WA |
+| GET/POST | `/api/setting-email` | Setting tujuan email laporan (Resend) |
+| POST | `/api/kirim-laporan-harian` | Generate PDF Laporan Akhir Hari & kirim email |
 | GET/POST | `/api/pejabat-ht` | Data pejabat HT |
 | GET | `/api/next-working-day` | Hari kerja berikutnya |
 | GET | `/api/laporan-ht` | Laporan saldo & mutasi |
@@ -168,6 +174,7 @@ const CONFIG = {
 | `data_pegawai` | Data pegawai teller |
 | `data_pejabat_ht` | Data pejabat HT |
 | `setting_fonnte` | Konfigurasi WA Fonnte |
+| `setting_email` | Konfigurasi tujuan email laporan harian |
 | `perkiraan_bon_setor` | Perkiraan kebutuhan uang |
 | `hari_libur` | Daftar hari libur |
 | `pesanan_nasabah` | Pesanan uang nasabah |
