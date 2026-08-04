@@ -528,12 +528,30 @@ Tambahkan fungsi berikut tepat setelah `_openPrintWindow` (blok Step 2.2/2.3):
         var wrapper = document.createElement('div');
         wrapper.style.cssText = 'position:static;width:794px;background:#ffffff;margin:0;';
         wrapper.innerHTML = html;
+        wrapper.id = 'lap-pdf'; // untuk identifikasi di cloned document (onclone)
         document.body.appendChild(wrapper);
         html2pdf().set({
           margin: 0,
           filename: filename,
           image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            // Isolasi dari CSS aplikasi: buang semua stylesheet di cloned doc
+            // kecuali yang ada di dalam wrapper (style laporan sendiri),
+            // agar layout konsisten (= print window/dokumen terpisah).
+            onclone: function(clonedDoc) {
+              var lapDiv = clonedDoc.getElementById('lap-pdf');
+              var remove = [];
+              clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(function(el) {
+                if (!lapDiv || !lapDiv.contains(el)) remove.push(el);
+              });
+              remove.forEach(function(el) { el.parentNode.removeChild(el); });
+              var cb = clonedDoc.body;
+              if (cb) cb.style.cssText = 'font-family:Arial,sans-serif;font-size:9px;padding:0;margin:0;color:#000;';
+            }
+          },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
           pagebreak: { mode: ['css', 'legacy'] }
         }).from(wrapper).toPdf().get('pdf').then(function(pdf) {
@@ -546,6 +564,9 @@ Tambahkan fungsi berikut tepat setelah `_openPrintWindow` (blok Step 2.2/2.3):
         });
       });
     }
+```
+
+> **Catatan setelah implementasi**: CSS aplikasi global (padding `th,td 14px`, `table { font-size: 0.95rem }`, `th { text-transform:uppercase; white-space:nowrap }`, `tfoot td` warna merah, `p { line-height:1.5 }`) menimpa CSS laporan saat wrapper di-div-kan di `document.body`. Gejala di production: baris tabel paling bawah & subtotal terpotong/hilang. Solusi: `html2canvas.onclone` — di cloned document, semua stylesheet aplikasi dibuang, hanya style laporan (di dalam wrapper) yang dipertahankan. Ini secara fundamental sama dengan render di window terpisah (print).
 ```
 
 #### Step 3.3: Rewrite `kirimLaporanHarian()`

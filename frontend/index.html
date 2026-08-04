@@ -1472,43 +1472,45 @@
     function _htmlToPdfBase64(html, filename) {
       return new Promise(function(resolve, reject) {
         if (typeof html2pdf === 'undefined') { reject(new Error('Library PDF (html2pdf.js) belum termuat.')); return; }
-        var wrapper = document.createElement('div');
-        wrapper.style.cssText = 'position:static;width:794px;background:#ffffff;margin:0;';
-        wrapper.innerHTML = html;
-        wrapper.id = 'lap-pdf';
-        document.body.appendChild(wrapper);
-        html2pdf().set({
-          margin: 0,
-          filename: filename,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#ffffff',
-            // Isolasi total: buang semua CSS aplikasi dari cloned document,
-            // sisakan hanya style laporan yang ada di dalam wrapper. Ini
-            // menghasilkan layout bersih seperti print window (dokumen terpisah).
-            onclone: function(clonedDoc) {
-              var lapDiv = clonedDoc.getElementById('lap-pdf');
-              var remove = [];
-              clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(function(el) {
-                if (!lapDiv || !lapDiv.contains(el)) remove.push(el);
-              });
-              remove.forEach(function(el) { el.parentNode.removeChild(el); });
-              var cb = clonedDoc.body;
-              if (cb) cb.style.cssText = 'font-family:Arial,sans-serif;font-size:9px;padding:0;margin:0;color:#000;';
+        // Ekstrak style & body dari HTML laporan untuk di-render di iframe terisolasi
+        var styleMatch = html.match(/<style>([\s\S]*?)<\/style>/i);
+        var bodyMatch = html.match(/<body>([\s\S]*?)<\/body>/i);
+        var style = styleMatch ? styleMatch[1] : '';
+        var bodyContent = bodyMatch ? bodyMatch[1] : html;
+        // Bangun dokumen terisolasi: iframe tanpa CSS aplikasi (seperti print window)
+        var srcdoc = '<!doctype html><html><head><meta charset="utf-8"><style>' + style +
+          '</style><script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.0/dist/html2pdf.bundle.min.js"></' + 'script></head><body>' +
+          bodyContent + '</body></html>';
+        var iframe = document.createElement('iframe');
+        iframe.style.cssText = 'position:fixed;top:0;left:0;width:794px;height:1200px;border:0;visibility:hidden;';
+        document.body.appendChild(iframe);
+        iframe.srcdoc = srcdoc;
+        iframe.onload = async function() {
+          try {
+            var doc = iframe.contentDocument;
+            var win = doc.defaultView;
+            for (var i = 0; i < 50; i++) {
+              if (win.html2pdf) break;
+              await new Promise(function(r) { setTimeout(r, 200); });
             }
-          },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak: { mode: ['css', 'legacy'] }
-        }).from(wrapper).toPdf().get('pdf').then(function(pdf) {
-          if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
-          var dataUri = pdf.output('datauristring');
-          resolve(dataUri.split(',')[1] || '');
-        }).catch(function(err) {
-          if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
-          reject(err);
-        });
+            if (!win.html2pdf) throw new Error('html2pdf tidak termuat di iframe');
+            await (doc.fonts ? doc.fonts.ready : Promise.resolve());
+            await new Promise(function(r) { setTimeout(r, 400); });
+            var pdf = await win.html2pdf().set({
+              margin: 0,
+              filename: filename,
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+              pagebreak: { mode: ['css', 'legacy'] }
+            }).from(doc.body).toPdf().get('pdf');
+            iframe.parentNode.removeChild(iframe);
+            resolve(pdf.output('datauristring').split(',')[1]);
+          } catch(err) {
+            iframe.parentNode && iframe.parentNode.removeChild(iframe);
+            reject(err);
+          }
+        };
       });
     }
 
@@ -1580,7 +1582,7 @@
           grandTotalHtml = '<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:bold; color:#000;"><span>GRAND TOTAL PENGELUARAN KHASANAH:</span><span style="font-size: 13px;">Rp ' + grandTotalGabungan.toLocaleString('id-ID') + '</span></div>';
         }
 
-        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 2px 4px; } th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align: center; } .text-right { text-align: right; } .text-center { text-align: center; } .grand-total { font-size: 11px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 6px; -webkit-print-color-adjust: exact; margin-top: 8px; } .ttd-container { width: 100%; margin-top: 15px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 40px; }';
+        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 2px 4px; } th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; font-weight: bold; font-size: 9px; white-space: normal; text-transform: none; text-align: center; } .text-right { text-align: right; } .text-center { text-align: center; } .grand-total { font-size: 11px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 6px; -webkit-print-color-adjust: exact; margin-top: 8px; } .ttd-container { width: 100%; margin-top: 15px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 40px; }';
 
         body = '<div class="header"><h3>LAPORAN RINCIAN ' + tipeLabel + '</h3><h4>Wilayah: ' + wilayah + ' | Tanggal: ' + formatTglIndo(tgl) + '</h4></div><h4 style="text-align: left; background:#eee; border:1px solid #000;">A. TOTAL RINCIAN PECAHAN UANG</h4><table><thead><tr><th style="text-align:left;">Kategori</th><th style="text-align:right;">Pecahan</th><th style="text-align:right;">Lembar/Keping</th><th style="text-align:right;">Nominal Total</th></tr></thead><tbody>' + buildRincianRows(d.rincian, 'Tidak ada mutasi.') + '</tbody><tfoot><tr><td colspan="3" class="text-right" style="font-weight:bold;">TOTAL KESELURUHAN (A):</td><td style="font-weight:bold;">' + formatRpAlign(rawTotalMutasi) + '</td></tr></tfoot></table>' + sectionB_Html + '<div class="grand-total">' + grandTotalHtml + '<div style="font-size: 9px; font-style: italic; text-align: right; color: #111; margin-top:4px;">Terbilang: # ' + strTerbilang + ' #</div></div>' + ttd;
 
@@ -1591,7 +1593,7 @@
         var strTerbilang = rawGrandTotal > 0 ? terbilang(rawGrandTotal).toUpperCase() + " RUPIAH" : "-";
         var grandTotalHtml = '<div style="display:flex; justify-content:space-between; width:100%;"><span style="color:#d97706; margin-right:20px;">Rp</span><span>' + rawGrandTotal.toLocaleString('id-ID') + '</span></div>';
 
-        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 2px 4px; } th { background-color: #eee !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align:center;} .text-right { text-align: right; } .text-center { text-align: center; } .grand-total { font-size: 13px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 4px; -webkit-print-color-adjust: exact; margin-top: 5px; } .ttd-container { width: 100%; margin-top: 10px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 40px; }';
+        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 2px 4px; } th { background-color: #eee !important; -webkit-print-color-adjust: exact; font-weight: bold; font-size: 9px; white-space: normal; text-transform: none; text-align:center;} .text-right { text-align: right; } .text-center { text-align: center; } .grand-total { font-size: 13px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 4px; -webkit-print-color-adjust: exact; margin-top: 5px; } .ttd-container { width: 100%; margin-top: 10px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 40px; }';
 
         body = '<div class="header"><h3>LAPORAN RINCIAN SALDO KAS DAN CASHBOX TELLER</h3><h4>Wilayah: ' + wilayah + ' | Tanggal: ' + formatTglIndo(tgl) + '</h4></div><h4 style="text-align: left; background:#eee; border:1px solid #000;">A. TOTAL FISIK SALDO KHASANAH (HT)</h4><table><thead><tr><th style="text-align:left;">Kategori</th><th style="text-align:right;">Pecahan/Ket</th><th style="text-align:right;">Lembar/Keping</th><th style="text-align:right;">Nominal Total</th></tr></thead><tbody>' + buildRincianRows(d.htRincian, 'Khasanah Kosong.') + '</tbody><tfoot><tr><td colspan="3" class="text-right" style="font-weight:bold;">TOTAL SALDO KHASANAH:</td><td style="font-weight:bold;">' + formatRpAlign(d.totalHT) + '</td></tr></tfoot></table><h4 style="text-align: left; background:#eee; border:1px solid #000; margin-top: 5px;">B. SALDO FISIK CASHBOX TELLER (SETOR SORE)</h4><table><thead><tr><th style="text-align:left;">Nama Unit Kerja / Cabang</th><th style="text-align:left;">User Estim</th><th style="text-align:right;">Total Saldo Cashbox</th></tr></thead><tbody>' + buildTellerRows(d.tellerList, 'Belum ada Teller setor sore.') + '</tbody><tfoot><tr><td colspan="2" class="text-right" style="font-weight:bold;">TOTAL KESELURUHAN CASHBOX TELLER:</td><td style="font-weight:bold;">' + formatRpAlign(d.totalTeller) + '</td></tr></tfoot></table><div class="grand-total"><div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:3px;"><span style="margin-right:20px;">GRAND TOTAL SALDO (HT + Teller):</span><span style="font-size: 15px; min-width:150px; flex-grow:1;">' + grandTotalHtml + '</span></div><div style="font-size: 10px; font-style: italic; text-align: right; color: #111;">Terbilang: ' + strTerbilang + '</div></div>' + ttd;
 
@@ -1625,7 +1627,7 @@
         }
         var strTerbilang = d.totalCluis > 0 ? terbilang(d.totalCluis).toUpperCase() + " RUPIAH" : "-";
 
-        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 3px 5px; } th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align: center; } .text-right { text-align: right; font-weight: bold; } .grand-total { font-size: 12px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 5px; -webkit-print-color-adjust: exact; margin-top: 5px; } .ttd-container { width: 100%; margin-top: 15px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 45px; }';
+        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 3px 5px; } th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; font-weight: bold; font-size: 9px; white-space: normal; text-transform: none; text-align: center; } .text-right { text-align: right; font-weight: bold; } .grand-total { font-size: 12px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 5px; -webkit-print-color-adjust: exact; margin-top: 5px; } .ttd-container { width: 100%; margin-top: 15px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 45px; }';
 
         body = '<div class="header"><h3>LAPORAN RINCIAN SISA DALAM CLUIS</h3><h4>Wilayah: ' + wilayah + ' | Tanggal: ' + formatTglIndo(tgl) + '</h4></div><h4 style="text-align: left; background:#eee; border:1px solid #000;">PERUBAHAN SALDO KAS CLUIS KHASANAH</h4><table><thead><tr><th style="text-align:left; width:14%;">Kategori</th><th style="text-align:right; width:10%;">Pecahan</th><th style="text-align:right; width:26%;">Saldo Hari Sebelumnya</th><th style="text-align:right; width:25%; color:#b91c1c;">Pengeluaran Hari Ini</th><th style="text-align:right; width:25%; color:#047857;">Sisa Dalam Cluis</th></tr></thead><tbody>' + rowsHtml + '</tbody><tfoot><tr style="font-weight:bold; background:#f2f2f2;"><td colspan="2" class="text-right">TOTAL KESELURUHAN CLUIS:</td><td style="padding:4px 6px;">' + fmtPrintCluis(d.totalHariSebelumnya) + '</td><td style="padding:4px 6px;">' + fmtPrintCluis(d.totalPengeluaran, '#b91c1c') + '</td><td style="padding:4px 6px;">' + fmtPrintCluis(d.totalCluis, '#047857', 'bold') + '</td></tr></tfoot></table><div class="grand-total"><div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:3px;"><span>GRAND TOTAL SISA DALAM CLUIS:</span><span style="font-size: 14px;">Rp ' + (d.totalCluis || 0).toLocaleString('id-ID') + '</span></div><div style="font-size: 9px; font-style: italic; text-align: right; color: #111;">Terbilang: ' + strTerbilang + '</div></div>' + ttd;
 
