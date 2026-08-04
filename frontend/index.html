@@ -1497,7 +1497,7 @@
             await (doc.fonts ? doc.fonts.ready : Promise.resolve());
             await new Promise(function(r) { setTimeout(r, 400); });
             var pdf = await win.html2pdf().set({
-              margin: 0,
+              margin: 8,
               filename: filename,
               image: { type: 'jpeg', quality: 0.98 },
               html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
