@@ -1473,11 +1473,7 @@
       return new Promise(function(resolve, reject) {
         if (typeof html2pdf === 'undefined') { reject(new Error('Library PDF (html2pdf.js) belum termuat.')); return; }
         var wrapper = document.createElement('div');
-        wrapper.style.position = 'absolute';
-        wrapper.style.left = '-9999px';
-        wrapper.style.top = '0';
-        wrapper.style.width = '794px';
-        wrapper.style.background = '#ffffff';
+        wrapper.style.cssText = 'position:static;width:794px;background:#ffffff;margin:0;';
         wrapper.innerHTML = html;
         document.body.appendChild(wrapper);
         html2pdf().set({

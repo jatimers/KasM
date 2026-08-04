@@ -212,7 +212,7 @@ menjadi:
 
 ```html
   <script src="config.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.0/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.0/dist/html2pdf.bundle.min.js"></script>
 ```
 
 Verifikasi: reload halaman, console menampilkan `typeof html2pdf === 'object'` (bukan undefined).
@@ -526,11 +526,7 @@ Tambahkan fungsi berikut tepat setelah `_openPrintWindow` (blok Step 2.2/2.3):
       return new Promise(function(resolve, reject) {
         if (typeof html2pdf === 'undefined') { reject(new Error('Library PDF (html2pdf.js) belum termuat.')); return; }
         var wrapper = document.createElement('div');
-        wrapper.style.position = 'absolute';
-        wrapper.style.left = '-9999px';
-        wrapper.style.top = '0';
-        wrapper.style.width = '794px';
-        wrapper.style.background = '#ffffff';
+        wrapper.style.cssText = 'position:static;width:794px;background:#ffffff;margin:0;';
         wrapper.innerHTML = html;
         document.body.appendChild(wrapper);
         html2pdf().set({
