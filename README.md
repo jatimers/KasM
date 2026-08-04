@@ -36,7 +36,7 @@ kas-monitor/
 │       ├── perkiraan/      # GET/POST /api/perkiraan
 │       ├── setting-wa-gateway/ # GET/POST /api/setting-wa-gateway (✅ WA Gateway)
 │       ├── setting-email/  # GET/POST /api/setting-email (✅ Email Laporan Akhir Hari)
-│       ├── kirim-laporan-harian/ # POST /api/kirim-laporan-harian (✅ Generate PDF + Kirim Email)
+│       ├── kirim-laporan-harian/ # POST /api/kirim-laporan-harian (✅ Terima PDF base64 & Kirim Email)
 │       ├── pejabat-ht/     # GET/POST /api/pejabat-ht
 │       ├── next-working-day/# GET /api/next-working-day
 │       ├── laporan-ht/     # GET /api/laporan-ht
@@ -152,7 +152,7 @@ const CONFIG = {
 | GET/POST | `/api/perkiraan` | Perkiraan bon/setor |
 | GET/POST | `/api/setting-fonnte` | Setting notifikasi WA |
 | GET/POST | `/api/setting-email` | Setting tujuan email laporan (Resend) |
-| POST | `/api/kirim-laporan-harian` | Generate PDF Laporan Akhir Hari & kirim email |
+| POST | `/api/kirim-laporan-harian` | Kirim email Laporan Akhir Hari (PDF dibuat di frontend via html2pdf) |
 | GET/POST | `/api/pejabat-ht` | Data pejabat HT |
 | GET | `/api/next-working-day` | Hari kerja berikutnya |
 | GET | `/api/laporan-ht` | Laporan saldo & mutasi |
@@ -161,6 +161,8 @@ const CONFIG = {
 | GET | `/api/dashboard` | Dashboard HT/Teller |
 | GET | `/api/tabularis` | Laporan tabularis |
 | POST | `/api/notif-fonnte` | Kirim notifikasi WA |
+
+> **Catatan:** PDF Laporan Akhir Hari dibuat di browser memakai html2pdf.js (CDN) dengan format identik cetak manual; edge function `kirim-laporan-harian` hanya memvalidasi dan mengirim via Resend.
 
 ## Database Tables
 

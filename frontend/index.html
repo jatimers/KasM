@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
   <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.0/html2pdf.bundle.min.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1305,7 +1306,6 @@
       saveSettingWAGateway:       ['POST','/setting-wa-gateway'],
       getSettingEmail:            ['GET','/setting-email'],
       saveSettingEmail:           ['POST','/setting-email'],
-      kirimLaporanHarian:         ['POST','/kirim-laporan-harian'],
       getPerkiraanTeller:         ['GET','/perkiraan','?action=teller','tanggal','userEstim'],
       savePerkiraanTeller:        ['POST','/perkiraan'],
       getRekapPerkiraanHT:        ['GET','/perkiraan','?action=rekap','tanggal','kodeWilayah','tglHariIni'],
@@ -1452,6 +1452,187 @@
       window.google = { script: { run: _run } };
     })();
 
+    function _gasProm(fnName) {
+      var args = Array.prototype.slice.call(arguments, 1);
+      return new Promise(function(resolve, reject) {
+        var run = google.script.run.withSuccessHandler(resolve);
+        run.withFailureHandler(function(err) { reject(new Error((err && err.message) || 'GAS call failed')); });
+        run[fnName].apply(run, args);
+      });
+    }
+
+    function _openPrintWindow(html) {
+      var printWindow = window.open('', '', 'width=900,height=650');
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(function() { printWindow.print(); }, 500);
+    }
+
+    function _htmlToPdfBase64(html, filename) {
+      return new Promise(function(resolve, reject) {
+        if (typeof html2pdf === 'undefined') { reject(new Error('Library PDF (html2pdf.js) belum termuat.')); return; }
+        var wrapper = document.createElement('div');
+        wrapper.style.position = 'absolute';
+        wrapper.style.left = '-9999px';
+        wrapper.style.top = '0';
+        wrapper.style.width = '794px';
+        wrapper.style.background = '#ffffff';
+        wrapper.innerHTML = html;
+        document.body.appendChild(wrapper);
+        html2pdf().set({
+          margin: 0,
+          filename: filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'] }
+        }).from(wrapper).toPdf().get('pdf').then(function(pdf) {
+          if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+          var dataUri = pdf.output('datauristring');
+          resolve(dataUri.split(',')[1] || '');
+        }).catch(function(err) {
+          if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+          reject(err);
+        });
+      });
+    }
+
+    function buildLaporanHtml(kind, data, ctx) {
+      var tgl = ctx.tanggal;
+      var wilayah = ctx.wilayah;
+      var pejabat = ctx.pejabat || {};
+      var namaPenyelia = (pejabat && pejabat.namaPenyelia) ? pejabat.namaPenyelia : "______________________";
+      var nipPenyelia = (pejabat && pejabat.nipPenyelia) ? "NIP. " + pejabat.nipPenyelia : "NIP. ___________________";
+      var namaPBO = (pejabat && pejabat.namaPBO) ? pejabat.namaPBO : "______________________";
+      var nipPBO = (pejabat && pejabat.nipPBO) ? "NIP. " + pejabat.nipPBO : "NIP. ___________________";
+
+      var ttd = '<div class="ttd-container"><div class="ttd-box">Mengetahui,<br><b>Pemimpin Bidang Operasional</b><div class="ttd-space"></div><div class="ttd-name">' + namaPBO + '</div><div>' + nipPBO + '</div></div><div class="ttd-box">Dibuat Oleh,<br><b>Penyelia Operasional Dana</b><div class="ttd-space"></div><div class="ttd-name">' + namaPenyelia + '</div><div>' + nipPenyelia + '</div></div></div>';
+
+      function buildRincianRows(rincian, emptyText) {
+        var html = "";
+        if (!rincian || rincian.length === 0) {
+          return '<tr><td colspan="4" style="text-align:center;">' + emptyText + '</td></tr>';
+        }
+        var currentCat = ""; var subNominal = 0; var subLembar = 0;
+        rincian.forEach(function(r, idx) {
+          if (currentCat !== "" && currentCat !== r.kategori) {
+            html += '<tr style="background-color:#e2e8f0; -webkit-print-color-adjust: exact;"><td colspan="2" style="text-align:right; font-weight:800; color:#0f172a;">Subtotal ' + currentCat + ':</td><td style="text-align:right; font-weight:800; color:#0f172a;">' + subLembar + '</td><td style="font-weight:800;">' + formatRpAlign(subNominal) + '</td></tr>';
+            subNominal = 0; subLembar = 0;
+          }
+          currentCat = r.kategori;
+          subNominal += Number(r.nominal) || 0;
+          subLembar += Number(r.lembar) || 0;
+          html += '<tr><td>' + r.kategori + '</td><td style="font-weight:600;">' + formatRpAlign(r.pecahan) + '</td><td style="text-align:right; font-weight:700;">' + r.lembar + '</td><td style="font-weight:600;">' + formatRpAlign(r.nominal) + '</td></tr>';
+          if (idx === rincian.length - 1) {
+            html += '<tr style="background-color:#e2e8f0; -webkit-print-color-adjust: exact;"><td colspan="2" style="text-align:right; font-weight:800; color:#0f172a;">Subtotal ' + currentCat + ':</td><td style="text-align:right; font-weight:800; color:#0f172a;">' + subLembar + '</td><td style="font-weight:800;">' + formatRpAlign(subNominal) + '</td></tr>';
+          }
+        });
+        return html;
+      }
+
+      function buildTellerRows(tellerList, emptyText, namaUnitStyle) {
+        var style = namaUnitStyle || 'font-weight:700;';
+        var html = "";
+        if (!tellerList || tellerList.length === 0) {
+          return '<tr><td colspan="3" style="text-align:center;">' + emptyText + '</td></tr>';
+        }
+        tellerList.forEach(function(t) {
+          html += '<tr><td style="' + style + '">' + t.namaUnit + '</td><td>' + t.userEstim + '</td><td style="font-weight:600;">' + formatRpAlign(t.total) + '</td></tr>';
+        });
+        return html;
+      }
+
+      var css = "";
+      var body = "";
+      var title = 'Laporan';
+
+      if (kind === 'setoran' || kind === 'pengeluaran') {
+        title = kind === 'setoran' ? 'Laporan Rincian Setoran Khasanah' : 'Laporan Rincian Pengeluaran Khasanah (Bon)';
+        var tipeLabel = kind === 'setoran' ? 'SETORAN KHASANAH' : 'PENGELUARAN KHASANAH (BON)';
+        var isSetoran = kind === 'setoran';
+        var d = data || { rincian: [], total: 0, tellerList: [], totalTeller: 0 };
+        var rawTotalMutasi = Number(d.total) || 0;
+        var rawTotalTeller = Number(d.totalTeller) || 0;
+        var grandTotalGabungan = isSetoran ? rawTotalMutasi + rawTotalTeller : rawTotalMutasi;
+        var strTerbilang = grandTotalGabungan > 0 ? terbilang(grandTotalGabungan).toUpperCase() + " RUPIAH" : "-";
+
+        var sectionB_Html = "";
+        var grandTotalHtml = "";
+        if (isSetoran) {
+          sectionB_Html = '<h4 style="text-align: left; background:#eee; border:1px solid #000; margin-top:5px;">B. RINCIAN PER TELLER</h4><table><thead><tr><th style="text-align:left;">Nama Unit Kerja / Cabang</th><th style="text-align:left;">User Estim</th><th style="text-align:right;">Nominal Mutasi Transaksi</th></tr></thead><tbody>' + buildTellerRows(d.tellerList, 'Tidak ada data rincian teller.', 'font-weight:700; font-size:0.85rem;') + '</tbody><tfoot><tr><td colspan="2" class="text-right" style="font-weight:bold;">TOTAL KESELURUHAN TELLER (B):</td><td style="font-weight:bold;">' + formatRpAlign(rawTotalTeller) + '</td></tr></tfoot></table>';
+          grandTotalHtml = '<div style="display:flex; justify-content:space-between; align-items:center; font-weight:normal; font-size:9px; color:#222; margin-bottom:2px;"><span>TOTAL RINCIAN PECAHAN (A):</span><span>Rp ' + rawTotalMutasi.toLocaleString('id-ID') + '</span></div><div style="display:flex; justify-content:space-between; align-items:center; font-weight:normal; font-size:9px; color:#222; margin-bottom:4px; border-bottom:1px dashed #000; padding-bottom:3px;"><span>TOTAL RINCIAN PER TELLER (B):</span><span>Rp ' + rawTotalTeller.toLocaleString('id-ID') + '</span></div><div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:bold; color:#000;"><span>GRAND TOTAL GABUNGAN (A + B):</span><span style="font-size: 13px;">Rp ' + grandTotalGabungan.toLocaleString('id-ID') + '</span></div>';
+        } else {
+          grandTotalHtml = '<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:bold; color:#000;"><span>GRAND TOTAL PENGELUARAN KHASANAH:</span><span style="font-size: 13px;">Rp ' + grandTotalGabungan.toLocaleString('id-ID') + '</span></div>';
+        }
+
+        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 2px 4px; } th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align: center; } .text-right { text-align: right; } .text-center { text-align: center; } .grand-total { font-size: 11px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 6px; -webkit-print-color-adjust: exact; margin-top: 8px; } .ttd-container { width: 100%; margin-top: 15px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 40px; }';
+
+        body = '<div class="header"><h3>LAPORAN RINCIAN ' + tipeLabel + '</h3><h4>Wilayah: ' + wilayah + ' | Tanggal: ' + formatTglIndo(tgl) + '</h4></div><h4 style="text-align: left; background:#eee; border:1px solid #000;">A. TOTAL RINCIAN PECAHAN UANG</h4><table><thead><tr><th style="text-align:left;">Kategori</th><th style="text-align:right;">Pecahan</th><th style="text-align:right;">Lembar/Keping</th><th style="text-align:right;">Nominal Total</th></tr></thead><tbody>' + buildRincianRows(d.rincian, 'Tidak ada mutasi.') + '</tbody><tfoot><tr><td colspan="3" class="text-right" style="font-weight:bold;">TOTAL KESELURUHAN (A):</td><td style="font-weight:bold;">' + formatRpAlign(rawTotalMutasi) + '</td></tr></tfoot></table>' + sectionB_Html + '<div class="grand-total">' + grandTotalHtml + '<div style="font-size: 9px; font-style: italic; text-align: right; color: #111; margin-top:4px;">Terbilang: # ' + strTerbilang + ' #</div></div>' + ttd;
+
+      } else if (kind === 'saldo_ht') {
+        title = 'Laporan Rincian Saldo Kas dan Cashbox Teller';
+        var d = data || { htRincian: [], totalHT: 0, tellerList: [], totalTeller: 0, grandTotal: 0 };
+        var rawGrandTotal = Number(d.grandTotal) || 0;
+        var strTerbilang = rawGrandTotal > 0 ? terbilang(rawGrandTotal).toUpperCase() + " RUPIAH" : "-";
+        var grandTotalHtml = '<div style="display:flex; justify-content:space-between; width:100%;"><span style="color:#d97706; margin-right:20px;">Rp</span><span>' + rawGrandTotal.toLocaleString('id-ID') + '</span></div>';
+
+        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 2px 4px; } th { background-color: #eee !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align:center;} .text-right { text-align: right; } .text-center { text-align: center; } .grand-total { font-size: 13px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 4px; -webkit-print-color-adjust: exact; margin-top: 5px; } .ttd-container { width: 100%; margin-top: 10px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 40px; }';
+
+        body = '<div class="header"><h3>LAPORAN RINCIAN SALDO KAS DAN CASHBOX TELLER</h3><h4>Wilayah: ' + wilayah + ' | Tanggal: ' + formatTglIndo(tgl) + '</h4></div><h4 style="text-align: left; background:#eee; border:1px solid #000;">A. TOTAL FISIK SALDO KHASANAH (HT)</h4><table><thead><tr><th style="text-align:left;">Kategori</th><th style="text-align:right;">Pecahan/Ket</th><th style="text-align:right;">Lembar/Keping</th><th style="text-align:right;">Nominal Total</th></tr></thead><tbody>' + buildRincianRows(d.htRincian, 'Khasanah Kosong.') + '</tbody><tfoot><tr><td colspan="3" class="text-right" style="font-weight:bold;">TOTAL SALDO KHASANAH:</td><td style="font-weight:bold;">' + formatRpAlign(d.totalHT) + '</td></tr></tfoot></table><h4 style="text-align: left; background:#eee; border:1px solid #000; margin-top: 5px;">B. SALDO FISIK CASHBOX TELLER (SETOR SORE)</h4><table><thead><tr><th style="text-align:left;">Nama Unit Kerja / Cabang</th><th style="text-align:left;">User Estim</th><th style="text-align:right;">Total Saldo Cashbox</th></tr></thead><tbody>' + buildTellerRows(d.tellerList, 'Belum ada Teller setor sore.') + '</tbody><tfoot><tr><td colspan="2" class="text-right" style="font-weight:bold;">TOTAL KESELURUHAN CASHBOX TELLER:</td><td style="font-weight:bold;">' + formatRpAlign(d.totalTeller) + '</td></tr></tfoot></table><div class="grand-total"><div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:3px;"><span style="margin-right:20px;">GRAND TOTAL SALDO (HT + Teller):</span><span style="font-size: 15px; min-width:150px; flex-grow:1;">' + grandTotalHtml + '</span></div><div style="font-size: 10px; font-style: italic; text-align: right; color: #111;">Terbilang: ' + strTerbilang + '</div></div>' + ttd;
+
+      } else if (kind === 'cluis') {
+        title = 'Sisa Dalam Cluis';
+        var d = data || { rincian: [], totalHariSebelumnya: 0, totalPengeluaran: 0, totalCluis: 0 };
+        var fmtPrintCluis = function(val, color, weight) {
+          var formattedVal = parseInt(val || 0, 10).toLocaleString('id-ID');
+          return '<div style="display:flex; justify-content:space-between; align-items:center; width:100%;"><span style="font-weight:normal; margin-right:10px; color:#333;">Rp</span><span style="text-align:right; flex-grow:1; color:' + (color || '#000') + '; font-weight:' + (weight || 'normal') + ';">' + formattedVal + '</span></div>';
+        };
+        var rowsHtml = "";
+        var currentCat = "";
+        var subSblm = 0, subPeng = 0, subCluis = 0;
+        (d.rincian || []).forEach(function(r, idx) {
+          if (currentCat !== "" && currentCat !== r.kategori) {
+            rowsHtml += '<tr style="background-color:#e2e8f0; font-weight:bold; -webkit-print-color-adjust: exact;"><td colspan="2" class="text-right">Subtotal ' + currentCat + ':</td><td style="padding:3px 6px;">' + fmtPrintCluis(subSblm) + '</td><td style="padding:3px 6px;">' + fmtPrintCluis(subPeng, '#b91c1c') + '</td><td style="padding:3px 6px;">' + fmtPrintCluis(subCluis, '#047857', 'bold') + '</td></tr>';
+            subSblm = 0; subPeng = 0; subCluis = 0;
+          }
+          currentCat = r.kategori;
+          subSblm += Number(r.nominalSebelumnya) || 0;
+          subPeng += Number(r.nominalPengeluaran) || 0;
+          subCluis += Number(r.nominalCluis) || 0;
+          var labelPecahan = isNaN(r.pecahan) ? r.pecahan : parseInt(r.pecahan, 10).toLocaleString('id-ID');
+          rowsHtml += '<tr><td>' + r.kategori + '</td><td class="text-right" style="font-weight:600;">' + labelPecahan + '</td><td style="padding:3px 6px;">' + fmtPrintCluis(r.nominalSebelumnya) + ' <span style="font-size:8px; color:#555;">(' + r.lembarSebelumnya + ' lbr)</span></td><td style="padding:3px 6px;">' + fmtPrintCluis(r.nominalPengeluaran, '#b91c1c') + ' <span style="font-size:8px; color:#555;">(' + r.lembarPengeluaran + ' lbr)</span></td><td style="padding:3px 6px;">' + fmtPrintCluis(r.nominalCluis, '#047857', 'bold') + ' <span style="font-size:8px; color:#555;">(' + r.lembarCluis + ' lbr)</span></td></tr>';
+          if (idx === d.rincian.length - 1) {
+            rowsHtml += '<tr style="background-color:#e2e8f0; font-weight:bold; -webkit-print-color-adjust: exact;"><td colspan="2" class="text-right">Subtotal ' + currentCat + ':</td><td style="padding:3px 6px;">' + fmtPrintCluis(subSblm) + '</td><td style="padding:3px 6px;">' + fmtPrintCluis(subPeng, '#b91c1c') + '</td><td style="padding:3px 6px;">' + fmtPrintCluis(subCluis, '#047857', 'bold') + '</td></tr>';
+          }
+        });
+        if (!d.rincian || d.rincian.length === 0) {
+          rowsHtml = '<tr><td colspan="5" style="text-align:center;">Tidak ada riwayat saldo khasanah di tanggal ini.</td></tr>';
+        }
+        var strTerbilang = d.totalCluis > 0 ? terbilang(d.totalCluis).toUpperCase() + " RUPIAH" : "-";
+
+        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 3px 5px; } th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align: center; } .text-right { text-align: right; font-weight: bold; } .grand-total { font-size: 12px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 5px; -webkit-print-color-adjust: exact; margin-top: 5px; } .ttd-container { width: 100%; margin-top: 15px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 45px; }';
+
+        body = '<div class="header"><h3>LAPORAN RINCIAN SISA DALAM CLUIS</h3><h4>Wilayah: ' + wilayah + ' | Tanggal: ' + formatTglIndo(tgl) + '</h4></div><h4 style="text-align: left; background:#eee; border:1px solid #000;">PERUBAHAN SALDO KAS CLUIS KHASANAH</h4><table><thead><tr><th style="text-align:left; width:14%;">Kategori</th><th style="text-align:right; width:10%;">Pecahan</th><th style="text-align:right; width:26%;">Saldo Hari Sebelumnya</th><th style="text-align:right; width:25%; color:#b91c1c;">Pengeluaran Hari Ini</th><th style="text-align:right; width:25%; color:#047857;">Sisa Dalam Cluis</th></tr></thead><tbody>' + rowsHtml + '</tbody><tfoot><tr style="font-weight:bold; background:#f2f2f2;"><td colspan="2" class="text-right">TOTAL KESELURUHAN CLUIS:</td><td style="padding:4px 6px;">' + fmtPrintCluis(d.totalHariSebelumnya) + '</td><td style="padding:4px 6px;">' + fmtPrintCluis(d.totalPengeluaran, '#b91c1c') + '</td><td style="padding:4px 6px;">' + fmtPrintCluis(d.totalCluis, '#047857', 'bold') + '</td></tr></tfoot></table><div class="grand-total"><div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:3px;"><span>GRAND TOTAL SISA DALAM CLUIS:</span><span style="font-size: 14px;">Rp ' + (d.totalCluis || 0).toLocaleString('id-ID') + '</span></div><div style="font-size: 9px; font-style: italic; text-align: right; color: #111;">Terbilang: ' + strTerbilang + '</div></div>' + ttd;
+
+      } else if (kind === 'posisi') {
+        title = 'Posisi Harian Kas Operasional';
+        var d = data || { userTerdata: 0 };
+        var fmtPrintAligned = function(val, color, weight) {
+          var formattedVal = parseFloat(val || 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          return '<div style="display:flex; justify-content:space-between; align-items:center; width:100%;"><span style="font-weight:normal; margin-right:15px; color:#333;">Rp</span><span style="text-align:right; flex-grow:1; color:' + (color || '#000') + '; font-weight:' + (weight || 'bold') + ';">' + formattedVal + '</span></div>';
+        };
+        var statusSelisih = d.selisih === 0 ? "BALANCE (KLOP)" : (d.selisih > 0 ? "LEBIH" : "KURANG");
+        var strTerbilang = d.saldoFisik > 0 ? terbilang(Math.floor(d.saldoFisik)).toUpperCase() + " RUPIAH" : "-";
+
+        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 3px 5px; } th { background-color: #eee !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align: center; } .text-right { text-align: right; font-weight: bold; } .text-left { text-align: left; font-weight: 600; } .grand-total { font-size: 13px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 4px; -webkit-print-color-adjust: exact; margin-top: 5px; } .ttd-container { width: 100%; margin-top: 15px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 40px; }';
+
+        body = '<div class="header"><h3>POSISI HARIAN KAS OPERASIONAL</h3><h4>Wilayah: ' + wilayah + ' | Tanggal: ' + formatTglIndo(tgl) + '</h4></div><table><thead><tr><th style="text-align:left; width:60%;">URAIAN POSISI KAS</th><th style="text-align:right; width:40%;">NOMINAL (RP)</th></tr></thead><tbody><tr><td class="text-left">SALDO KEMARIN HARI</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.saldoKemarin) + '</td></tr><tr><td class="text-left">PENERIMAAN KAS HARI INI ( DEBET )</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.penerimaanDebet, '#0284c7') + '</td></tr><tr><td class="text-left">PENERIMAAN KAS ANTAR TELLER</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.penerimaanAntar, '#0284c7') + '</td></tr><tr><td class="text-left">PEMBAYARAN KAS HARI INI ( KREDIT )</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.pembayaranKredit, '#dc2626') + '</td></tr><tr><td class="text-left">PEMBAYARAN KAS ANTAR TELLER</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.pembayaranAntar, '#dc2626') + '</td></tr><tr style="background:#f1f5f9; -webkit-print-color-adjust: exact;"><td class="text-left" style="font-weight:700;">SALDO HARI INI (SISTEM)</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.saldoHariIni, '#000', '800') + '</td></tr><tr style="background:#f8fafc; -webkit-print-color-adjust: exact;"><td class="text-left" style="font-weight:700;">SALDO KAS MENURUT FISIK UANG</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.saldoFisik, '#000', '800') + '</td></tr><tr><td class="text-left">SELISIH KAS LEBIH / KURANG (' + statusSelisih + ')</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.selisih, d.selisih === 0 ? '#059669' : '#dc2626', '800') + '</td></tr></tbody></table><div class="grand-total"><div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:3px;"><span>TOTAL SALDO :</span><span style="font-size: 14px;">Rp ' + parseFloat(d.saldoFisik || 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</span></div><div style="font-size: 9px; font-style: italic; text-align: right; color: #111;">Terbilang Fisik: ' + strTerbilang + '</div></div>' + ttd;
+      }
+
+      return '<html><head><title>' + title + '</title><meta charset="utf-8"><style>' + css + '</style></head><body>' + body + '</body></html>';
+    }
+
     let currentUser = {}; let globalHistoryData = []; let allUsersData = []; let globalPosisiHT = []; let globalHistoryPosisi = [];
     let currentRekapFisik = { bonPagi: 0, bonTambahan: 0, setorTambahan: 0, setorSore: 0, penerimaanDebet: 0, pembayaranKredit: 0, penerimaanAntar: 0, pembayaranAntar: 0, estimDebet: 0, estimKredit: 0 };
     window.currentLapMutasiType = 'SETOR';
@@ -1484,6 +1665,7 @@ function initLapCluis() {
     }
 
     let globalCluisData = null;
+    let globalLapMutasiData = null;
 
     function loadLapCluis() {
       let tgl = document.getElementById('cluis-tgl').value;
@@ -1545,118 +1727,19 @@ function initLapCluis() {
     function cetakLapCluis() {
       let tgl = document.getElementById('cluis-tgl').value;
       if (!globalCluisData || globalCluisData.rincian.length === 0) { alert('Data kosong atau belum dimuat!'); return; }
-      
+
       showLoader(true, "Mempersiapkan Lembar PDF Cluis...");
       google.script.run.withSuccessHandler((pejabat) => {
           showLoader(false);
-          let wilayah = currentUser.namaUnit;
-          let namaPenyelia = (pejabat && pejabat.namaPenyelia) ? pejabat.namaPenyelia : "______________________";
-          let nipPenyelia = (pejabat && pejabat.nipPenyelia) ? "NIP. " + pejabat.nipPenyelia : "NIP. ___________________";
-          let namaPBO = (pejabat && pejabat.namaPBO) ? pejabat.namaPBO : "______________________";
-          let nipPBO = (pejabat && pejabat.nipPBO) ? "NIP. " + pejabat.nipPBO : "NIP. ___________________";
-          
-          // Helper fungsi format sejajar untuk Print/PDF Cluis
-          const fmtPrintCluis = (val, color = '#000', weight = 'normal') => {
-            let formattedVal = parseInt(val || 0, 10).toLocaleString('id-ID');
-            return `<div style="display:flex; justify-content:space-between; align-items:center; width:100%;"><span style="font-weight:normal; margin-right:10px; color:#333;">Rp</span><span style="text-align:right; flex-grow:1; color:${color}; font-weight:${weight};">${formattedVal}</span></div>`;
-          };
-
-          let rowsHtml = "";
-          let currentCat = "";
-          let subSblm = 0, subPeng = 0, subCluis = 0;
-          
-          globalCluisData.rincian.forEach((r, idx) => {
-            if (currentCat !== "" && currentCat !== r.kategori) {
-              rowsHtml += `<tr style="background-color:#e2e8f0; font-weight:bold; -webkit-print-color-adjust: exact;">
-                <td colspan="2" class="text-right">Subtotal ${currentCat}:</td>
-                <td style="padding:3px 6px;">${fmtPrintCluis(subSblm)}</td>
-                <td style="padding:3px 6px;">${fmtPrintCluis(subPeng, '#b91c1c')}</td>
-                <td style="padding:3px 6px;">${fmtPrintCluis(subCluis, '#047857', 'bold')}</td>
-              </tr>`;
-              subSblm = 0; subPeng = 0; subCluis = 0;
-            }
-            currentCat = r.kategori;
-            subSblm += r.nominalSebelumnya;
-            subPeng += r.nominalPengeluaran;
-            subCluis += r.nominalCluis;
-            
-            let labelPecahan = isNaN(r.pecahan) ? r.pecahan : parseInt(r.pecahan, 10).toLocaleString('id-ID');
-            rowsHtml += `<tr>
-              <td>${r.kategori}</td>
-              <td class="text-right" style="font-weight:600;">${labelPecahan}</td>
-              <td style="padding:3px 6px;">${fmtPrintCluis(r.nominalSebelumnya)} <span style="font-size:8px; color:#555;">(${r.lembarSebelumnya} lbr)</span></td>
-              <td style="padding:3px 6px;">${fmtPrintCluis(r.nominalPengeluaran, '#b91c1c')} <span style="font-size:8px; color:#555;">(${r.lembarPengeluaran} lbr)</span></td>
-              <td style="padding:3px 6px;">${fmtPrintCluis(r.nominalCluis, '#047857', 'bold')} <span style="font-size:8px; color:#555;">(${r.lembarCluis} lbr)</span></td>
-            </tr>`;
-            
-            if (idx === globalCluisData.rincian.length - 1) {
-              rowsHtml += `<tr style="background-color:#e2e8f0; font-weight:bold; -webkit-print-color-adjust: exact;">
-                <td colspan="2" class="text-right">Subtotal ${currentCat}:</td>
-                <td style="padding:3px 6px;">${fmtPrintCluis(subSblm)}</td>
-                <td style="padding:3px 6px;">${fmtPrintCluis(subPeng, '#b91c1c')}</td>
-                <td style="padding:3px 6px;">${fmtPrintCluis(subCluis, '#047857', 'bold')}</td>
-              </tr>`;
-            }
+          const html = buildLaporanHtml('cluis', globalCluisData, {
+            tanggal: tgl,
+            wilayah: currentUser.namaUnit,
+            pejabat: pejabat,
           });
-
-          let strTerbilang = globalCluisData.totalCluis > 0 ? terbilang(globalCluisData.totalCluis).toUpperCase() + " RUPIAH" : "-";
-
-          let printWindow = window.open('', '', 'width=900,height=650');
-          printWindow.document.write(`<html><head><title>SISA DALAM CLUIS</title>
-          <style>
-            @page { size: A4 portrait; margin: 8mm; } 
-            body { font-family: 'Arial', sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } 
-            h3 { margin: 1px 0; font-size: 11px; text-align: center; } 
-            h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } 
-            .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } 
-            table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } 
-            th, td { border: 1px solid #000; padding: 3px 5px; } 
-            th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align: center; } 
-            .text-right { text-align: right; font-weight: bold; } 
-            .grand-total { font-size: 12px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 5px; -webkit-print-color-adjust: exact; margin-top: 5px; } 
-            .ttd-container { width: 100%; margin-top: 15px; display: table; } 
-            .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } 
-            .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } 
-            .ttd-space { height: 45px; }
-          </style></head><body>
-          <div class="header"><h3>LAPORAN RINCIAN SISA DALAM CLUIS</h3><h4>Wilayah: ${wilayah} | Tanggal: ${formatTglIndo(tgl)}</h4></div>
-          <h4 style="text-align: left; background:#eee; border:1px solid #000;">PERUBAHAN SALDO KAS CLUIS KHASANAH</h4>
-          <table>
-            <thead>
-              <tr>
-                <th style="text-align:left; width:14%;">Kategori</th>
-                <th style="text-align:right; width:10%;">Pecahan</th>
-                <th style="text-align:right; width:26%;">Saldo Hari Sebelumnya</th>
-                <th style="text-align:right; width:25%; color:#b91c1c;">Pengeluaran Hari Ini</th>
-                <th style="text-align:right; width:25%; color:#047857;">Sisa Dalam Cluis</th>
-              </tr>
-            </thead>
-            <tbody>${rowsHtml}</tbody>
-            <tfoot>
-              <tr style="font-weight:bold; background:#f2f2f2;">
-                <td colspan="2" class="text-right">TOTAL KESELURUHAN CLUIS:</td>
-                <td style="padding:4px 6px;">${fmtPrintCluis(globalCluisData.totalHariSebelumnya)}</td>
-                <td style="padding:4px 6px;">${fmtPrintCluis(globalCluisData.totalPengeluaran, '#b91c1c')}</td>
-                <td style="padding:4px 6px;">${fmtPrintCluis(globalCluisData.totalCluis, '#047857', 'bold')}</td>
-              </tr>
-            </tfoot>
-          </table>
-          <div class="grand-total">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:3px;">
-              <span>GRAND TOTAL SISA DALAM CLUIS:</span>
-              <span style="font-size: 14px;">Rp ${globalCluisData.totalCluis.toLocaleString('id-ID')}</span>
-            </div>
-            <div style="font-size: 9px; font-style: italic; text-align: right; color: #111;">Terbilang: ${strTerbilang}</div>
-          </div>
-          <div class="ttd-container">
-            <div class="ttd-box">Mengetahui,<br><b>Pemimpin Bidang Operasional</b><div class="ttd-space"></div><div class="ttd-name">${namaPBO}</div><div>${nipPBO}</div></div>
-            <div class="ttd-box">Dibuat Oleh,<br><b>Penyelia Operasional Dana</b><div class="ttd-space"></div><div class="ttd-name">${namaPenyelia}</div><div>${nipPenyelia}</div></div>
-          </div>
-          </body></html>`);
-          printWindow.document.close(); printWindow.focus();
-          setTimeout(() => { printWindow.print(); }, 500); 
+          _openPrintWindow(html);
       }).getDataPejabatHT(currentUser.kodeWilayah);
     }
+
 
     // =============================================
     // CIB: Bon Pagi per KF per Tanggal
@@ -2637,6 +2720,7 @@ function initLapCluis() {
 
 // ================= FUNGSI POSISI HARIAN KAS GLOBAL =================
     let dataPosisiHarianTemp = null;
+    let globalSaldoKasData = null;
 
     function initLapPosisiHarian() {
       document.getElementById('lph-tgl').value = getLocalDateString();
@@ -2681,88 +2765,15 @@ function loadLapPosisiHarian() {
       showLoader(true, "Menyiapkan Dokumen Laporan...");
       google.script.run.withSuccessHandler((pejabat) => {
         showLoader(false);
-        let wilayah = currentUser.namaUnit;
-        let namaPenyelia = (pejabat && pejabat.namaPenyelia) ? pejabat.namaPenyelia : "______________________"; 
-        let nipPenyelia = (pejabat && pejabat.nipPenyelia) ? "NIP. " + pejabat.nipPenyelia : "NIP. ___________________"; 
-        let namaPBO = (pejabat && pejabat.namaPBO) ? pejabat.namaPBO : "______________________"; 
-        let nipPBO = (pejabat && pejabat.nipPBO) ? "NIP. " + pejabat.nipPBO : "NIP. ___________________"; 
-
-        // Helper fungsi format Print/PDF
-        const fmtPrintAligned = (val, color = '#000', weight = 'bold') => {
-          let formattedVal = parseFloat(val).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-          return `<div style="display:flex; justify-content:space-between; align-items:center; width:100%;"><span style="font-weight:normal; margin-right:15px; color:#333;">Rp</span><span style="text-align:right; flex-grow:1; color:${color}; font-weight:${weight};">${formattedVal}</span></div>`;
-        };
-
-        let statusSelisih = dataPosisiHarianTemp.selisih === 0 ? "BALANCE (KLOP)" : (dataPosisiHarianTemp.selisih > 0 ? "LEBIH" : "KURANG");
-        let strTerbilang = dataPosisiHarianTemp.saldoFisik > 0 ? terbilang(Math.floor(dataPosisiHarianTemp.saldoFisik)).toUpperCase() + " RUPIAH" : "-";
-
-        let htmlCetak = `
-        <html><head><title>Cetak Posisi Harian Kas</title>
-        <style>
-          @page { size: A4 portrait; margin: 8mm; } 
-          body { font-family: 'Arial', sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } 
-          h3 { margin: 1px 0; font-size: 11px; text-align: center; } 
-          h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } 
-          .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } 
-          table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } 
-          th, td { border: 1px solid #000; padding: 3px 5px; } 
-          th { background-color: #eee !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align: center; } 
-          .text-right { text-align: right; font-weight: bold; } 
-          .text-left { text-align: left; font-weight: 600; }
-          .grand-total { font-size: 13px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 4px; -webkit-print-color-adjust: exact; margin-top: 5px; } 
-          .ttd-container { width: 100%; margin-top: 15px; display: table; } 
-          .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } 
-          .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } 
-          .ttd-space { height: 40px; }
-        </style>
-        </head><body>
-          <div class="header">
-            <h3>POSISI HARIAN KAS OPERASIONAL</h3>
-            <h4>Wilayah: ${wilayah} | Tanggal: ${formatTglIndo(tgl)}</h4>
-          </div>
-          
-          <table>
-            <thead>
-              <tr>
-                <th style="text-align:left; width:60%;">URAIAN POSISI KAS</th>
-                <th style="text-align:right; width:40%;">NOMINAL (RP)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td class="text-left">SALDO KEMARIN HARI</td><td style="padding:4px 8px;">${fmtPrintAligned(dataPosisiHarianTemp.saldoKemarin)}</td></tr>
-              <tr><td class="text-left">PENERIMAAN KAS HARI INI ( DEBET )</td><td style="padding:4px 8px;">${fmtPrintAligned(dataPosisiHarianTemp.penerimaanDebet, '#0284c7')}</td></tr>
-              <tr><td class="text-left">PENERIMAAN KAS ANTAR TELLER</td><td style="padding:4px 8px;">${fmtPrintAligned(dataPosisiHarianTemp.penerimaanAntar, '#0284c7')}</td></tr>
-              <tr><td class="text-left">PEMBAYARAN KAS HARI INI ( KREDIT )</td><td style="padding:4px 8px;">${fmtPrintAligned(dataPosisiHarianTemp.pembayaranKredit, '#dc2626')}</td></tr>
-              <tr><td class="text-left">PEMBAYARAN KAS ANTAR TELLER</td><td style="padding:4px 8px;">${fmtPrintAligned(dataPosisiHarianTemp.pembayaranAntar, '#dc2626')}</td></tr>
-              <tr style="background:#f1f5f9; -webkit-print-color-adjust: exact;"><td class="text-left" style="font-weight:700;">SALDO HARI INI (SISTEM)</td><td style="padding:4px 8px;">${fmtPrintAligned(dataPosisiHarianTemp.saldoHariIni, '#000', '800')}</td></tr>
-              <tr style="background:#f8fafc; -webkit-print-color-adjust: exact;"><td class="text-left" style="font-weight:700;">SALDO KAS MENURUT FISIK UANG</td><td style="padding:4px 8px;">${fmtPrintAligned(dataPosisiHarianTemp.saldoFisik, '#000', '800')}</td></tr>
-              <tr><td class="text-left">SELISIH KAS LEBIH / KURANG (${statusSelisih})</td><td style="padding:4px 8px;">${fmtPrintAligned(dataPosisiHarianTemp.selisih, dataPosisiHarianTemp.selisih === 0 ? '#059669' : '#dc2626', '800')}</td></tr>
-            </tbody>
-          </table>
-
-          <div class="grand-total">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:3px;">
-              <span>TOTAL SALDO :</span>
-              <span style="font-size: 14px;">Rp ${parseFloat(dataPosisiHarianTemp.saldoFisik).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-            </div>
-            <div style="font-size: 9px; font-style: italic; text-align: right; color: #111;">Terbilang Fisik: ${strTerbilang}</div>
-          </div>
-
-          <div class="ttd-container">
-            <div class="ttd-box">Mengetahui,<br><b>Pemimpin Bidang Operasional</b><div class="ttd-space"></div><div class="ttd-name">${namaPBO}</div><div>${nipPBO}</div></div>
-            <div class="ttd-box">Dibuat Oleh,<br><b>Penyelia Operasional Dana</b><div class="ttd-space"></div><div class="ttd-name">${namaPenyelia}</div><div>${nipPenyelia}</div></div>
-         </div>
-        
-        </body></html>
-        `;
-
-        let printWindow = window.open('', '', 'width=900,height=700');
-        printWindow.document.write(htmlCetak);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => { printWindow.print(); }, 500);
+        const html = buildLaporanHtml('posisi', dataPosisiHarianTemp, {
+          tanggal: tgl,
+          wilayah: currentUser.namaUnit,
+          pejabat: pejabat,
+        });
+        _openPrintWindow(html);
       }).getDataPejabatHT(currentUser.kodeWilayah);
     }
+
    
 function checkCetakStatusKF() {
   let tgl = document.getElementById('cetak-kf-tgl').value;
@@ -3767,28 +3778,71 @@ function onToggleNotif() {
       document.getElementById('klh-tgl').value = getLocalDateString();
       document.getElementById('klh-result').innerHTML = '';
     }
-    function kirimLaporanHarian() {
+    async function kirimLaporanHarian() {
       const tgl = document.getElementById('klh-tgl').value;
       if (!tgl) { alert("Pilih tanggal laporan terlebih dahulu!"); return; }
       if (!confirm("Kirim Laporan Akhir Hari untuk tanggal " + tgl + "?\nPDF akan dikirim via email ke tujuan yang diatur admin.")) return;
-      showLoader(true, "Mengekspor data & mengirim email...");
+      if (typeof html2pdf === 'undefined') { alert("Library PDF belum termuat. Periksa koneksi internet lalu muat ulang halaman."); return; }
+
+      showLoader(true, "Mengekspor 5 laporan PDF & mengirim email...");
       document.getElementById('klh-result').innerHTML = '<p style="color:var(--text-muted);">Memproses laporan...</p>';
-      google.script.run.withSuccessHandler((res) => {
+      try {
+        const kodeWilayah = currentUser.kodeWilayah;
+        const userEstim = currentUser.userEstim;
+        const role = currentUser.role;
+
+        const [pejabat, posisi, saldoKas, setoran, pengeluaran, cluis] = await Promise.all([
+          _gasProm('getDataPejabatHT', kodeWilayah),
+          _gasProm('getRekapPosisiHarianGlobal', tgl, kodeWilayah),
+          _gasProm('getLapSaldoKasHariIni', tgl, kodeWilayah),
+          _gasProm('getLapMutasiKhasanah', tgl, kodeWilayah, 'SETOR'),
+          _gasProm('getLapMutasiKhasanah', tgl, kodeWilayah, 'BON'),
+          _gasProm('getLapCluis', tgl, kodeWilayah),
+        ]);
+
+        const ctx = { tanggal: tgl, wilayah: currentUser.namaUnit, pejabat };
+
+        const userTerdata = Number(posisi && posisi.userTerdata ? posisi.userTerdata : 0);
+        const grandTotal = Number(saldoKas && saldoKas.grandTotal ? saldoKas.grandTotal : 0);
+        if (userTerdata === 0 && grandTotal === 0) {
+          throw new Error('Belum ada data laporan untuk tanggal ' + tgl);
+        }
+
+        const toAttachment = (kind, data, filename) =>
+          _htmlToPdfBase64(buildLaporanHtml(kind, data, ctx), filename).then((content) => ({ filename, content }));
+
+        const attachments = await Promise.all([
+          toAttachment('setoran', setoran, '1_Setoran_Khasanah_' + tgl + '.pdf'),
+          toAttachment('pengeluaran', pengeluaran, '2_Pengeluaran_BON_' + tgl + '.pdf'),
+          toAttachment('saldo_ht', saldoKas, '3_Saldo_Khasanah_HT_' + tgl + '.pdf'),
+          toAttachment('cluis', cluis, '4_Sisa_Dalam_Cluis_' + tgl + '.pdf'),
+          toAttachment('posisi', posisi, '5_Posisi_Harian_Kas_' + tgl + '.pdf'),
+        ]);
+
+        const token = localStorage.getItem('kasmonitor_token') || '';
+        const resp = await fetch(_API + '/kirim-laporan-harian', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ tanggal: tgl, kodeWilayah, userEstim, role, attachments }),
+        });
+        const json = await resp.json().catch(() => ({}));
+        if (!json.success) throw new Error(json.error || 'API Error');
+
         showLoader(false);
         document.getElementById('klh-result').innerHTML =
           `<div class="summary-box" style="background:#ecfdf5; border-left:5px solid #059669; margin-top:10px;">
             <p style="margin:0; font-weight:700; color:#059669;">✅ Laporan berhasil dikirim</p>
-            <p style="margin:8px 0 0 0; color:#1e293b;">Tanggal: <b>${res.tanggal || tgl}</b><br>Email tujuan: <b>${res.to || '-'}</b><br>Total Saldo Khasanah: <b>${Number(res.totalHT || 0).toLocaleString('id-ID')}</b><br>Grand Total: <b>${Number(res.grandTotal || 0).toLocaleString('id-ID')}</b></p>
+            <p style="margin:8px 0 0 0; color:#1e293b;">Tanggal: <b>${json.data.tanggal || tgl}</b><br>Email tujuan: <b>${json.data.to || '-'}</b><br>Jumlah lampiran: <b>${json.data.totalAttachment || attachments.length}</b></p>
           </div>`;
         showToast(false);
-      }).withFailureHandler((err) => {
+      } catch (err) {
         showLoader(false);
         document.getElementById('klh-result').innerHTML =
           `<div class="summary-box" style="background:#fef2f2; border-left:5px solid #dc2626; margin-top:10px;">
             <p style="margin:0; font-weight:700; color:#dc2626;">❌ Gagal mengirim laporan</p>
             <p style="margin:8px 0 0 0; color:#1e293b;">${err.message}</p>
           </div>`;
-      }).kirimLaporanHarian({ tanggal: tgl, kodeWilayah: currentUser.kodeWilayah, userEstim: currentUser.userEstim, role: currentUser.role });
+      }
     }
 
     function clearFormUser() { document.getElementById('u-id').value = ''; document.getElementById('u-wilayah').value = ''; document.getElementById('u-kode').value = ''; document.getElementById('u-unit').value = '';
@@ -4295,7 +4349,7 @@ function loadDashboardHT() {
       document.getElementById('vp-foot-selisih').innerText = "Rp " + totSelisih.toLocaleString('id-ID'); }
 
     function loadLapSaldoKas() { let tgl = document.getElementById('lap-sk-tgl').value; if(!tgl) return;
-      showLoader(true, "Mengkalkulasi Seluruh Pecahan..."); google.script.run.withSuccessHandler((res) => { showLoader(false); let htmlHT = ""; if(res.htRincian.length === 0) { htmlHT = `<tr><td colspan="4" style="text-align:center;">Khasanah Kosong.</td></tr>`; } else { let currentCat = ""; let subNominal = 0; let subLembar = 0; res.htRincian.forEach((r, idx) => { if (currentCat !== "" && currentCat !== r.kategori) { htmlHT += `<tr style="background-color:#e2e8f0; -webkit-print-color-adjust: exact;"><td colspan="2" style="text-align:right; font-weight:800; color:#0f172a;">Subtotal ${currentCat}:</td><td style="text-align:right; font-weight:800; color:#0f172a;">${subLembar}</td><td style="font-weight:800;">${formatRpAlign(subNominal)}</td></tr>`; subNominal = 0; subLembar = 0; } currentCat = r.kategori; subNominal += r.nominal; subLembar += r.lembar; let textPecahan = formatRpAlign(r.pecahan); let textNominal = formatRpAlign(r.nominal); htmlHT += `<tr><td>${r.kategori}</td><td style="font-weight:600;">${textPecahan}</td><td style="text-align:right; font-weight:700;">${r.lembar}</td><td style="font-weight:600;">${textNominal}</td></tr>`; if (idx === res.htRincian.length - 1) { htmlHT += `<tr style="background-color:#e2e8f0; -webkit-print-color-adjust: exact;"><td colspan="2" style="text-align:right; font-weight:800; color:#0f172a;">Subtotal ${currentCat}:</td><td style="text-align:right; font-weight:800; color:#0f172a;">${subLembar}</td><td style="font-weight:800;">${formatRpAlign(subNominal)}</td></tr>`; } }); } document.getElementById('lap-sk-ht-body').innerHTML = htmlHT; document.getElementById('lap-sk-ht-total').innerHTML = formatRpAlign(res.totalHT); let htmlTeller = ""; if(res.tellerList.length === 0) { htmlTeller = `<tr><td colspan="3" style="text-align:center;">Belum ada Teller setor sore.</td></tr>`; } else { res.tellerList.forEach(t => { let textTotal = formatRpAlign(t.total); htmlTeller += `<tr><td style="font-weight:700;">${t.namaUnit}</td><td>${t.userEstim}</td><td style="font-weight:600;">${textTotal}</td></tr>`; }); } document.getElementById('lap-sk-teller-body').innerHTML = htmlTeller; document.getElementById('lap-sk-teller-total').innerHTML = formatRpAlign(res.totalTeller); document.getElementById('lap-sk-grandtotal').innerHTML = `<div style="display:flex; justify-content:space-between; width:100%;"><span style="color:#d97706; margin-right:20px;">Rp</span><span>${res.grandTotal.toLocaleString('id-ID')}</span></div>`; document.getElementById('lap-sk-grandtotal').setAttribute('data-val', res.grandTotal); }).getLapSaldoKasHariIni(tgl, currentUser.kodeWilayah); }
+      showLoader(true, "Mengkalkulasi Seluruh Pecahan..."); google.script.run.withSuccessHandler((res) => { showLoader(false); globalSaldoKasData = res; let htmlHT = ""; if(res.htRincian.length === 0) { htmlHT = `<tr><td colspan="4" style="text-align:center;">Khasanah Kosong.</td></tr>`; } else { let currentCat = ""; let subNominal = 0; let subLembar = 0; res.htRincian.forEach((r, idx) => { if (currentCat !== "" && currentCat !== r.kategori) { htmlHT += `<tr style="background-color:#e2e8f0; -webkit-print-color-adjust: exact;"><td colspan="2" style="text-align:right; font-weight:800; color:#0f172a;">Subtotal ${currentCat}:</td><td style="text-align:right; font-weight:800; color:#0f172a;">${subLembar}</td><td style="font-weight:800;">${formatRpAlign(subNominal)}</td></tr>`; subNominal = 0; subLembar = 0; } currentCat = r.kategori; subNominal += r.nominal; subLembar += r.lembar; let textPecahan = formatRpAlign(r.pecahan); let textNominal = formatRpAlign(r.nominal); htmlHT += `<tr><td>${r.kategori}</td><td style="font-weight:600;">${textPecahan}</td><td style="text-align:right; font-weight:700;">${r.lembar}</td><td style="font-weight:600;">${textNominal}</td></tr>`; if (idx === res.htRincian.length - 1) { htmlHT += `<tr style="background-color:#e2e8f0; -webkit-print-color-adjust: exact;"><td colspan="2" style="text-align:right; font-weight:800; color:#0f172a;">Subtotal ${currentCat}:</td><td style="text-align:right; font-weight:800; color:#0f172a;">${subLembar}</td><td style="font-weight:800;">${formatRpAlign(subNominal)}</td></tr>`; } }); } document.getElementById('lap-sk-ht-body').innerHTML = htmlHT; document.getElementById('lap-sk-ht-total').innerHTML = formatRpAlign(res.totalHT); let htmlTeller = ""; if(res.tellerList.length === 0) { htmlTeller = `<tr><td colspan="3" style="text-align:center;">Belum ada Teller setor sore.</td></tr>`; } else { res.tellerList.forEach(t => { let textTotal = formatRpAlign(t.total); htmlTeller += `<tr><td style="font-weight:700;">${t.namaUnit}</td><td>${t.userEstim}</td><td style="font-weight:600;">${textTotal}</td></tr>`; }); } document.getElementById('lap-sk-teller-body').innerHTML = htmlTeller; document.getElementById('lap-sk-teller-total').innerHTML = formatRpAlign(res.totalTeller); document.getElementById('lap-sk-grandtotal').innerHTML = `<div style="display:flex; justify-content:space-between; width:100%;"><span style="color:#d97706; margin-right:20px;">Rp</span><span>${res.grandTotal.toLocaleString('id-ID')}</span></div>`; document.getElementById('lap-sk-grandtotal').setAttribute('data-val', res.grandTotal); }).getLapSaldoKasHariIni(tgl, currentUser.kodeWilayah); }
     
     function loadLapMutasi(tipe) { 
       window.currentLapMutasiType = tipe; 
@@ -4306,6 +4360,7 @@ function loadDashboardHT() {
       showLoader(true, "Mengkalkulasi Rincian..."); 
       google.script.run.withSuccessHandler((res) => { 
         showLoader(false); 
+        globalLapMutasiData = res;
         let color = tipe === 'SETOR' ? '#059669' : '#dc2626'; 
         let html = ""; 
         if(res.rincian.length === 0) { 
@@ -4424,101 +4479,21 @@ function loadDashboardHT() {
     
     function cetakLaporanMutasi() { 
       let tgl = document.getElementById('lap-mutasi-tgl').value;
-      if (!tgl) { alert('Pilih tanggal laporan terlebih dahulu!'); return; } 
+      if (!tgl) { alert('Pilih tanggal laporan terlebih dahulu!'); return; }
+      if (!globalLapMutasiData) { alert('Data laporan belum dimuat!'); return; }
       showLoader(true, "Menyiapkan Dokumen...");
-      google.script.run.withSuccessHandler((pejabat) => { 
-          showLoader(false); 
-          let tipeLabel = window.currentLapMutasiType === 'SETOR' ? 'SETORAN KHASANAH' : 'PENGELUARAN KHASANAH (BON)'; 
-          let htmlTabel = document.getElementById('lap-mutasi-body').innerHTML; 
-          let totalMutasi = document.getElementById('lap-mutasi-total').innerHTML; 
-          let htmlTabelTeller = document.getElementById('lap-mutasi-teller-body').innerHTML; 
-          let totalTellerMutasi = document.getElementById('lap-mutasi-teller-total').innerHTML; 
-          
-          let rawTotalMutasi = parseInt(document.getElementById('lap-mutasi-total').getAttribute('data-val')) || 0; 
-          let rawTotalTeller = parseInt(document.getElementById('lap-mutasi-teller-total').getAttribute('data-val')) || 0;
-          
-          let sectionB_Html = "";
-          let grandTotalHtml = "";
-          let grandTotalGabungan = 0;
-          
-          if (window.currentLapMutasiType === 'SETOR') {
-            grandTotalGabungan = rawTotalMutasi + rawTotalTeller;
-            sectionB_Html = `
-              <h4 style="text-align: left; background:#eee; border:1px solid #000; margin-top:5px;">B. RINCIAN PER TELLER</h4>
-              <table><thead><tr><th style="text-align:left;">Nama Unit Kerja / Cabang</th><th style="text-align:left;">User Estim</th><th style="text-align:right;">Nominal Mutasi Transaksi</th></tr></thead>
-              <tbody>${htmlTabelTeller}</tbody><tfoot><tr><td colspan="2" class="text-right" style="font-weight:bold;">TOTAL KESELURUHAN TELLER (B):</td><td style="font-weight:bold;">${totalTellerMutasi}</td></tr></tfoot></table>
-            `;
-            grandTotalHtml = `
-              <div style="display:flex; justify-content:space-between; align-items:center; font-weight:normal; font-size:9px; color:#222; margin-bottom:2px;">
-                <span>TOTAL RINCIAN PECAHAN (A):</span>
-                <span>Rp ${rawTotalMutasi.toLocaleString('id-ID')}</span>
-              </div>
-              <div style="display:flex; justify-content:space-between; align-items:center; font-weight:normal; font-size:9px; color:#222; margin-bottom:4px; border-bottom:1px dashed #000; padding-bottom:3px;">
-                <span>TOTAL RINCIAN PER TELLER (B):</span>
-                <span>Rp ${rawTotalTeller.toLocaleString('id-ID')}</span>
-              </div>
-              <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:bold; color:#000;">
-                <span>GRAND TOTAL GABUNGAN (A + B):</span>
-                <span style="font-size: 13px;">Rp ${grandTotalGabungan.toLocaleString('id-ID')}</span>
-              </div>
-            `;
-          } else {
-            grandTotalGabungan = rawTotalMutasi;
-            sectionB_Html = ""; 
-            grandTotalHtml = `
-              <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:bold; color:#000;">
-                <span>GRAND TOTAL PENGELUARAN KHASANAH:</span>
-                <span style="font-size: 13px;">Rp ${grandTotalGabungan.toLocaleString('id-ID')}</span>
-              </div>
-            `;
-          }
-          
-          let strTerbilang = grandTotalGabungan > 0 ? terbilang(grandTotalGabungan).toUpperCase() + " RUPIAH" : "-";
-          let wilayah = currentUser.namaUnit; 
-          let namaPenyelia = (pejabat && pejabat.namaPenyelia) ? pejabat.namaPenyelia : "______________________"; 
-          let nipPenyelia = (pejabat && pejabat.nipPenyelia) ? "NIP. " + pejabat.nipPenyelia : "NIP. ___________________"; 
-          let namaPBO = (pejabat && pejabat.namaPBO) ? pejabat.namaPBO : "______________________"; 
-          let nipPBO = (pejabat && pejabat.nipPBO) ? "NIP. " + pejabat.nipPBO : "NIP. ___________________"; 
-          
-          let printWindow = window.open('', '', 'width=800,height=600');
-          printWindow.document.write(`<html><head><title>Cetak Laporan ${tipeLabel}</title>
-          <style>
-             @page { size: A4 portrait; margin: 8mm; } 
-             body { font-family: 'Arial', sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } 
-             h3 { margin: 1px 0; font-size: 11px; text-align: center; } 
-             h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } 
-             .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } 
-             table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } 
-             th, td { border: 1px solid #000; padding: 2px 4px; } 
-             th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align: center; } 
-             .text-right { text-align: right; } 
-             .text-center { text-align: center; } 
-             .grand-total { font-size: 11px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 6px; -webkit-print-color-adjust: exact; margin-top: 8px; } 
-             .ttd-container { width: 100%; margin-top: 15px; display: table; } 
-             .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } 
-             .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } 
-             .ttd-space { height: 40px; }
-          </style></head><body>
-          <div class="header"><h3>LAPORAN RINCIAN ${tipeLabel}</h3><h4>Wilayah: ${wilayah} | Tanggal: ${formatTglIndo(tgl)}</h4></div>
-          
-          <h4 style="text-align: left; background:#eee; border:1px solid #000;">A. TOTAL RINCIAN PECAHAN UANG</h4>
-          <table><thead><tr><th style="text-align:left;">Kategori</th><th style="text-align:right;">Pecahan</th><th style="text-align:right;">Lembar/Keping</th><th style="text-align:right;">Nominal Total</th></tr></thead>
-          <tbody>${htmlTabel}</tbody><tfoot><tr><td colspan="3" class="text-right" style="font-weight:bold;">TOTAL KESELURUHAN (A):</td><td style="font-weight:bold;">${totalMutasi}</td></tr></tfoot></table>
-          
-          ${sectionB_Html}
-          
-          <div class="grand-total">
-            ${grandTotalHtml}
-            <div style="font-size: 9px; font-style: italic; text-align: right; color: #111; margin-top:4px;">
-              Terbilang: # ${strTerbilang} #
-            </div>
-          </div>
-          
-          <div class="ttd-container"><div class="ttd-box">Mengetahui,<br><b>Pemimpin Bidang Operasional</b><div class="ttd-space"></div><div class="ttd-name">${namaPBO}</div><div>${nipPBO}</div></div><div class="ttd-box">Dibuat Oleh,<br><b>Penyelia Operasional Dana</b><div class="ttd-space"></div><div class="ttd-name">${namaPenyelia}</div><div>${nipPenyelia}</div></div></div>
-          </body></html>`);
-          printWindow.document.close(); printWindow.focus(); setTimeout(() => { printWindow.print(); }, 500); 
-      }).getDataPejabatHT(currentUser.kodeWilayah); 
+      google.script.run.withSuccessHandler((pejabat) => {
+          showLoader(false);
+          const kind = window.currentLapMutasiType === 'SETOR' ? 'setoran' : 'pengeluaran';
+          const html = buildLaporanHtml(kind, globalLapMutasiData, {
+            tanggal: tgl,
+            wilayah: currentUser.namaUnit,
+            pejabat: pejabat,
+          });
+          _openPrintWindow(html);
+      }).getDataPejabatHT(currentUser.kodeWilayah);
     }
+
     
     function showDetail(index) { const item = globalHistoryData[index]; if(!item) return; document.getElementById('modal-idtrx').innerText = item.idTransaksi;
       let html = `<div style="background:var(--light-red); padding:20px; border-radius:12px; margin-bottom:20px; border:1px solid #fca5a5;"><p style="margin-top:0;"><b>Tgl:</b> ${item.tanggal} &nbsp;|&nbsp; <b>Tipe:</b> ${item.tipe} &nbsp;|&nbsp;
@@ -4531,32 +4506,20 @@ function loadDashboardHT() {
     
     function cetakLaporanHT() { 
       let tgl = document.getElementById('lap-sk-tgl').value;
-      if (!tgl) { alert('Pilih tanggal laporan terlebih dahulu!'); return; } showLoader(true, "Menyiapkan Laporan 1 Halaman...");
-      google.script.run.withSuccessHandler((pejabat) => { 
-          showLoader(false); 
-          let htmlTabelHT = document.getElementById('lap-sk-ht-body').innerHTML; let totalHT = document.getElementById('lap-sk-ht-total').innerHTML; let htmlTabelTeller = document.getElementById('lap-sk-teller-body').innerHTML; let totalTeller = document.getElementById('lap-sk-teller-total').innerHTML; let grandTotal = document.getElementById('lap-sk-grandtotal').innerHTML; let rawGrandTotal = parseInt(document.getElementById('lap-sk-grandtotal').getAttribute('data-val')) || 0; let strTerbilang = rawGrandTotal > 0 ? terbilang(rawGrandTotal).toUpperCase() + " RUPIAH" : "-";
-          let wilayah = currentUser.namaUnit; let namaPenyelia = (pejabat && pejabat.namaPenyelia) ? pejabat.namaPenyelia : "______________________"; let nipPenyelia = (pejabat && pejabat.nipPenyelia) ? "NIP. " + pejabat.nipPenyelia : "NIP. ___________________"; 
-          let namaPBO = (pejabat && pejabat.namaPBO) ? pejabat.namaPBO : "______________________"; let nipPBO = (pejabat && pejabat.nipPBO) ? "NIP. " + pejabat.nipPBO : "NIP. ___________________"; 
-          let printWindow = window.open('', '', 'width=900,height=650');
-          printWindow.document.write(`<html><head><title>Cetak Laporan Rincian Kas</title>
-          <style>@page { size: A4 portrait; margin: 8mm; } body { font-family: 'Arial', sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 2px 4px; } th { background-color: #eee !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align:center;} 
-          .text-right { text-align: right; } .text-center { text-align: center; } .grand-total { font-size: 13px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 4px; -webkit-print-color-adjust: exact; margin-top: 5px; } .ttd-container { width: 100%; margin-top: 10px; display: table;
-          } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px;
-          } .ttd-space { height: 40px; }</style></head><body>
-          <div class="header"><h3>LAPORAN RINCIAN SALDO KAS DAN CASHBOX TELLER</h3><h4>Wilayah: ${wilayah} | Tanggal: ${formatTglIndo(tgl)}</h4></div>
-          <h4 style="text-align: left; background:#eee; border:1px solid #000;">A. TOTAL FISIK SALDO KHASANAH (HT)</h4>
-          <table><thead><tr><th style="text-align:left;">Kategori</th><th style="text-align:right;">Pecahan/Ket</th><th style="text-align:right;">Lembar/Keping</th><th style="text-align:right;">Nominal Total</th></tr></thead>
-          <tbody>${htmlTabelHT}</tbody><tfoot><tr><td colspan="3" class="text-right" style="font-weight:bold;">TOTAL SALDO KHASANAH:</td><td style="font-weight:bold;">${totalHT}</td></tr></tfoot></table>
-          <h4 style="text-align: left; background:#eee; border:1px solid #000; margin-top: 5px;">B. SALDO FISIK CASHBOX TELLER (SETOR SORE)</h4>
-          <table><thead><tr><th style="text-align:left;">Nama Unit Kerja / Cabang</th><th style="text-align:left;">User Estim</th><th style="text-align:right;">Total Saldo Cashbox</th></tr></thead>
-          <tbody>${htmlTabelTeller}</tbody><tfoot><tr><td colspan="2" class="text-right" style="font-weight:bold;">TOTAL KESELURUHAN CASHBOX TELLER:</td><td style="font-weight:bold;">${totalTeller}</td></tr></tfoot></table>
-          <div class="grand-total"><div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:3px;"><span style="margin-right:20px;">GRAND TOTAL SALDO (HT + Teller):</span><span style="font-size: 15px; min-width:150px; flex-grow:1;">${grandTotal}</span></div><div style="font-size: 10px; font-style: italic; text-align: right; color: #111;">Terbilang: ${strTerbilang}</div></div>
-          <div class="ttd-container"><div class="ttd-box">Mengetahui,<br><b>Pemimpin Bidang Operasional</b><div class="ttd-space"></div><div class="ttd-name">${namaPBO}</div><div>${nipPBO}</div></div><div class="ttd-box">Dibuat Oleh,<br><b>Penyelia Operasional Dana</b><div class="ttd-space"></div><div class="ttd-name">${namaPenyelia}</div><div>${nipPenyelia}</div></div></div>
-          </body></html>`);
-          printWindow.document.close(); printWindow.focus();
-          setTimeout(() => { printWindow.print(); }, 500); 
+      if (!tgl) { alert('Pilih tanggal laporan terlebih dahulu!'); return; }
+      if (!globalSaldoKasData) { alert('Data laporan belum dimuat!'); return; }
+      showLoader(true, "Menyiapkan Laporan 1 Halaman...");
+      google.script.run.withSuccessHandler((pejabat) => {
+          showLoader(false);
+          const html = buildLaporanHtml('saldo_ht', globalSaldoKasData, {
+            tanggal: tgl,
+            wilayah: currentUser.namaUnit,
+            pejabat: pejabat,
+          });
+          _openPrintWindow(html);
       }).getDataPejabatHT(currentUser.kodeWilayah);
     }
+
     
     function initPesananNasabah() {
       let tglEl = document.getElementById('pn-tgl');

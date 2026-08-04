@@ -1,464 +1,63 @@
-# Kirim Laporan Akhir Hari (PDF) via Email — Implementation Plan
+# Implementation Plan — Kirim Laporan Akhir Hari via Email (Revisi: Frontend html2pdf)
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+Date: 2026-08-04
+Spec: `docs/superpowers/specs/2026-08-04-laporan-akhir-hari-email-design.md`
 
-**Goal:** Menambahkan fitur kirim Laporan Akhir Hari (PDF) via email: admin mengonfigurasi tujuan email (Resend), teller men-trigger generate PDF + kirim email.
+## Objective
 
-**Architecture:** Satu Edge Function baru `kirim-laporan-harian` mengambil 5 dataset laporan via internal call ke endpoint yang sudah ada, membangun PDF A4 landscape memakai `pdf-lib` (npm specifier Deno), lalu mengirim via Resend REST API dengan PDF sebagai attachment. Konfigurasi email admin disimpan di tabel baru `setting_email` dan dikelola lewat Edge Function `setting-email`.
-
-**Tech Stack:** Supabase Edge Functions (Deno/TypeScript), `npm:pdf-lib@1.17.1`, Resend API, vanilla HTML/JS frontend, PostgreSQL RLS.
-
-**Referensi desain:** `docs/superpowers/specs/2026-08-04-laporan-akhir-hari-email-design.md`
+Fitur "Kirim Laporan Akhir Hari" memungkinkan teller/admin mengirim email berisi 5 PDF laporan harian (Setoran, Pengeluaran/BON, Saldo HT, Sisa Dalam Cluis, Posisi Harian Kas) ke tujuan yang diatur admin. PDF dibuat di browser dari HTML format laporan cetak existing (persis tampilan print manual), dikirim sebagai base64 attachments ke edge function `kirim-laporan-harian` yang tinggal mengirim via Resend.
 
 ## Global Constraints
 
-- Role yang boleh trigger kirim: hanya `teller` atau `admin` (validasi server-side via tabel `users`).
-- Cakupan data laporan = `kodeWilayah` user teller yang login.
-- Setting email disimpan sebagai single row di tabel `setting_email` (pola `setting_wa_gateway`).
-- Pendekatan auth aplikasi ini memakai service_role dan TIDAK memverifikasi JWT; identitas dikirim via body (`userEstim`, `role`).
-- Format angka Rupiah: `"Rp " + n.toLocaleString("id-ID")`.
-- PDF memakai A4 landscape (842x595 pt), margin 30 pt, font Helvetica.
-- Semua edge function mengikuti pola `corsHeaders`/`successResponse`/`errorResponse` dari `_shared/cors.ts` dan helper `cleanStr`, `formatTglIndo`, `getSupabaseClient` dari `_shared/`.
-- Tidak ada test framework di project ini; verifikasi manual via `supabase functions serve` + curl (membutuhkan Docker + file `.env` berisi `SB_URL` dan `SB_SERVICE_ROLE_KEY`), atau review kode jika Docker tidak tersedia.
+- **Satu sumber render**: `buildLaporanHtml(kind, data, ctx)` menghasilkan string HTML lengkap (termasuk `<style>` dan TTD). Empat fungsi print manual (`cetakLaporanMutasi`, `cetakLaporanHT`, `cetakLapCluis`, `cetakPosisiHarianKas`) DAN alur email sama-sama memakai helper ini. Perilaku & tampilan print manual TIDAK BOLEH berubah.
+- **Data mandiri untuk email**: `kirimLaporanHarian()` mem-fetch ulang semua dataset via `_GAS_MAP` (Promise wrapper `_gasProm`) — TIDAK membaca DOM/global state. Dataset: `getDataPejabatHT`, `getRekapPosisiHarianGlobal`, `getLapSaldoKasHariIni`, `getLapMutasiKhasanah` (SETOR & BON), `getLapCluis`.
+- **Frontend**: `frontend/index.html` adalah single-file SPA tanpa build step, JS inline (ES6+; async/await & fetch sudah dipakai). `formatRpAlign` (global, line 3262), `terbilang` (line 3244), `formatTglIndo` (line 2795), `showLoader` (line 3258), `showToast` sudah tersedia.
+- **Backend**: edge function `kirim-laporan-harian` TIDAK lagi generate PDF dan TIDAK lagi bergantung `pdf-lib`. Ia hanya validasi auth/role/setting + validasi attachments lalu kirim via Resend. Impor `_shared/cors.ts`, `_shared/supabase.ts`, `_shared/utils.ts` tetap dipakai.
+- **Auth model**: service_role; frontend kirim `userEstim`+`role` di body; edge function verifikasi ke tabel `users`, `effRole = role === userRole ? role : userRole`, hanya `teller`/`admin` boleh kirim.
+- **CDN**: html2pdf.js versi pinned 0.10.0 dari cdnjs. Jangan tambah dependensi lain.
+- JANGAN pernah stage/commit `LOG_AKTIVITAS.md`. Jangan ubah fungsi GAS/edge lain di luar yang disebut.
+- **Verifikasi**: tidak ada test framework di repo. Verifikasi = manual browser (halaman GitHub Pages + Supabase dashboard logs) + curl untuk edge function. Setiap step wajib diverifikasi sebelum lanjut.
+- Deployment perlu internet; gunakan `supabase functions deploy kirim-laporan-harian --no-verify-jwt` (CLI sudah login & link project `jwsfsczgyqphoyflpjnm`). Frontend di-push dulu agar GitHub Pages ter-update.
 
----
+## Task 1: Sederhanakan edge function `kirim-laporan-harian`
 
-### Task 1: Migration tabel `setting_email`
+### Purpose
 
-**Files:**
-- Create: `supabase/migrations/022_setting_email.sql`
+Ubah edge function dari "generate PDF server-side + kirim" menjadi "terima attachments base64 dari frontend + kirim". Menghapus `pdf-lib` dan semua builder PDF yang sekarang redundan, menghilangkan dependency `npm:pdf-lib` dan bug drawLine.
 
-**Interfaces:**
-- Consumes: pola tabel `setting_wa_gateway` (`supabase/migrations/016_wa_gateway.sql`)
-- Produces: tabel `setting_email` dengan kolom `id`, `api_key`, `from_email`, `to_emails`, `created_at`; RLS `authenticated` ALL (dipakai Task 2 dan Task 3)
+### Files
 
-- [ ] **Step 1: Buat file migration**
+- Modify: `supabase/functions/kirim-laporan-harian/index.ts` (tulis ulang penuh)
 
-```sql
--- =============================================
--- MIGRASI: Setting Email Laporan Akhir Hari (Resend)
--- File: 022_setting_email.sql
--- =============================================
+### Steps
 
-CREATE TABLE IF NOT EXISTS setting_email (
-  id SERIAL PRIMARY KEY,
-  api_key TEXT NOT NULL DEFAULT '',
-  from_email TEXT NOT NULL DEFAULT '',
-  to_emails TEXT NOT NULL DEFAULT '',
-  created_at TIMESTAMP DEFAULT NOW()
-);
+#### Step 1.1: Rewrite `index.ts`
 
-ALTER TABLE setting_email ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow authenticated access" ON setting_email
-  FOR ALL TO authenticated USING (true) WITH CHECK (true);
-```
-
-- [ ] **Step 2: Verifikasi file**
-
-Run: `Get-Content supabase/migrations/022_setting_email.sql`
-Expected: 3 pernyataan SQL (CREATE TABLE, ALTER TABLE, CREATE POLICY) sesuai di atas.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add supabase/migrations/022_setting_email.sql
-git commit -m "feat: migration tabel setting_email untuk tujuan email laporan harian"
-```
-
-**Catatan deploy:** Migration dijalankan manual di Supabase SQL Editor (bukan via CLI), sesuai cara setup project di `README.md` (copy-paste isi file ke SQL Editor lalu Run). Juga bisa `supabase db push` jika project sudah dilink.
-
----
-
-### Task 2: Edge Function `setting-email`
-
-**Files:**
-- Create: `supabase/functions/setting-email/index.ts`
-
-**Interfaces:**
-- Consumes: `setting_email` tabel (Task 1); helper `corsHeaders`, `successResponse`, `errorResponse` dari `../_shared/cors.ts`; `getSupabaseClient` dari `../_shared/supabase.ts`; `cleanStr` dari `../_shared/utils.ts`
-- Produces: endpoint `GET /setting-email` → `{ apiKey, fromEmail, toEmails }` atau `null`; `POST /setting-email` → `true` (upsert single row). Dipakai frontend Task 4.
-
-- [ ] **Step 1: Buat file edge function**
-
-```ts
-// Edge Function: /api/setting-email
-// Konfigurasi tujuan email untuk kirim Laporan Akhir Hari PDF (Resend)
-
-import { corsHeaders, successResponse, errorResponse } from "../_shared/cors.ts";
-import { getSupabaseClient } from "../_shared/supabase.ts";
-import { cleanStr } from "../_shared/utils.ts";
-
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
-  try {
-    const supabase = getSupabaseClient(req);
-
-    // GET
-    if (req.method === "GET") {
-      const { data, error } = await supabase
-        .from("setting_email")
-        .select("*")
-        .order("id")
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (!data) return successResponse(null);
-
-      return successResponse({
-        apiKey: String(data.api_key || ""),
-        fromEmail: String(data.from_email || "").replace(/'/g, ""),
-        toEmails: String(data.to_emails || "").replace(/'/g, ""),
-      });
-    }
-
-    // POST - Save (upsert single row)
-    if (req.method === "POST") {
-      const obj = await req.json();
-
-      const record = {
-        api_key: cleanStr(obj.apiKey || ""),
-        from_email: cleanStr(obj.fromEmail || ""),
-        to_emails: cleanStr(obj.toEmails || ""),
-      };
-
-      const { data: existing } = await supabase
-        .from("setting_email").select("id").order("id");
-
-      if (existing && existing.length > 0) {
-        await supabase.from("setting_email").update(record).eq("id", existing[0].id);
-      } else {
-        await supabase.from("setting_email").insert(record);
-      }
-
-      return successResponse(true);
-    }
-
-    return errorResponse("Method not allowed", 405);
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    return errorResponse("ERROR: " + msg, 500);
-  }
-});
-```
-
-- [ ] **Step 2: Verifikasi (butuh Docker + env)**
-
-Buat file `.env` di root (sudah di-gitignore):
-```
-SB_URL=https://<project-ref>.supabase.co
-SB_SERVICE_ROLE_KEY=<service-role-key>
-```
-
-Run: `supabase functions serve setting-email --env-file .env`
-Expected: fungsi jalan di `http://127.0.0.1:54321/functions/v1/setting-email`. Jika Docker tidak tersedia, lanjut ke Step 4 dengan review kode.
-
-- [ ] **Step 3: Uji GET & POST via curl (jika serve jalan)**
-
-```bash
-curl.exe -s http://127.0.0.1:54321/functions/v1/setting-email
-curl.exe -s -X POST http://127.0.0.1:54321/functions/v1/setting-email -H "Content-Type: application/json" -d '{"apiKey":"re_test","fromEmail":"a@b.com","toEmails":"x@y.com"}'
-curl.exe -s http://127.0.0.1:54321/functions/v1/setting-email
-```
-Expected: POST → `{"success":true,"data":true}`; GET kedua → `{"success":true,"data":{"apiKey":"re_test","fromEmail":"a@b.com","toEmails":"x@y.com"}}`
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add supabase/functions/setting-email/index.ts
-git commit -m "feat: edge function setting-email (CRUD tujuan email laporan)"
-```
-
----
-
-### Task 3: Edge Function `kirim-laporan-harian`
-
-**Files:**
-- Create: `supabase/functions/kirim-laporan-harian/index.ts`
-
-**Interfaces:**
-- Consumes: `setting_email` tabel (Task 1); helper `_shared/cors.ts`, `_shared/supabase.ts`, `_shared/utils.ts` (`cleanStr`, `formatTglIndo`); endpoint internal yang sudah ada:
-  - `GET /posisi-kas?action=rekap-harian-global&tanggal=<tgl>&kodeWilayah=<kw>` → `{ saldoKemarin, penerimaanDebet, penerimaanAntar, pembayaranKredit, pembayaranAntar, saldoHariIni, saldoFisik, selisih, userTerdata, totalBonTambahan, totalSetorTambahan }`
-  - `GET /laporan-ht?action=saldo-kas&tanggal=<tgl>&kodeWilayah=<kw>` → `{ htRincian: [{kategori, pecahan, lembar, nominal, order}], totalHT, tellerList: [{userEstim, namaUnit, total}], totalTeller, grandTotal }`
-  - `GET /laporan-ht?action=mutasi&tanggal=<tgl>&kodeWilayah=<kw>&tipeLap=SETOR|BON` → `{ rincian: [{kategori, pecahan, lembar, nominal, order}], total, tellerList, totalTeller }`
-  - `GET /cluis?tanggal=<tgl>&kodeWilayah=<kw>` → `{ rincian: [{kategori, pecahan, lembarSebelumnya, nominalSebelumnya, lembarPengeluaran, nominalPengeluaran, lembarCluis, nominalCluis, order}], totalHariSebelumnya, totalPengeluaran, totalCluis }`
-- Produces: endpoint `POST /kirim-laporan-harian` body `{ tanggal, kodeWilayah, userEstim, role, preview? }`. Sukses → `{ emailId, to, tanggal, totalHT, grandTotal }`; preview → `{ previewPdfBase64, filename }`. Dipakai frontend Task 5.
-
-- [ ] **Step 1: Buat file edge function**
+Tulis ulang `supabase/functions/kirim-laporan-harian/index.ts` menjadi berikut (hapus `buildReportPdf`, `internalFetch`, `bytesToBase64`, `formatRp`, import pdf-lib):
 
 ```ts
 // Edge Function: /api/kirim-laporan-harian
-// Generate Laporan Akhir Hari (PDF) dan kirim via email (Resend)
-// Body: { tanggal, kodeWilayah, userEstim, role, preview? }
+// Frontend mengirim laporan akhir hari sebagai lampiran PDF base64 (html2pdf di browser).
+// Body: { tanggal, kodeWilayah, userEstim, role, attachments: [{ filename, content }], preview? }
 
 import { corsHeaders, successResponse, errorResponse } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase.ts";
 import { cleanStr, formatTglIndo } from "../_shared/utils.ts";
-import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
 
 const RESEND_URL = "https://api.resend.com/emails";
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
-function formatRp(n: number): string {
-  return "Rp " + (n || 0).toLocaleString("id-ID");
+function decodeBase64(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)) as number[]);
-  }
-  return btoa(binary);
-}
-
-async function internalFetch(path: string): Promise<any> {
-  const resp = await fetch(`${Deno.env.get("SB_URL")}/functions/v1${path}`, {
-    headers: { Authorization: `Bearer ${Deno.env.get("SB_SERVICE_ROLE_KEY")}` },
-  });
-  const json = await resp.json();
-  if (!json?.success) throw new Error(`[internal] ${path} -> ${json?.error || "failed"}`);
-  return json.data;
-}
-
-// =============================================
-// PDF BUILDER
-// =============================================
-async function buildReportPdf(rep: {
-  tanggal: string;
-  kodeWilayah: string;
-  userInfo: { namaUser: string; userEstim: string };
-  posisi: any;
-  saldoKas: any;
-  setoran: any;
-  pengeluaran: any;
-  cluis: any;
-}): Promise<Uint8Array> {
-  const doc = await PDFDocument.create();
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-
-  const PAGE_W = 842, PAGE_H = 595, M = 30, LINE = 16;
-  const NAVY = rgb(0.11, 0.22, 0.44);
-  const RED = rgb(0.72, 0.07, 0.07);
-  const BLUE = rgb(0.02, 0.5, 0.72);
-  const GREEN = rgb(0.05, 0.55, 0.3);
-  const GRAY = rgb(0.55, 0.55, 0.55);
-  const DARK = rgb(0.1, 0.1, 0.1);
-
-  let page = doc.addPage([PAGE_W, PAGE_H]);
-  let y = M + 6; // cursor dari atas
-  let pageNum = 1;
-
-  const drawY = () => PAGE_H - y;
-  const footer = () => {
-    page.drawText("Laporan Akhir Hari - " + formatTglIndo(rep.tanggal), { x: M, y: M - 14, size: 8, font, color: GRAY });
-    page.drawText("Halaman " + pageNum, { x: PAGE_W - M - 60, y: M - 14, size: 8, font, color: GRAY });
-  };
-  footer();
-
-  const ensure = (h: number) => {
-    if (y + h > PAGE_H - M) {
-      page = doc.addPage([PAGE_W, PAGE_H]);
-      y = M + 6;
-      pageNum++;
-      footer();
-    }
-  };
-
-  const sectionTitle = (text: string, color: any = NAVY) => {
-    ensure(LINE * 2 + 6);
-    y += 10;
-    page.drawText(text, { x: M, y: drawY() - 12, size: 13, font: bold, color });
-    y += LINE;
-    page.drawLine({ start: [M, drawY() + 4], end: [PAGE_W - M, drawY() + 4], thickness: 1, color: GRAY });
-    y += 4;
-  };
-
-  const labelValue = (label: string, value: string, emphasis = false) => {
-    ensure(LINE);
-    page.drawText(label, { x: M, y: drawY() - 11, size: 10, font: emphasis ? bold : font, color: DARK });
-    page.drawText(value, { x: PAGE_W - M - 220, y: drawY() - 11, size: 10, font: emphasis ? bold : font, color: DARK });
-    y += LINE;
-  };
-
-  const table = (
-    headers: string[],
-    widths: number[],
-    rows: string[][],
-    totalLabel?: string,
-    totalValue?: string,
-  ) => {
-    const rowH = 15;
-    const totalW = widths.reduce((a, b) => a + b, 0);
-    ensure(rowH * 2);
-    page.drawRectangle({ x: M, y: drawY() - 13, width: totalW, height: 13, color: rgb(0.9, 0.93, 0.97) });
-    let hx = M;
-    for (let i = 0; i < headers.length; i++) {
-      page.drawText(headers[i], { x: hx + 3, y: drawY() - 12, size: 8.5, font: bold });
-      hx += widths[i];
-    }
-    y += rowH;
-    for (const row of rows) {
-      ensure(rowH);
-      let rx = M;
-      for (let i = 0; i < row.length; i++) {
-        page.drawText(row[i], { x: rx + 3, y: drawY() - 11, size: 8.5, font });
-        rx += widths[i];
-      }
-      page.drawLine({ start: [M, drawY() - 2], end: [M + totalW, drawY() - 2], thickness: 0.3, color: rgb(0.85, 0.87, 0.9) });
-      y += rowH;
-    }
-    if (totalLabel) {
-      ensure(rowH);
-      page.drawRectangle({ x: M, y: drawY() - 13, width: totalW, height: 13, color: rgb(0.96, 0.96, 0.92) });
-      page.drawText(totalLabel, { x: M + 3, y: drawY() - 12, size: 9, font: bold });
-      page.drawText(totalValue || "", { x: M + totalW - 150, y: drawY() - 12, size: 9, font: bold });
-      y += rowH;
-    }
-  };
-
-  const rincianRows = (rincian: any[]): string[][] => {
-    const rows: string[][] = [];
-    let currentCat = "";
-    let sub = 0, subLembar = 0;
-    for (const r of rincian) {
-      if (currentCat !== "" && currentCat !== r.kategori) {
-        rows.push([`Subtotal ${currentCat}`, "", String(subLembar), formatRp(sub)]);
-        sub = 0; subLembar = 0;
-      }
-      currentCat = r.kategori;
-      sub += Number(r.nominal) || 0;
-      subLembar += Number(r.lembar) || 0;
-      const pec = isNaN(Number(r.pecahan)) ? String(r.pecahan) : Number(r.pecahan).toLocaleString("id-ID");
-      rows.push([String(r.kategori), pec, String(r.lembar), formatRp(Number(r.nominal))]);
-    }
-    if (currentCat) rows.push([`Subtotal ${currentCat}`, "", String(subLembar), formatRp(sub)]);
-    return rows;
-  };
-
-  const tellerToRows = (tellerList: any[], emptyText: string): string[][] => {
-    const rows = (tellerList || []).map((t: any) => [
-      String(t.namaUnit || "-"),
-      String(t.userEstim || "-"),
-      formatRp(Number(t.total)),
-    ]);
-    if (rows.length === 0) rows.push([emptyText, "", ""]);
-    return rows;
-  };
-
-  // HEADER DOKUMEN
-  y += 6;
-  page.drawText("LAPORAN AKHIR HARI", { x: M, y: drawY() - 16, size: 18, font: bold, color: NAVY });
-  y += 24;
-  page.drawText("Tanggal: " + formatTglIndo(rep.tanggal), { x: M, y: drawY() - 10, size: 10, font });
-  page.drawText("Wilayah: " + rep.kodeWilayah, { x: M + 240, y: drawY() - 10, size: 10, font });
-  page.drawText("User: " + (rep.userInfo.namaUser || rep.userInfo.userEstim), { x: M + 480, y: drawY() - 10, size: 10, font });
-  y += LINE * 2;
-  page.drawLine({ start: [M, drawY() + 2], end: [PAGE_W - M, drawY() + 2], thickness: 2, color: NAVY });
-  y += 8;
-
-  // A. POSISI HARIAN KAS
-  sectionTitle("A. POSISI HARIAN KAS");
-  const p = rep.posisi || {};
-  labelValue("SALDO KEMARIN HARI", formatRp(p.saldoKemarin));
-  labelValue("PENERIMAAN KAS HARI INI (DEBET)", formatRp(p.penerimaanDebet));
-  labelValue("PENERIMAAN KAS ANTAR TELLER", formatRp(p.penerimaanAntar));
-  labelValue("PEMBAYARAN KAS HARI INI (KREDIT)", formatRp(p.pembayaranKredit));
-  labelValue("PEMBAYARAN KAS ANTAR TELLER", formatRp(p.pembayaranAntar));
-  labelValue("SALDO HARI INI (SISTEM)", formatRp(p.saldoHariIni), true);
-  labelValue("SALDO KAS MENURUT FISIK UANG", formatRp(p.saldoFisik), true);
-  labelValue("SELISIH KAS LEBIH / KURANG", formatRp(p.selisih), true);
-  labelValue("JUMLAH USER TERDATA", String(p.userTerdata || 0));
-
-  // B. RINCIAN SALDO KHASANAH
-  sectionTitle("B. RINCIAN SALDO KHASANAH", RED);
-  table(
-    ["Kategori", "Pecahan", "Lembar/Keping", "Nominal Total"],
-    [180, 120, 130, 220],
-    rincianRows(rep.saldoKas?.htRincian || []),
-    "TOTAL SALDO KHASANAH",
-    formatRp(rep.saldoKas?.totalHT),
-  );
-  sectionTitle("B.2 SALDO FISIK CASHBOX TELLER (SETOR SORE)", BLUE);
-  table(
-    ["Nama Unit Kerja / Cabang", "User Estim", "Total Saldo (Setor Sore)"],
-    [330, 140, 180],
-    tellerToRows(rep.saldoKas?.tellerList, "Belum ada Teller setor sore"),
-    "TOTAL CASHBOX TELLER",
-    formatRp(rep.saldoKas?.totalTeller),
-  );
-  labelValue("GRAND TOTAL SALDO (KHASANAH + TELLER)", formatRp(rep.saldoKas?.grandTotal), true);
-
-  // C. SETORAN KHASANAH
-  sectionTitle("C. SETORAN KHASANAH", GREEN);
-  table(
-    ["Kategori", "Pecahan", "Lembar/Keping", "Nominal Total"],
-    [180, 120, 130, 220],
-    rincianRows(rep.setoran?.rincian || []),
-    "TOTAL SETORAN",
-    formatRp(rep.setoran?.total),
-  );
-  sectionTitle("C.1 RINCIAN PER TELLER", BLUE);
-  table(
-    ["Nama Unit Kerja / Cabang", "User Estim", "Nominal Mutasi"],
-    [330, 140, 180],
-    tellerToRows(rep.setoran?.tellerList, "Belum ada teller"),
-    "TOTAL TELLER",
-    formatRp(rep.setoran?.totalTeller),
-  );
-
-  // D. PENGELUARAN KHASANAH
-  sectionTitle("D. PENGELUARAN KHASANAH", RED);
-  table(
-    ["Kategori", "Pecahan", "Lembar/Keping", "Nominal Total"],
-    [180, 120, 130, 220],
-    rincianRows(rep.pengeluaran?.rincian || []),
-    "TOTAL PENGELUARAN",
-    formatRp(rep.pengeluaran?.total),
-  );
-  sectionTitle("D.1 RINCIAN PER TELLER", BLUE);
-  table(
-    ["Nama Unit Kerja / Cabang", "User Estim", "Nominal Mutasi"],
-    [330, 140, 180],
-    tellerToRows(rep.pengeluaran?.tellerList, "Belum ada teller"),
-    "TOTAL TELLER",
-    formatRp(rep.pengeluaran?.totalTeller),
-  );
-
-  // E. SISA DALAM KHASANAH (CLUIS)
-  sectionTitle("E. SISA DALAM KHASANAH (CLUIS)", GREEN);
-  const cluisRows = (rep.cluis?.rincian || []).map((r: any) => {
-    const pec = isNaN(Number(r.pecahan)) ? String(r.pecahan) : Number(r.pecahan).toLocaleString("id-ID");
-    return [
-      String(r.kategori), pec,
-      String(r.lembarSebelumnya), formatRp(Number(r.nominalSebelumnya)),
-      String(r.lembarPengeluaran), formatRp(Number(r.nominalPengeluaran)),
-      String(r.lembarCluis), formatRp(Number(r.nominalCluis)),
-    ];
-  });
-  if (cluisRows.length === 0) cluisRows.push(["Tidak ada riwayat saldo khasanah di tanggal ini", "", "", "", "", "", "", ""]);
-  table(
-    ["Kategori", "Pecahan", "Lbr Kemarin", "Nominal Kemarin", "Lbr Pengeluaran", "Nominal Pengeluaran", "Lbr Cluis", "Nominal Cluis"],
-    [120, 85, 75, 110, 85, 110, 55, 110],
-    cluisRows,
-    "TOTAL GLOBAL",
-    formatRp(rep.cluis?.totalCluis),
-  );
-
-  return await doc.save();
-}
-
-// =============================================
-// MAIN HANDLER
-// =============================================
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
-
   if (req.method !== "POST") {
     return errorResponse("Method not allowed", 405);
   }
@@ -470,6 +69,7 @@ Deno.serve(async (req: Request) => {
     const userEstim = cleanStr(body.userEstim || "");
     const role = cleanStr(body.role || "").toLowerCase();
     const preview = !!body.preview;
+    const attachments: Array<{ filename?: string; content?: string }> = Array.isArray(body.attachments) ? body.attachments : [];
 
     if (!tanggal) return errorResponse("Parameter tanggal wajib diisi");
 
@@ -499,51 +99,45 @@ Deno.serve(async (req: Request) => {
       return errorResponse("Tujuan email belum diatur oleh admin", 400);
     }
 
-    // 3. Fetch 5 dataset
-    const [posisi, saldoKas, setoran, pengeluaran, cluis] = await Promise.all([
-      internalFetch(`/posisi-kas?action=rekap-harian-global&tanggal=${tanggal}&kodeWilayah=${kodeWilayah}`),
-      internalFetch(`/laporan-ht?action=saldo-kas&tanggal=${tanggal}&kodeWilayah=${kodeWilayah}`),
-      internalFetch(`/laporan-ht?action=mutasi&tanggal=${tanggal}&kodeWilayah=${kodeWilayah}&tipeLap=SETOR`),
-      internalFetch(`/laporan-ht?action=mutasi&tanggal=${tanggal}&kodeWilayah=${kodeWilayah}&tipeLap=BON`),
-      internalFetch(`/cluis?tanggal=${tanggal}&kodeWilayah=${kodeWilayah}`),
-    ]);
-
-    // 4. Cek data kosong
-    const userTerdata = Number(posisi?.userTerdata || 0);
-    const grandTotal = Number(saldoKas?.grandTotal || 0);
-    if (userTerdata === 0 && grandTotal === 0) {
-      return errorResponse(`Belum ada data laporan untuk tanggal ${tanggal}`);
+    // 3. Validasi lampiran PDF
+    const validAttachments: Array<{ filename: string; content: string }> = [];
+    let totalBytes = 0;
+    for (const a of attachments) {
+      if (!a || typeof a.content !== "string" || a.content === "") continue;
+      const filename = cleanStr(a.filename) || "Lampiran.pdf";
+      try {
+        const bytes = decodeBase64(a.content);
+        totalBytes += bytes.length;
+        if (totalBytes > MAX_ATTACHMENT_BYTES) {
+          return errorResponse("Total ukuran lampiran melebihi batas 10 MB", 400);
+        }
+        validAttachments.push({ filename, content: a.content });
+      } catch {
+        return errorResponse("Konten lampiran bukan base64 yang valid", 400);
+      }
     }
-
-    // 5. Build PDF
-    const pdfBytes = await buildReportPdf({
-      tanggal,
-      kodeWilayah,
-      userInfo: { namaUser: String(user.nama_user || ""), userEstim },
-      posisi,
-      saldoKas,
-      setoran,
-      pengeluaran,
-      cluis,
-    });
+    if (validAttachments.length === 0) {
+      return errorResponse("Tidak ada lampiran PDF untuk dikirim", 400);
+    }
 
     if (preview) {
       return successResponse({
-        previewPdfBase64: bytesToBase64(pdfBytes),
-        filename: `Laporan_Akhir_Hari_${tanggal}.pdf`,
+        preview: true,
+        tanggal,
+        kodeWilayah,
+        totalAttachment: validAttachments.length,
+        filenames: validAttachments.map((a) => a.filename),
       });
     }
 
-    // 6. Kirim email via Resend
+    // 4. Kirim email via Resend
     const subject = `Laporan Akhir Hari - ${formatTglIndo(tanggal)}`;
     const html = `<html><body style="font-family:Arial,sans-serif">
       <h2>Laporan Akhir Hari</h2>
       <p>Tanggal: <b>${formatTglIndo(tanggal)}</b></p>
       <p>Wilayah: ${kodeWilayah}</p>
       <p>Dikirim oleh: ${user.nama_user || userEstim}</p>
-      <p>Total Saldo Khasanah: <b>${formatRp(saldoKas?.totalHT)}</b></p>
-      <p>Grand Total (Khasanah + Cashbox Teller): <b>${formatRp(grandTotal)}</b></p>
-      <p>PDF laporan terlampir.</p>
+      <p>Jumlah lampiran: <b>${validAttachments.length}</b> PDF</p>
       </body></html>`;
 
     const emailResp = await fetch(RESEND_URL, {
@@ -557,10 +151,7 @@ Deno.serve(async (req: Request) => {
         to: cleanStr(setting.to_emails).split(",").map((s: string) => s.trim()).filter(Boolean),
         subject,
         html,
-        attachments: [{
-          filename: `Laporan_Akhir_Hari_${tanggal}.pdf`,
-          content: bytesToBase64(pdfBytes),
-        }],
+        attachments: validAttachments.map((a) => ({ filename: a.filename, content: a.content })),
       }),
     });
 
@@ -573,8 +164,7 @@ Deno.serve(async (req: Request) => {
       emailId: emailJson.id || "",
       to: cleanStr(setting.to_emails),
       tanggal,
-      totalHT: Number(saldoKas?.totalHT || 0),
-      grandTotal,
+      totalAttachment: validAttachments.length,
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";
@@ -584,274 +174,510 @@ Deno.serve(async (req: Request) => {
 });
 ```
 
-- [ ] **Step 2: Verifikasi sintaks/tipe**
+#### Step 1.2: Deploy & test preview mode
 
-Deno lokal tidak terpasang di lingkungan ini. Verifikasi manual dengan membaca kembali file: pastikan semua fungsi helper (`formatRp`, `bytesToBase64`, `internalFetch`, `buildReportPdf`) terdefinisi sebelum dipakai, dan import `npm:pdf-lib@1.17.1` ada di baris 10.
+Deploy: `supabase functions deploy kirim-laporan-harian --no-verify-jwt`.
 
-- [ ] **Step 3: Uji preview mode via curl (jika Docker tersedia)**
+Test preview (valid auth tapi tidak kirim email). Gunakan userEstim admin yang ada (mis. `admin`) dan attachments dummy base64 valid (contoh `aGVsbG8=` = "hello"):
 
-```bash
-supabase functions serve kirim-laporan-harian --env-file .env
-curl.exe -s -X POST http://127.0.0.1:54321/functions/v1/kirim-laporan-harian -H "Content-Type: application/json" -d "{\"tanggal\":\"2026-08-04\",\"kodeWilayah\":\"ALL\",\"userEstim\":\"<estim_teller>\",\"role\":\"teller\",\"preview\":true}"
 ```
-Expected: `{"success":true,"data":{"previewPdfBase64":"JVBERi0..."}}`. Decode base64 untuk memastikan PDF valid (dimulai `%PDF`).
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add supabase/functions/kirim-laporan-harian/index.ts
-git commit -m "feat: edge function kirim-laporan-harian (generate PDF + kirim email Resend)"
+curl -s -X POST "https://jwsfsczgyqphoyflpjnm.supabase.co/functions/v1/kirim-laporan-harian" -H "Content-Type: application/json" -d '{"tanggal":"2026-08-04","kodeWilayah":"ALL","userEstim":"admin","role":"admin","preview":true,"attachments":[{"filename":"a.pdf","content":"aGVsbG8="}]}'
 ```
 
----
+Ekspektasi: `{"success":true,"data":{"preview":true,...,"totalAttachment":1,"filenames":["a.pdf"]}}`.
 
-### Task 4: Frontend — halaman admin "Tujuan Email Laporan"
+Test penolakan: tanpa `attachments` → error `Tidak ada lampiran PDF untuk dikirim`. Body bukan base64 (`content:"@@@"`) → error base64 tidak valid.
 
-**Files:**
+## Task 2: Frontend — helper `buildLaporanHtml` + refactor 4 fungsi print
+
+### Purpose
+
+Membuat satu sumber render HTML laporan dan refactor keempat fungsi print agar memakai helper, sehingga output print manual identik dan alur email bisa memakai HTML yang sama. Tambahkan CDN html2pdf.js dan globals untuk menyimpan data mentah laporan.
+
+### Files
+
 - Modify: `frontend/index.html`
-  - Baris ~238 (menu admin, setelah item "⚙️ Notifikasi WA")
-  - Baris ~493 (setelah penutup `div` halaman `#setting-wa-gateway`)
-  - `_GAS_MAP` (sekitar baris 1262-1331)
-  - Daerah fungsi JS (dekat `loadWAGatewaySettings` baris ~3654)
 
-**Interfaces:**
-- Consumes: `GET /setting-email`, `POST /setting-email` (Task 2)
-- Produces: menu admin + halaman `#setting-email` + fungsi `loadSettingEmail()`, `simpanSettingEmail()` (dipakai konsisten dengan Task 5 yang memakai `_GAS_MAP` yang sama)
+### Steps
 
-- [ ] **Step 1: Tambah item menu admin**
+#### Step 2.1: Tambahkan CDN html2pdf.js
 
-Setelah baris menu "⚙️ Notifikasi WA" tambahkan item baru di dalam `div.role-menu.menu-admin`:
+Di `frontend/index.html` baris 4, ganti:
 
 ```html
-      <div class="menu-item" onclick="nav('setting-email', this); loadSettingEmail();">✉️ Tujuan Email Laporan</div>
+  <script src="config.js"></script>
 ```
 
-- [ ] **Step 2: Tambah halaman `#setting-email`**
-
-Tepat setelah penutup `</div>` halaman `#setting-wa-gateway` (baris 492) tambahkan halaman baru:
+menjadi:
 
 ```html
-      <div id="setting-email" class="page role-page-admin">
-        <div class="header-page"><h3>Pengaturan Tujuan Email Laporan Akhir Hari</h3></div>
-        <p style="margin:0 0 15px 0; color:var(--text-muted);">Konfigurasi pengiriman Laporan Akhir Hari (PDF) yang ditrigger oleh role Teller. Alamat pengirim (From) harus email yang sudah diverifikasi di akun Resend.</p>
-        <div class="form-row">
-          <div class="form-group"><label>Resend API Key</label><input type="password" id="se-apikey" placeholder="re_xxxxxx" style="background:var(--input-yellow);"></div>
-          <div class="form-group"><label>From Email (Pengirim)</label><input type="email" id="se-from" placeholder="laporan@domain.com" style="background:var(--input-yellow);"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Tujuan Email (lebih dari satu dipisah koma)</label><input type="text" id="se-to" placeholder="email1@domain.com, email2@domain.com" style="background:var(--input-yellow);"></div>
-        </div>
-        <div style="display:flex; gap:15px; flex-wrap:wrap; margin-top:25px;">
-          <button class="btn-refresh" style="flex:2; font-size:1.1rem; padding:15px; margin:0;" onclick="simpanSettingEmail()">💾 SIMPAN PENGATURAN</button>
-        </div>
-      </div>
+  <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.0/html2pdf.bundle.min.js"></script>
 ```
 
-- [ ] **Step 3: Daftarkan GAS function**
+Verifikasi: reload halaman, console menampilkan `typeof html2pdf === 'object'` (bukan undefined).
 
-Di dalam objek `_GAS_MAP`, tambahkan (letakkan setelah entri `saveSettingWAGateway`):
+#### Step 2.2: Tambah globals data mentah + helper Promise
+
+Setelah penutup IIFE proxy GAS (setelah baris 1453, sebelum `let currentUser = {};`), tambahkan:
 
 ```js
-      getSettingEmail:            ['GET','/setting-email'],
-      saveSettingEmail:           ['POST','/setting-email'],
+    function _gasProm(fnName) {
+      var args = Array.prototype.slice.call(arguments, 1);
+      return new Promise(function(resolve, reject) {
+        var run = google.script.run.withSuccessHandler(resolve);
+        run.withFailureHandler(function(err) { reject(new Error((err && err.message) || 'GAS call failed')); });
+        run[fnName].apply(run, args);
+      });
+    }
+
+    function _openPrintWindow(html) {
+      var printWindow = window.open('', '', 'width=900,height=650');
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(function() { printWindow.print(); }, 500);
+    }
 ```
 
-- [ ] **Step 4: Tambah fungsi JS `loadSettingEmail` dan `simpanSettingEmail`**
-
-Tambahkan di dekat fungsi `loadWAGatewaySettings`:
+Sekaligus (baris 1486) ubah deklarasi global menjadi:
 
 ```js
-    function loadSettingEmail() {
-      showLoader(true);
-      google.script.run.withSuccessHandler((res) => {
+    let globalCluisData = null;
+    let globalLapMutasiData = null;
+```
+
+Dan (baris 2639) ubah menjadi:
+
+```js
+    let dataPosisiHarianTemp = null;
+    let globalSaldoKasData = null;
+```
+
+Lalu simpan data mentah saat load:
+- Dalam success handler `loadLapMutasi` (baris ~4308, tepat setelah `showLoader(false);`) tambahkan baris pertama: `globalLapMutasiData = res;`
+- Dalam success handler `loadLapSaldoKas` (baris 4298, tepat setelah `showLoader(false);`) tambahkan baris pertama: `globalSaldoKasData = res;`
+
+Verifikasi: setelah membuka menu Laporan Setoran/Pengeluaran dan Saldo Khasanah HT (data termuat), console `globalLapMutasiData` dan `globalSaldoKasData` berisi objek `{rincian/htRincian, total/totalHT, tellerList, totalTeller, grandTotal?}`.
+
+#### Step 2.3: Implementasi `buildLaporanHtml(kind, data, ctx)`
+
+Tambahkan fungsi global `buildLaporanHtml` tepat setelah `_openPrintWindow` (blok yang sama dengan Step 2.2). Kode lengkap:
+
+```js
+    function buildLaporanHtml(kind, data, ctx) {
+      var tgl = ctx.tanggal;
+      var wilayah = ctx.wilayah;
+      var pejabat = ctx.pejabat || {};
+      var namaPenyelia = (pejabat && pejabat.namaPenyelia) ? pejabat.namaPenyelia : "______________________";
+      var nipPenyelia = (pejabat && pejabat.nipPenyelia) ? "NIP. " + pejabat.nipPenyelia : "NIP. ___________________";
+      var namaPBO = (pejabat && pejabat.namaPBO) ? pejabat.namaPBO : "______________________";
+      var nipPBO = (pejabat && pejabat.nipPBO) ? "NIP. " + pejabat.nipPBO : "NIP. ___________________";
+
+      var ttd = '<div class="ttd-container"><div class="ttd-box">Mengetahui,<br><b>Pemimpin Bidang Operasional</b><div class="ttd-space"></div><div class="ttd-name">' + namaPBO + '</div><div>' + nipPBO + '</div></div><div class="ttd-box">Dibuat Oleh,<br><b>Penyelia Operasional Dana</b><div class="ttd-space"></div><div class="ttd-name">' + namaPenyelia + '</div><div>' + nipPenyelia + '</div></div></div>';
+
+      function buildRincianRows(rincian, emptyText) {
+        var html = "";
+        if (!rincian || rincian.length === 0) {
+          return '<tr><td colspan="4" style="text-align:center;">' + emptyText + '</td></tr>';
+        }
+        var currentCat = ""; var subNominal = 0; var subLembar = 0;
+        rincian.forEach(function(r, idx) {
+          if (currentCat !== "" && currentCat !== r.kategori) {
+            html += '<tr style="background-color:#e2e8f0; -webkit-print-color-adjust: exact;"><td colspan="2" style="text-align:right; font-weight:800; color:#0f172a;">Subtotal ' + currentCat + ':</td><td style="text-align:right; font-weight:800; color:#0f172a;">' + subLembar + '</td><td style="font-weight:800;">' + formatRpAlign(subNominal) + '</td></tr>';
+            subNominal = 0; subLembar = 0;
+          }
+          currentCat = r.kategori;
+          subNominal += Number(r.nominal) || 0;
+          subLembar += Number(r.lembar) || 0;
+          html += '<tr><td>' + r.kategori + '</td><td style="font-weight:600;">' + formatRpAlign(r.pecahan) + '</td><td style="text-align:right; font-weight:700;">' + r.lembar + '</td><td style="font-weight:600;">' + formatRpAlign(r.nominal) + '</td></tr>';
+          if (idx === rincian.length - 1) {
+            html += '<tr style="background-color:#e2e8f0; -webkit-print-color-adjust: exact;"><td colspan="2" style="text-align:right; font-weight:800; color:#0f172a;">Subtotal ' + currentCat + ':</td><td style="text-align:right; font-weight:800; color:#0f172a;">' + subLembar + '</td><td style="font-weight:800;">' + formatRpAlign(subNominal) + '</td></tr>';
+          }
+        });
+        return html;
+      }
+
+      function buildTellerRows(tellerList, emptyText, namaUnitStyle) {
+        var style = namaUnitStyle || 'font-weight:700;';
+        var html = "";
+        if (!tellerList || tellerList.length === 0) {
+          return '<tr><td colspan="3" style="text-align:center;">' + emptyText + '</td></tr>';
+        }
+        tellerList.forEach(function(t) {
+          html += '<tr><td style="' + style + '">' + t.namaUnit + '</td><td>' + t.userEstim + '</td><td style="font-weight:600;">' + formatRpAlign(t.total) + '</td></tr>';
+        });
+        return html;
+      }
+
+      var css = "";
+      var body = "";
+      var title = 'Laporan';
+
+      if (kind === 'setoran' || kind === 'pengeluaran') {
+        title = kind === 'setoran' ? 'Laporan Rincian Setoran Khasanah' : 'Laporan Rincian Pengeluaran Khasanah (Bon)';
+        var tipeLabel = kind === 'setoran' ? 'SETORAN KHASANAH' : 'PENGELUARAN KHASANAH (BON)';
+        var isSetoran = kind === 'setoran';
+        var d = data || { rincian: [], total: 0, tellerList: [], totalTeller: 0 };
+        var rawTotalMutasi = Number(d.total) || 0;
+        var rawTotalTeller = Number(d.totalTeller) || 0;
+        var grandTotalGabungan = isSetoran ? rawTotalMutasi + rawTotalTeller : rawTotalMutasi;
+        var strTerbilang = grandTotalGabungan > 0 ? terbilang(grandTotalGabungan).toUpperCase() + " RUPIAH" : "-";
+
+        var sectionB_Html = "";
+        var grandTotalHtml = "";
+        if (isSetoran) {
+          sectionB_Html = '<h4 style="text-align: left; background:#eee; border:1px solid #000; margin-top:5px;">B. RINCIAN PER TELLER</h4><table><thead><tr><th style="text-align:left;">Nama Unit Kerja / Cabang</th><th style="text-align:left;">User Estim</th><th style="text-align:right;">Nominal Mutasi Transaksi</th></tr></thead><tbody>' + buildTellerRows(d.tellerList, 'Tidak ada data rincian teller.', 'font-weight:700; font-size:0.85rem;') + '</tbody><tfoot><tr><td colspan="2" class="text-right" style="font-weight:bold;">TOTAL KESELURUHAN TELLER (B):</td><td style="font-weight:bold;">' + formatRpAlign(rawTotalTeller) + '</td></tr></tfoot></table>';
+          grandTotalHtml = '<div style="display:flex; justify-content:space-between; align-items:center; font-weight:normal; font-size:9px; color:#222; margin-bottom:2px;"><span>TOTAL RINCIAN PECAHAN (A):</span><span>Rp ' + rawTotalMutasi.toLocaleString('id-ID') + '</span></div><div style="display:flex; justify-content:space-between; align-items:center; font-weight:normal; font-size:9px; color:#222; margin-bottom:4px; border-bottom:1px dashed #000; padding-bottom:3px;"><span>TOTAL RINCIAN PER TELLER (B):</span><span>Rp ' + rawTotalTeller.toLocaleString('id-ID') + '</span></div><div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:bold; color:#000;"><span>GRAND TOTAL GABUNGAN (A + B):</span><span style="font-size: 13px;">Rp ' + grandTotalGabungan.toLocaleString('id-ID') + '</span></div>';
+        } else {
+          grandTotalHtml = '<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:bold; color:#000;"><span>GRAND TOTAL PENGELUARAN KHASANAH:</span><span style="font-size: 13px;">Rp ' + grandTotalGabungan.toLocaleString('id-ID') + '</span></div>';
+        }
+
+        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 2px 4px; } th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align: center; } .text-right { text-align: right; } .text-center { text-align: center; } .grand-total { font-size: 11px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 6px; -webkit-print-color-adjust: exact; margin-top: 8px; } .ttd-container { width: 100%; margin-top: 15px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 40px; }';
+
+        body = '<div class="header"><h3>LAPORAN RINCIAN ' + tipeLabel + '</h3><h4>Wilayah: ' + wilayah + ' | Tanggal: ' + formatTglIndo(tgl) + '</h4></div><h4 style="text-align: left; background:#eee; border:1px solid #000;">A. TOTAL RINCIAN PECAHAN UANG</h4><table><thead><tr><th style="text-align:left;">Kategori</th><th style="text-align:right;">Pecahan</th><th style="text-align:right;">Lembar/Keping</th><th style="text-align:right;">Nominal Total</th></tr></thead><tbody>' + buildRincianRows(d.rincian, 'Tidak ada mutasi.') + '</tbody><tfoot><tr><td colspan="3" class="text-right" style="font-weight:bold;">TOTAL KESELURUHAN (A):</td><td style="font-weight:bold;">' + formatRpAlign(rawTotalMutasi) + '</td></tr></tfoot></table>' + sectionB_Html + '<div class="grand-total">' + grandTotalHtml + '<div style="font-size: 9px; font-style: italic; text-align: right; color: #111; margin-top:4px;">Terbilang: # ' + strTerbilang + ' #</div></div>' + ttd;
+
+      } else if (kind === 'saldo_ht') {
+        title = 'Laporan Rincian Saldo Kas dan Cashbox Teller';
+        var d = data || { htRincian: [], totalHT: 0, tellerList: [], totalTeller: 0, grandTotal: 0 };
+        var rawGrandTotal = Number(d.grandTotal) || 0;
+        var strTerbilang = rawGrandTotal > 0 ? terbilang(rawGrandTotal).toUpperCase() + " RUPIAH" : "-";
+        var grandTotalHtml = '<div style="display:flex; justify-content:space-between; width:100%;"><span style="color:#d97706; margin-right:20px;">Rp</span><span>' + rawGrandTotal.toLocaleString('id-ID') + '</span></div>';
+
+        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 2px 4px; } th { background-color: #eee !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align:center;} .text-right { text-align: right; } .text-center { text-align: center; } .grand-total { font-size: 13px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 4px; -webkit-print-color-adjust: exact; margin-top: 5px; } .ttd-container { width: 100%; margin-top: 10px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 40px; }';
+
+        body = '<div class="header"><h3>LAPORAN RINCIAN SALDO KAS DAN CASHBOX TELLER</h3><h4>Wilayah: ' + wilayah + ' | Tanggal: ' + formatTglIndo(tgl) + '</h4></div><h4 style="text-align: left; background:#eee; border:1px solid #000;">A. TOTAL FISIK SALDO KHASANAH (HT)</h4><table><thead><tr><th style="text-align:left;">Kategori</th><th style="text-align:right;">Pecahan/Ket</th><th style="text-align:right;">Lembar/Keping</th><th style="text-align:right;">Nominal Total</th></tr></thead><tbody>' + buildRincianRows(d.htRincian, 'Khasanah Kosong.') + '</tbody><tfoot><tr><td colspan="3" class="text-right" style="font-weight:bold;">TOTAL SALDO KHASANAH:</td><td style="font-weight:bold;">' + formatRpAlign(d.totalHT) + '</td></tr></tfoot></table><h4 style="text-align: left; background:#eee; border:1px solid #000; margin-top: 5px;">B. SALDO FISIK CASHBOX TELLER (SETOR SORE)</h4><table><thead><tr><th style="text-align:left;">Nama Unit Kerja / Cabang</th><th style="text-align:left;">User Estim</th><th style="text-align:right;">Total Saldo Cashbox</th></tr></thead><tbody>' + buildTellerRows(d.tellerList, 'Belum ada Teller setor sore.') + '</tbody><tfoot><tr><td colspan="2" class="text-right" style="font-weight:bold;">TOTAL KESELURUHAN CASHBOX TELLER:</td><td style="font-weight:bold;">' + formatRpAlign(d.totalTeller) + '</td></tr></tfoot></table><div class="grand-total"><div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:3px;"><span style="margin-right:20px;">GRAND TOTAL SALDO (HT + Teller):</span><span style="font-size: 15px; min-width:150px; flex-grow:1;">' + grandTotalHtml + '</span></div><div style="font-size: 10px; font-style: italic; text-align: right; color: #111;">Terbilang: ' + strTerbilang + '</div></div>' + ttd;
+
+      } else if (kind === 'cluis') {
+        title = 'Sisa Dalam Cluis';
+        var d = data || { rincian: [], totalHariSebelumnya: 0, totalPengeluaran: 0, totalCluis: 0 };
+        var fmtPrintCluis = function(val, color, weight) {
+          var formattedVal = parseInt(val || 0, 10).toLocaleString('id-ID');
+          return '<div style="display:flex; justify-content:space-between; align-items:center; width:100%;"><span style="font-weight:normal; margin-right:10px; color:#333;">Rp</span><span style="text-align:right; flex-grow:1; color:' + (color || '#000') + '; font-weight:' + (weight || 'normal') + ';">' + formattedVal + '</span></div>';
+        };
+        var rowsHtml = "";
+        var currentCat = "";
+        var subSblm = 0, subPeng = 0, subCluis = 0;
+        (d.rincian || []).forEach(function(r, idx) {
+          if (currentCat !== "" && currentCat !== r.kategori) {
+            rowsHtml += '<tr style="background-color:#e2e8f0; font-weight:bold; -webkit-print-color-adjust: exact;"><td colspan="2" class="text-right">Subtotal ' + currentCat + ':</td><td style="padding:3px 6px;">' + fmtPrintCluis(subSblm) + '</td><td style="padding:3px 6px;">' + fmtPrintCluis(subPeng, '#b91c1c') + '</td><td style="padding:3px 6px;">' + fmtPrintCluis(subCluis, '#047857', 'bold') + '</td></tr>';
+            subSblm = 0; subPeng = 0; subCluis = 0;
+          }
+          currentCat = r.kategori;
+          subSblm += Number(r.nominalSebelumnya) || 0;
+          subPeng += Number(r.nominalPengeluaran) || 0;
+          subCluis += Number(r.nominalCluis) || 0;
+          var labelPecahan = isNaN(r.pecahan) ? r.pecahan : parseInt(r.pecahan, 10).toLocaleString('id-ID');
+          rowsHtml += '<tr><td>' + r.kategori + '</td><td class="text-right" style="font-weight:600;">' + labelPecahan + '</td><td style="padding:3px 6px;">' + fmtPrintCluis(r.nominalSebelumnya) + ' <span style="font-size:8px; color:#555;">(' + r.lembarSebelumnya + ' lbr)</span></td><td style="padding:3px 6px;">' + fmtPrintCluis(r.nominalPengeluaran, '#b91c1c') + ' <span style="font-size:8px; color:#555;">(' + r.lembarPengeluaran + ' lbr)</span></td><td style="padding:3px 6px;">' + fmtPrintCluis(r.nominalCluis, '#047857', 'bold') + ' <span style="font-size:8px; color:#555;">(' + r.lembarCluis + ' lbr)</span></td></tr>';
+          if (idx === d.rincian.length - 1) {
+            rowsHtml += '<tr style="background-color:#e2e8f0; font-weight:bold; -webkit-print-color-adjust: exact;"><td colspan="2" class="text-right">Subtotal ' + currentCat + ':</td><td style="padding:3px 6px;">' + fmtPrintCluis(subSblm) + '</td><td style="padding:3px 6px;">' + fmtPrintCluis(subPeng, '#b91c1c') + '</td><td style="padding:3px 6px;">' + fmtPrintCluis(subCluis, '#047857', 'bold') + '</td></tr>';
+          }
+        });
+        if (!d.rincian || d.rincian.length === 0) {
+          rowsHtml = '<tr><td colspan="5" style="text-align:center;">Tidak ada riwayat saldo khasanah di tanggal ini.</td></tr>';
+        }
+        var strTerbilang = d.totalCluis > 0 ? terbilang(d.totalCluis).toUpperCase() + " RUPIAH" : "-";
+
+        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 3px 5px; } th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align: center; } .text-right { text-align: right; font-weight: bold; } .grand-total { font-size: 12px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 5px; -webkit-print-color-adjust: exact; margin-top: 5px; } .ttd-container { width: 100%; margin-top: 15px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 45px; }';
+
+        body = '<div class="header"><h3>LAPORAN RINCIAN SISA DALAM CLUIS</h3><h4>Wilayah: ' + wilayah + ' | Tanggal: ' + formatTglIndo(tgl) + '</h4></div><h4 style="text-align: left; background:#eee; border:1px solid #000;">PERUBAHAN SALDO KAS CLUIS KHASANAH</h4><table><thead><tr><th style="text-align:left; width:14%;">Kategori</th><th style="text-align:right; width:10%;">Pecahan</th><th style="text-align:right; width:26%;">Saldo Hari Sebelumnya</th><th style="text-align:right; width:25%; color:#b91c1c;">Pengeluaran Hari Ini</th><th style="text-align:right; width:25%; color:#047857;">Sisa Dalam Cluis</th></tr></thead><tbody>' + rowsHtml + '</tbody><tfoot><tr style="font-weight:bold; background:#f2f2f2;"><td colspan="2" class="text-right">TOTAL KESELURUHAN CLUIS:</td><td style="padding:4px 6px;">' + fmtPrintCluis(d.totalHariSebelumnya) + '</td><td style="padding:4px 6px;">' + fmtPrintCluis(d.totalPengeluaran, '#b91c1c') + '</td><td style="padding:4px 6px;">' + fmtPrintCluis(d.totalCluis, '#047857', 'bold') + '</td></tr></tfoot></table><div class="grand-total"><div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:3px;"><span>GRAND TOTAL SISA DALAM CLUIS:</span><span style="font-size: 14px;">Rp ' + (d.totalCluis || 0).toLocaleString('id-ID') + '</span></div><div style="font-size: 9px; font-style: italic; text-align: right; color: #111;">Terbilang: ' + strTerbilang + '</div></div>' + ttd;
+
+      } else if (kind === 'posisi') {
+        title = 'Posisi Harian Kas Operasional';
+        var d = data || { userTerdata: 0 };
+        var fmtPrintAligned = function(val, color, weight) {
+          var formattedVal = parseFloat(val || 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          return '<div style="display:flex; justify-content:space-between; align-items:center; width:100%;"><span style="font-weight:normal; margin-right:15px; color:#333;">Rp</span><span style="text-align:right; flex-grow:1; color:' + (color || '#000') + '; font-weight:' + (weight || 'bold') + ';">' + formattedVal + '</span></div>';
+        };
+        var statusSelisih = d.selisih === 0 ? "BALANCE (KLOP)" : (d.selisih > 0 ? "LEBIH" : "KURANG");
+        var strTerbilang = d.saldoFisik > 0 ? terbilang(Math.floor(d.saldoFisik)).toUpperCase() + " RUPIAH" : "-";
+
+        css = '@page { size: A4 portrait; margin: 8mm; } body { font-family: "Arial", sans-serif; font-size: 9px; padding: 0; margin: 0; color: #000; } h3 { margin: 1px 0; font-size: 11px; text-align: center; } h4 { margin: 1px 0; font-size: 10px; text-align: center; padding: 2px; } .header { border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 3px; } table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 9px; } th, td { border: 1px solid #000; padding: 3px 5px; } th { background-color: #eee !important; -webkit-print-color-adjust: exact; font-weight: bold; text-align: center; } .text-right { text-align: right; font-weight: bold; } .text-left { text-align: left; font-weight: 600; } .grand-total { font-size: 13px; font-weight: bold; background: #FFF9C4 !important; border: 2px solid #000; padding: 4px; -webkit-print-color-adjust: exact; margin-top: 5px; } .ttd-container { width: 100%; margin-top: 15px; display: table; } .ttd-box { display: table-cell; width: 50%; text-align: center; vertical-align: bottom; } .ttd-name { font-weight: bold; text-decoration: underline; margin-bottom: 2px; } .ttd-space { height: 40px; }';
+
+        body = '<div class="header"><h3>POSISI HARIAN KAS OPERASIONAL</h3><h4>Wilayah: ' + wilayah + ' | Tanggal: ' + formatTglIndo(tgl) + '</h4></div><table><thead><tr><th style="text-align:left; width:60%;">URAIAN POSISI KAS</th><th style="text-align:right; width:40%;">NOMINAL (RP)</th></tr></thead><tbody><tr><td class="text-left">SALDO KEMARIN HARI</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.saldoKemarin) + '</td></tr><tr><td class="text-left">PENERIMAAN KAS HARI INI ( DEBET )</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.penerimaanDebet, '#0284c7') + '</td></tr><tr><td class="text-left">PENERIMAAN KAS ANTAR TELLER</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.penerimaanAntar, '#0284c7') + '</td></tr><tr><td class="text-left">PEMBAYARAN KAS HARI INI ( KREDIT )</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.pembayaranKredit, '#dc2626') + '</td></tr><tr><td class="text-left">PEMBAYARAN KAS ANTAR TELLER</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.pembayaranAntar, '#dc2626') + '</td></tr><tr style="background:#f1f5f9; -webkit-print-color-adjust: exact;"><td class="text-left" style="font-weight:700;">SALDO HARI INI (SISTEM)</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.saldoHariIni, '#000', '800') + '</td></tr><tr style="background:#f8fafc; -webkit-print-color-adjust: exact;"><td class="text-left" style="font-weight:700;">SALDO KAS MENURUT FISIK UANG</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.saldoFisik, '#000', '800') + '</td></tr><tr><td class="text-left">SELISIH KAS LEBIH / KURANG (' + statusSelisih + ')</td><td style="padding:4px 8px;">' + fmtPrintAligned(d.selisih, d.selisih === 0 ? '#059669' : '#dc2626', '800') + '</td></tr></tbody></table><div class="grand-total"><div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #000; padding-bottom:3px; margin-bottom:3px;"><span>TOTAL SALDO :</span><span style="font-size: 14px;">Rp ' + parseFloat(d.saldoFisik || 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</span></div><div style="font-size: 9px; font-style: italic; text-align: right; color: #111;">Terbilang Fisik: ' + strTerbilang + '</div></div>' + ttd;
+      }
+
+      return '<html><head><title>' + title + '</title><meta charset="utf-8"><style>' + css + '</style></head><body>' + body + '</body></html>';
+    }
+```
+
+Verifikasi: panggil `buildLaporanHtml('saldo_ht', { htRincian: [{kategori:'Uang Kertas',pecahan:100000,nominal:1000000,lembar:10}], totalHT:1000000, tellerList:[], totalTeller:0, grandTotal:1000000 }, { tanggal:'2026-08-04', wilayah:'Kantor Pusat', pejabat:{} })` di console; hasil string HTML mengandung `TOTAL SALDO KHASANAH` dan `GRAND TOTAL SALDO (HT + Teller)`.
+
+#### Step 2.4: Refactor `cetakLapCluis` dan `cetakPosisiHarianKas`
+
+Ganti seluruh isi `cetakLapCluis` (baris 1545–1659) menjadi:
+
+```js
+    function cetakLapCluis() {
+      let tgl = document.getElementById('cluis-tgl').value;
+      if (!globalCluisData || globalCluisData.rincian.length === 0) { alert('Data kosong atau belum dimuat!'); return; }
+
+      showLoader(true, "Mempersiapkan Lembar PDF Cluis...");
+      google.script.run.withSuccessHandler((pejabat) => {
+          showLoader(false);
+          const html = buildLaporanHtml('cluis', globalCluisData, {
+            tanggal: tgl,
+            wilayah: currentUser.namaUnit,
+            pejabat: pejabat,
+          });
+          _openPrintWindow(html);
+      }).getDataPejabatHT(currentUser.kodeWilayah);
+    }
+```
+
+Ganti seluruh isi `cetakPosisiHarianKas` (baris 2677–2765) menjadi:
+
+```js
+    function cetakPosisiHarianKas() {
+      let tgl = document.getElementById('lph-tgl').value;
+      if (!dataPosisiHarianTemp || dataPosisiHarianTemp.userTerdata === 0) { alert("Data kosong atau belum ada Teller/KF yang menyimpan Posisi Kas!"); return; }
+
+      showLoader(true, "Menyiapkan Dokumen Laporan...");
+      google.script.run.withSuccessHandler((pejabat) => {
         showLoader(false);
-        document.getElementById('se-apikey').value = (res && res.apiKey) || '';
-        document.getElementById('se-from').value = (res && res.fromEmail) || '';
-        document.getElementById('se-to').value = (res && res.toEmails) || '';
-      }).withFailureHandler((err) => { showLoader(false); alert("Gagal memuat setting email: " + err.message); }).getSettingEmail();
-    }
-    function simpanSettingEmail() {
-      const apiKey = document.getElementById('se-apikey').value.trim();
-      const fromEmail = document.getElementById('se-from').value.trim();
-      const toEmails = document.getElementById('se-to').value.trim();
-      if (!fromEmail || !toEmails) { alert("From Email dan Tujuan Email wajib diisi!"); return; }
-      showLoader(true, "Menyimpan setting email...");
-      google.script.run.withSuccessHandler(() => { showLoader(false); showToast(false); }).withFailureHandler((err) => { showLoader(false); alert("Gagal menyimpan: " + err.message); }).saveSettingEmail({ apiKey: apiKey, fromEmail: fromEmail, toEmails: toEmails });
+        const html = buildLaporanHtml('posisi', dataPosisiHarianTemp, {
+          tanggal: tgl,
+          wilayah: currentUser.namaUnit,
+          pejabat: pejabat,
+        });
+        _openPrintWindow(html);
+      }).getDataPejabatHT(currentUser.kodeWilayah);
     }
 ```
 
-- [ ] **Step 5: Verifikasi**
+#### Step 2.5: Refactor `cetakLaporanMutasi` dan `cetakLaporanHT`
 
-Review: pastikan `getSettingEmail`, `saveSettingEmail` terdaftar di `_GAS_MAP`, halaman `#setting-email` punya class `page role-page-admin`, dan ID elemen (`se-apikey`, `se-from`, `se-to`) cocok antara HTML dan JS.
+Ganti seluruh isi `cetakLaporanMutasi` (baris 4425–4521) menjadi:
 
-- [ ] **Step 6: Commit**
-
-```bash
-git add frontend/index.html
-git commit -m "feat: halaman admin tujuan email laporan akhir hari"
+```js
+    function cetakLaporanMutasi() {
+      let tgl = document.getElementById('lap-mutasi-tgl').value;
+      if (!tgl) { alert('Pilih tanggal laporan terlebih dahulu!'); return; }
+      if (!globalLapMutasiData) { alert('Data laporan belum dimuat!'); return; }
+      showLoader(true, "Menyiapkan Dokumen...");
+      google.script.run.withSuccessHandler((pejabat) => {
+          showLoader(false);
+          const kind = window.currentLapMutasiType === 'SETOR' ? 'setoran' : 'pengeluaran';
+          const html = buildLaporanHtml(kind, globalLapMutasiData, {
+            tanggal: tgl,
+            wilayah: currentUser.namaUnit,
+            pejabat: pejabat,
+          });
+          _openPrintWindow(html);
+      }).getDataPejabatHT(currentUser.kodeWilayah);
+    }
 ```
 
----
+Ganti seluruh isi `cetakLaporanHT` (baris 4532 sampai akhir fungsi, sebelum `function showDetail`) menjadi:
 
-### Task 5: Frontend — submenu Teller "Generate & Kirim Laporan Akhir Hari"
+```js
+    function cetakLaporanHT() {
+      let tgl = document.getElementById('lap-sk-tgl').value;
+      if (!tgl) { alert('Pilih tanggal laporan terlebih dahulu!'); return; }
+      if (!globalSaldoKasData) { alert('Data laporan belum dimuat!'); return; }
+      showLoader(true, "Menyiapkan Laporan 1 Halaman...");
+      google.script.run.withSuccessHandler((pejabat) => {
+          showLoader(false);
+          const html = buildLaporanHtml('saldo_ht', globalSaldoKasData, {
+            tanggal: tgl,
+            wilayah: currentUser.namaUnit,
+            pejabat: pejabat,
+          });
+          _openPrintWindow(html);
+      }).getDataPejabatHT(currentUser.kodeWilayah);
+    }
+```
 
-**Files:**
+Verifikasi manual (browser di GitHub Pages):
+1. Login admin. Menu "Laporan → Setoran/Pengeluaran": pilih tanggal, klik "Muat Laporan" (data muncul di tabel), lalu "Cetak Laporan". Dialog print muncul, tampilan = format baku existing (header 2 baris, tabel A + subtotal per kategori, B untuk setoran, kotak grand total kuning, TTD). Ulangi untuk tipe BON (tanpa tabel B).
+2. Menu "Saldo Khasanah HT": muat, cetak → format baku (A. TOTAL FISIK SALDO KHASANAH, B. SALDO FISIK CASHBOX, GRAND TOTAL).
+3. Menu "Sisa Dalam Cluis": muat, cetak → format baku 5 kolom.
+4. Menu "Posisi Harian Kas": buka menu (memuat data), cetak → tabel 8 baris + total.
+5. Console tidak ada error. Tampilan sama persis dengan sebelum refactor (bandingkan dengan tangkapan lama jika ada).
+
+## Task 3: Frontend — implementasi `kirimLaporanHarian()` baru
+
+### Purpose
+
+Rewrite fungsi kirim agar mem-fetch data, membangun 5 PDF via html2pdf dari `buildLaporanHtml`, mengirim attachments base64 ke edge function, dan menampilkan hasil.
+
+### Files
+
 - Modify: `frontend/index.html`
-  - Menu teller (setelah submenu "POSISI KAS TELLER", sekitar baris 293)
-  - Halaman baru `#kirim-laporan-harian` (tempatkan dekat halaman laporan lain, mis. sebelum `#lap-posisi-harian` baris 951)
-  - `_GAS_MAP`
-  - Daerah fungsi JS
 
-**Interfaces:**
-- Consumes: `POST /kirim-laporan-harian` (Task 3); `currentUser.kodeWilayah`, `currentUser.userEstim`, `currentUser.role` (di-set saat login); `getLocalDateString()` (sudah ada)
-- Produces: menu teller + halaman `#kirim-laporan-harian` + fungsi `initKirimLaporanHarian()`, `kirimLaporanHarian()`
+### Steps
 
-- [ ] **Step 1: Tambah item menu teller**
+#### Step 3.1: Hapus entri GAS `kirimLaporanHarian` yang tidak terpakai
 
-Di dalam `div.role-menu.menu-teller`, tepat setelah penutup `div#sub-posisi-teller` (baris 293), tambahkan:
-
-```html
-      <div class="menu-item" onclick="nav('kirim-laporan-harian', this); initKirimLaporanHarian();">✉️ Kirim Laporan Akhir Hari (PDF)</div>
-```
-
-- [ ] **Step 2: Tambah halaman `#kirim-laporan-harian`**
-
-Tepat sebelum halaman `#lap-posisi-harian` (baris 951) tambahkan:
-
-```html
-      <div id="kirim-laporan-harian" class="page">
-        <div class="header-page">
-          <div>
-            <h3>Generate &amp; Kirim Laporan Akhir Hari (PDF)</h3>
-            <p style="margin: 5px 0 0 0;">Sistem mengekspor posisi harian kas, rincian saldo khasanah, setoran khasanah, pengeluaran khasanah, dan sisa dalam khasanah ke PDF, lalu otomatis mengirim email sesuai tujuan yang diatur admin.</p>
-          </div>
-        </div>
-        <div class="form-row" style="align-items: flex-end;">
-          <div class="form-group"><label>Tanggal Laporan</label><input type="date" id="klh-tgl" style="background:var(--input-yellow);"></div>
-          <div class="form-group"><button class="btn-refresh" style="margin-bottom:0; width:100%; padding:14px;" onclick="kirimLaporanHarian()">📤 GENERATE &amp; KIRIM LAPORAN</button></div>
-        </div>
-        <div id="klh-result" style="margin-top:20px;"></div>
-      </div>
-```
-
-- [ ] **Step 3: Daftarkan GAS function**
-
-Di dalam objek `_GAS_MAP`, tambahkan (letakkan setelah entri `saveSettingEmail` dari Task 4):
+Di `_GAS_MAP` (baris 1308), hapus baris:
 
 ```js
       kirimLaporanHarian:         ['POST','/kirim-laporan-harian'],
 ```
 
-- [ ] **Step 4: Tambah fungsi JS `initKirimLaporanHarian` dan `kirimLaporanHarian`**
+(fungsi baru memanggil edge function langsung via `fetch`).
 
-Tambahkan di dekat fungsi Task 4 (setelah `simpanSettingEmail`):
+#### Step 3.2: Tambah helper `_htmlToPdfBase64`
+
+Tambahkan fungsi berikut tepat setelah `_openPrintWindow` (blok Step 2.2/2.3):
 
 ```js
-    function initKirimLaporanHarian() {
-      document.getElementById('klh-tgl').value = getLocalDateString();
-      document.getElementById('klh-result').innerHTML = '';
+    function _htmlToPdfBase64(html, filename) {
+      return new Promise(function(resolve, reject) {
+        if (typeof html2pdf === 'undefined') { reject(new Error('Library PDF (html2pdf.js) belum termuat.')); return; }
+        var wrapper = document.createElement('div');
+        wrapper.style.position = 'absolute';
+        wrapper.style.left = '-9999px';
+        wrapper.style.top = '0';
+        wrapper.style.width = '794px';
+        wrapper.style.background = '#ffffff';
+        wrapper.innerHTML = html;
+        document.body.appendChild(wrapper);
+        html2pdf().set({
+          margin: 0,
+          filename: filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'] }
+        }).from(wrapper).toPdf().get('pdf').then(function(pdf) {
+          if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+          var dataUri = pdf.output('datauristring');
+          resolve(dataUri.split(',')[1] || '');
+        }).catch(function(err) {
+          if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+          reject(err);
+        });
+      });
     }
-    function kirimLaporanHarian() {
+```
+
+#### Step 3.3: Rewrite `kirimLaporanHarian()`
+
+Ganti seluruh isi `kirimLaporanHarian` (baris 3770–3792) menjadi:
+
+```js
+    async function kirimLaporanHarian() {
       const tgl = document.getElementById('klh-tgl').value;
       if (!tgl) { alert("Pilih tanggal laporan terlebih dahulu!"); return; }
       if (!confirm("Kirim Laporan Akhir Hari untuk tanggal " + tgl + "?\nPDF akan dikirim via email ke tujuan yang diatur admin.")) return;
-      showLoader(true, "Mengekspor data & mengirim email...");
+      if (typeof html2pdf === 'undefined') { alert("Library PDF belum termuat. Periksa koneksi internet lalu muat ulang halaman."); return; }
+
+      showLoader(true, "Mengekspor 5 laporan PDF & mengirim email...");
       document.getElementById('klh-result').innerHTML = '<p style="color:var(--text-muted);">Memproses laporan...</p>';
-      google.script.run.withSuccessHandler((res) => {
+      try {
+        const kodeWilayah = currentUser.kodeWilayah;
+        const userEstim = currentUser.userEstim;
+        const role = currentUser.role;
+
+        const [pejabat, posisi, saldoKas, setoran, pengeluaran, cluis] = await Promise.all([
+          _gasProm('getDataPejabatHT', kodeWilayah),
+          _gasProm('getRekapPosisiHarianGlobal', tgl, kodeWilayah),
+          _gasProm('getLapSaldoKasHariIni', tgl, kodeWilayah),
+          _gasProm('getLapMutasiKhasanah', tgl, kodeWilayah, 'SETOR'),
+          _gasProm('getLapMutasiKhasanah', tgl, kodeWilayah, 'BON'),
+          _gasProm('getLapCluis', tgl, kodeWilayah),
+        ]);
+
+        const ctx = { tanggal: tgl, wilayah: currentUser.namaUnit, pejabat };
+
+        const toAttachment = (kind, data, filename) =>
+          _htmlToPdfBase64(buildLaporanHtml(kind, data, ctx), filename).then((content) => ({ filename, content }));
+
+        const attachments = await Promise.all([
+          toAttachment('setoran', setoran, '1_Setoran_Khasanah_' + tgl + '.pdf'),
+          toAttachment('pengeluaran', pengeluaran, '2_Pengeluaran_BON_' + tgl + '.pdf'),
+          toAttachment('saldo_ht', saldoKas, '3_Saldo_Khasanah_HT_' + tgl + '.pdf'),
+          toAttachment('cluis', cluis, '4_Sisa_Dalam_Cluis_' + tgl + '.pdf'),
+          toAttachment('posisi', posisi, '5_Posisi_Harian_Kas_' + tgl + '.pdf'),
+        ]);
+
+        const token = localStorage.getItem('kasmonitor_token') || '';
+        const resp = await fetch(_API + '/kirim-laporan-harian', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ tanggal: tgl, kodeWilayah, userEstim, role, attachments }),
+        });
+        const json = await resp.json().catch(() => ({}));
+        if (!json.success) throw new Error(json.error || 'API Error');
+
         showLoader(false);
         document.getElementById('klh-result').innerHTML =
           `<div class="summary-box" style="background:#ecfdf5; border-left:5px solid #059669; margin-top:10px;">
             <p style="margin:0; font-weight:700; color:#059669;">✅ Laporan berhasil dikirim</p>
-            <p style="margin:8px 0 0 0; color:#1e293b;">Tanggal: <b>${res.tanggal || tgl}</b><br>Email tujuan: <b>${res.to || '-'}</b><br>Total Saldo Khasanah: <b>${Number(res.totalHT || 0).toLocaleString('id-ID')}</b><br>Grand Total: <b>${Number(res.grandTotal || 0).toLocaleString('id-ID')}</b></p>
+            <p style="margin:8px 0 0 0; color:#1e293b;">Tanggal: <b>${json.data.tanggal || tgl}</b><br>Email tujuan: <b>${json.data.to || '-'}</b><br>Jumlah lampiran: <b>${json.data.totalAttachment || attachments.length}</b></p>
           </div>`;
         showToast(false);
-      }).withFailureHandler((err) => {
+      } catch (err) {
         showLoader(false);
         document.getElementById('klh-result').innerHTML =
           `<div class="summary-box" style="background:#fef2f2; border-left:5px solid #dc2626; margin-top:10px;">
             <p style="margin:0; font-weight:700; color:#dc2626;">❌ Gagal mengirim laporan</p>
             <p style="margin:8px 0 0 0; color:#1e293b;">${err.message}</p>
           </div>`;
-      }).kirimLaporanHarian({ tanggal: tgl, kodeWilayah: currentUser.kodeWilayah, userEstim: currentUser.userEstim, role: currentUser.role });
+      }
     }
 ```
 
-- [ ] **Step 5: Verifikasi**
+#### Step 3.4: Test end-to-end
 
-Review: `kirimLaporanHarian` terdaftar di `_GAS_MAP`; ID elemen (`klh-tgl`, `klh-result`) cocok antara HTML dan JS; pastikan tidak ada duplikasi nama fungsi `kirimLaporanHarian` dengan yang lain (grep `function kirimLaporanHarian` harus muncul tepat 1 kali).
+Push frontend, tunggu GitHub Actions selesai (Pages menyajikan versi baru).
 
-- [ ] **Step 6: Commit**
+Test di browser:
+1. Login admin → menu "Kirim Laporan Akhir Hari (PDF)".
+2. Pastikan setting email sudah ada (menu Admin → Setting Email; jika belum, isi dan simpan dengan to_emails milik tester).
+3. Pilih tanggal yang datanya lengkap, klik tombol kirim.
+4. Amati: loader "Mengekspor 5 laporan PDF..."; setelah selesai muncul kotak hijau berisi email tujuan & jumlah lampiran 5.
+5. Cek inbox tester: 1 email "Laporan Akhir Hari - <tanggal>" dengan 5 attachment PDF (1_Setoran..., 2_Pengeluaran..., 3_Saldo..., 4_Sisa..., 5_Posisi...). Buka tiap PDF: format sama dengan print manual.
+6. Uji error: matikan internet lalu klik kirim → muncul kotak merah "Library PDF belum termuat" (atau error fetch).
+7. Cek Supabase Dashboard → Edge Functions → kirim-laporan-harian → Logs: tidak ada exception.
 
-```bash
-git add frontend/index.html
-git commit -m "feat: submenu teller generate & kirim laporan akhir hari PDF via email"
-```
+## Task 4: Update README
 
----
+### Purpose
 
-### Task 6: Update README
+Dokumentasi backend/frontend sesuai arsitektur baru (PDF di browser, edge function hanya kirim).
 
-**Files:**
+### Files
+
 - Modify: `README.md`
-  - Struktur project: tambahkan `setting-email` dan `kirim-laporan-harian` pada daftar functions
-  - Tabel API Endpoints: tambahkan 2 baris
-  - Tabel Database Tables: tambahkan `setting_email`
-  - Bagian deploy: tambahkan deploy command kedua fungsi
 
-**Interfaces:**
-- Consumes: nama endpoint/fungsi dari Task 2 dan Task 3
+### Steps
 
-- [ ] **Step 1: Update daftar functions di struktur project**
+#### Step 4.1: Update struktur & tabel API
 
-Setelah baris `│       ├── setting-wa-gateway/ # ...` tambahkan:
+1. Baris 39, ganti:
+   `│       ├── kirim-laporan-harian/ # POST /api/kirim-laporan-harian (✅ Generate PDF + Kirim Email)` →
+   `│       ├── kirim-laporan-harian/ # POST /api/kirim-laporan-harian (✅ Terima PDF base64 & Kirim Email)`
+2. Baris 155, ganti:
+   `| POST | `/api/kirim-laporan-harian` | Generate PDF Laporan Akhir Hari & kirim email |` →
+   `| POST | `/api/kirim-laporan-harian` | Kirim email Laporan Akhir Hari (PDF dibuat di frontend via html2pdf) |`
+3. Tambahkan catatan di bawah tabel API Endpoints (setelah baris 163): "PDF Laporan Akhir Hari dibuat di browser memakai html2pdf.js (CDN) dengan format identik cetak manual; edge function hanya memvalidasi dan mengirim via Resend."
 
-```markdown
-│       ├── setting-email/  # GET/POST /api/setting-email (✅ Email Laporan Akhir Hari)
-│       ├── kirim-laporan-harian/ # POST /api/kirim-laporan-harian (✅ Generate PDF + Kirim Email)
-```
+Verifikasi: baca ulang README, tidak ada teks lama yang menyebut server-side PDF.
 
-- [ ] **Step 2: Update tabel API Endpoints**
+## Task 5: Integration review & final testing
 
-Tambahkan di tabel (mis. setelah baris `| GET/POST | /api/setting-wa-gateway | ...` — atau di baris yang sesuai):
+### Purpose
 
-```markdown
-| GET/POST | `/api/setting-email` | Setting tujuan email laporan (Resend) |
-| POST | `/api/kirim-laporan-harian` | Generate PDF Laporan Akhir Hari & kirim email |
-```
+Memastikan seluruh perubahan bekerja bersama, tidak ada regresi pada print manual, dan deploy konsisten.
 
-- [ ] **Step 3: Update tabel Database Tables**
+### Steps
 
-Tambahkan:
+#### Step 5.1: Review diff & konsistensi
 
-```markdown
-| `setting_email` | Konfigurasi tujuan email laporan harian |
-```
+- `git diff` review: pastikan hanya file yang direncanakan berubah (`frontend/index.html`, `supabase/functions/kirim-laporan-harian/index.ts`, `README.md`, plan/spec). `LOG_AKTIVITAS.md` tidak boleh masuk.
+- Pastikan tidak ada sisa referensi `buildReportPdf`, `pdf-lib`, `internalFetch`, `bytesToBase64` di edge function.
+- Pastikan `_GAS_MAP` tidak lagi berisi `kirimLaporanHarian`, dan fungsi `kirimLaporanHarian` (frontend) tidak memanggil `google.script.run.kirimLaporanHarian`.
 
-- [ ] **Step 4: Update deploy commands**
+#### Step 5.2: Uji regresi print manual
 
-Di blok deploy (setelah `supabase functions deploy setting-wa-gateway --no-verify-jwt`), tambahkan:
+Ulangi seluruh verifikasi Step 2.5 di halaman GitHub Pages terbaru: cetak 4 laporan (Setoran, BON, Saldo HT, Cluis, Posisi) — tampilan identik format baku, tidak ada error console.
 
-```bash
-supabase functions deploy setting-email --no-verify-jwt
-supabase functions deploy kirim-laporan-harian --no-verify-jwt
-```
+#### Step 5.3: Uji email final
 
-- [ ] **Step 5: Verifikasi**
+Kirim ulang laporan via menu (Step 3.4). Verifikasi email tiba dengan 5 lampiran terbaca benar. Konfirmasi ke user.
 
-Run: `git -C D:\Project\KasM diff README.md`
-Expected: 4 perubahan sesuai langkah 1-4, tidak mengubah baris lain.
+#### Step 5.4: Commit & push
 
-- [ ] **Step 6: Commit**
-
-```bash
-git add README.md
-git commit -m "docs: README tambah setting-email & kirim-laporan-harian"
-```
-
----
-
-## Self-Review Checklist
-
-- **Spec coverage:** Migration ✓ (Task 1), setting-email edge ✓ (Task 2), kirim-laporan-harian + PDF 5 bagian + Resend + preview ✓ (Task 3), admin page ✓ (Task 4), teller submenu ✓ (Task 5), README ✓ (Task 6). Semua bagian spec tercakup.
-- **Placeholder scan:** Tidak ada TBD/TODO; setiap langkah berisi kode atau perintah konkret.
-- **Type consistency:** Nama fungsi frontend (`loadSettingEmail`, `simpanSettingEmail`, `initKirimLaporanHarian`, `kirimLaporanHarian`), entri `_GAS_MAP`, ID elemen HTML, dan kolom tabel DB konsisten di semua task. Response key edge function (`apiKey/fromEmail/toEmails`, `emailId/to/tanggal/totalHT/grandTotal`, `previewPdfBase64/filename`) konsisten antara backend dan frontend.
+Setelah semua lolos: stage file yang benar (kecuali `LOG_AKTIVITAS.md`), commit dengan pesan deskriptif (mis. "feat: kirim laporan akhir hari via email — PDF dibangun di frontend (html2pdf)"), push `origin/main`. Jangan create PR kecuali diminta.
