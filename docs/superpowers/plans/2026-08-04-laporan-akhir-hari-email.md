@@ -14,7 +14,7 @@ Fitur "Kirim Laporan Akhir Hari" memungkinkan teller/admin mengirim email berisi
 - **Frontend**: `frontend/index.html` adalah single-file SPA tanpa build step, JS inline (ES6+; async/await & fetch sudah dipakai). `formatRpAlign` (global, line 3262), `terbilang` (line 3244), `formatTglIndo` (line 2795), `showLoader` (line 3258), `showToast` sudah tersedia.
 - **Backend**: edge function `kirim-laporan-harian` TIDAK lagi generate PDF dan TIDAK lagi bergantung `pdf-lib`. Ia hanya validasi auth/role/setting + validasi attachments lalu kirim via Resend. Impor `_shared/cors.ts`, `_shared/supabase.ts`, `_shared/utils.ts` tetap dipakai.
 - **Auth model**: service_role; frontend kirim `userEstim`+`role` di body; edge function verifikasi ke tabel `users`, `effRole = role === userRole ? role : userRole`, hanya `teller`/`admin` boleh kirim.
-- **CDN**: html2pdf.js versi pinned 0.10.0 dari cdnjs. Jangan tambah dependensi lain.
+- **CDN**: html2pdf.js versi pinned 0.10.0 dari jsdelivr (`https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.0/dist/html2pdf.bundle.min.js`). Jangan tambah dependensi lain. (Catatan: cdnjs tidak menyediakan 0.10.0 → 404.)
 - JANGAN pernah stage/commit `LOG_AKTIVITAS.md`. Jangan ubah fungsi GAS/edge lain di luar yang disebut.
 - **Verifikasi**: tidak ada test framework di repo. Verifikasi = manual browser (halaman GitHub Pages + Supabase dashboard logs) + curl untuk edge function. Setiap step wajib diverifikasi sebelum lanjut.
 - Deployment perlu internet; gunakan `supabase functions deploy kirim-laporan-harian --no-verify-jwt` (CLI sudah login & link project `jwsfsczgyqphoyflpjnm`). Frontend di-push dulu agar GitHub Pages ter-update.
