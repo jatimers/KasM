@@ -1475,30 +1475,30 @@
         var wrapper = document.createElement('div');
         wrapper.style.cssText = 'position:static;width:794px;background:#ffffff;margin:0;';
         wrapper.innerHTML = html;
-        // Isolasi dari CSS aplikasi agar laporan tidak tertimpa (padding th/td 14px,
-        // font table 0.95rem, th nowrap/uppercase, tfoot warna, dll).
         wrapper.id = 'lap-pdf';
-        var iso = document.createElement('style');
-        iso.textContent = '#lap-pdf, #lap-pdf * { box-sizing: content-box !important; }' +
-          '#lap-pdf body { font-family: "Arial", sans-serif !important; font-size: 9px !important; padding: 0 !important; margin: 0 !important; color: #000 !important; }' +
-          '#lap-pdf h3 { margin: 1px 0 !important; font-size: 11px !important; text-align: center !important; color: #000 !important; font-weight: 700 !important; text-transform: none !important; }' +
-          '#lap-pdf h4 { margin: 1px 0 !important; font-size: 10px !important; text-align: center !important; padding: 2px !important; color: #000 !important; text-transform: none !important; }' +
-          '#lap-pdf table { width: 100% !important; border-collapse: collapse !important; margin-bottom: 5px !important; font-size: 9px !important; min-width: 0 !important; }' +
-          '#lap-pdf th, #lap-pdf td { border: 1px solid #000 !important; border-bottom: 1px solid #000 !important; padding: 2px 4px !important; text-transform: none !important; white-space: normal !important; text-align: left !important; background-color: transparent !important; color: #000 !important; vertical-align: middle !important; }' +
-          '#lap-pdf th { background-color: #f2f2f2 !important; font-weight: bold !important; text-align: center !important; font-size: 9px !important; }' +
-          '#lap-pdf tfoot td { background-color: transparent !important; border-top: 1px solid #000 !important; border-bottom: 1px solid #000 !important; color: #000 !important; font-weight: bold !important; }' +
-          '#lap-pdf p { line-height: normal !important; color: #000 !important; }' +
-          '#lap-pdf .text-right { text-align: right !important; }' +
-          '#lap-pdf .text-center { text-align: center !important; }' +
-          '#lap-pdf .text-left { text-align: left !important; }' +
-          '#lap-pdf .header { border-bottom: 2px solid #000 !important; padding-bottom: 2px !important; margin-bottom: 3px !important; }';
-        wrapper.appendChild(iso);
         document.body.appendChild(wrapper);
         html2pdf().set({
           margin: 0,
           filename: filename,
           image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            // Isolasi total: buang semua CSS aplikasi dari cloned document,
+            // sisakan hanya style laporan yang ada di dalam wrapper. Ini
+            // menghasilkan layout bersih seperti print window (dokumen terpisah).
+            onclone: function(clonedDoc) {
+              var lapDiv = clonedDoc.getElementById('lap-pdf');
+              var remove = [];
+              clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(function(el) {
+                if (!lapDiv || !lapDiv.contains(el)) remove.push(el);
+              });
+              remove.forEach(function(el) { el.parentNode.removeChild(el); });
+              var cb = clonedDoc.body;
+              if (cb) cb.style.cssText = 'font-family:Arial,sans-serif;font-size:9px;padding:0;margin:0;color:#000;';
+            }
+          },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
           pagebreak: { mode: ['css', 'legacy'] }
         }).from(wrapper).toPdf().get('pdf').then(function(pdf) {
