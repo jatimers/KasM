@@ -81,7 +81,7 @@ async function buildReportPdf(rep: {
     y += 10;
     page.drawText(text, { x: M, y: drawY() - 12, size: 13, font: bold, color });
     y += LINE;
-    page.drawLine({ start: [M, drawY() + 4], end: [PAGE_W - M, drawY() + 4], thickness: 1, color: GRAY });
+    page.drawLine({ start: { x: M, y: drawY() + 4 }, end: { x: PAGE_W - M, y: drawY() + 4 }, thickness: 1, color: GRAY });
     y += 4;
   };
 
@@ -116,7 +116,7 @@ async function buildReportPdf(rep: {
         page.drawText(row[i], { x: rx + 3, y: drawY() - 11, size: 8.5, font });
         rx += widths[i];
       }
-      page.drawLine({ start: [M, drawY() - 2], end: [M + totalW, drawY() - 2], thickness: 0.3, color: rgb(0.85, 0.87, 0.9) });
+      page.drawLine({ start: { x: M, y: drawY() - 2 }, end: { x: M + totalW, y: drawY() - 2 }, thickness: 0.3, color: rgb(0.85, 0.87, 0.9) });
       y += rowH;
     }
     if (totalLabel) {
@@ -165,7 +165,7 @@ async function buildReportPdf(rep: {
   page.drawText("Wilayah: " + rep.kodeWilayah, { x: M + 240, y: drawY() - 10, size: 10, font });
   page.drawText("User: " + (rep.userInfo.namaUser || rep.userInfo.userEstim), { x: M + 480, y: drawY() - 10, size: 10, font });
   y += LINE * 2;
-  page.drawLine({ start: [M, drawY() + 2], end: [PAGE_W - M, drawY() + 2], thickness: 2, color: NAVY });
+  page.drawLine({ start: { x: M, y: drawY() + 2 }, end: { x: PAGE_W - M, y: drawY() + 2 }, thickness: 2, color: NAVY });
   y += 8;
 
   // A. POSISI HARIAN KAS
