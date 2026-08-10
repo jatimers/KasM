@@ -232,7 +232,7 @@ Deno.serve(async (req: Request) => {
             tellerCashboxes[uEstim] = (tellerCashboxes[uEstim] || 0) + (parseFloat(String(row.nominal)) || 0);
           }
         } else {
-          if (isBon && (row.scope || "KHASANAH") === "KHASANAH") {
+          if (tipe === "BON PAGI") {
             const uEstim = cleanStr(row.user_estim);
             tellerCashboxes[uEstim] = (tellerCashboxes[uEstim] || 0) + (parseFloat(String(row.nominal)) || 0);
           }
