@@ -4419,16 +4419,13 @@ function loadDashboardHT() {
         let tellerTable = document.getElementById('lap-mutasi-teller-body') ? document.getElementById('lap-mutasi-teller-body').closest('table') : null;
         let tellerWrapper = tellerTable ? (tellerTable.closest('.table-responsive') || tellerTable) : null;
         
-        // Hanya mencari di elemen heading murni agar div pembungkus halaman tidak ikut tersembunyi
-        document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(el => {
-          if (el.textContent && (el.textContent.includes('B. RINCIAN') || el.textContent.includes('Rincian Per Teller'))) {
-            el.style.display = tipe === 'BON' ? 'none' : 'block';
-          }
-        });
-
-        if (tellerWrapper) {
-          tellerWrapper.style.display = tipe === 'BON' ? 'none' : 'block';
-        }
+        // --- LABEL SECTION B SESUAI TIPE LAPORAN ---
+        let bTitle = document.getElementById('lap-mutasi-b-title');
+        if (bTitle) bTitle.textContent = tipe === 'BON' ? 'B. Rincian Pengeluaran Cashbox Teller' : 'B. Rincian Per Teller';
+        let bCol = document.getElementById('lap-mutasi-teller-col');
+        if (bCol) bCol.textContent = tipe === 'BON' ? 'Nominal Bon Pagi' : 'Nominal Mutasi Transaksi';
+        let bLabel = document.getElementById('lap-mutasi-teller-label');
+        if (bLabel) bLabel.textContent = tipe === 'BON' ? 'SUB TOTAL CASHBOX TELLER:' : 'TOTAL KESELURUHAN TELLER:';
 
         // Sinkronisasi Kontainer Box Grand Total
         let grandBox = document.getElementById('lap-mutasi-grand-box');
@@ -4444,18 +4441,28 @@ function loadDashboardHT() {
         let pecWrapper = pecTable ? (pecTable.closest('.table-responsive') || pecTable) : null;
 
         if(tipe === 'BON') {
-          let grandTotalPengeluaran = res.total;
+          let grandTotalPengeluaran = (Number(res.total) || 0) + (Number(res.totalTeller) || 0);
           grandBox.style.background = '#fee2e2'; 
           grandBox.style.border = '1px solid #fca5a5';
-          if (pecWrapper) {
+          if (tellerWrapper) {
+            tellerWrapper.parentNode.insertBefore(grandBox, tellerWrapper.nextSibling);
+          } else if (tellerTable) {
+            tellerTable.parentNode.insertBefore(grandBox, tellerTable.nextSibling);
+          } else if (pecWrapper) {
             pecWrapper.parentNode.insertBefore(grandBox, pecWrapper.nextSibling);
-          } else if (pecTable) {
-            pecTable.parentNode.insertBefore(grandBox, pecTable.nextSibling);
           }
-          
+
           grandBox.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; font-weight:600; color:#475569; font-size:0.95rem; margin-bottom:5px;">
+              <span>Total Rincian Pecahan (A):</span>
+              <span>Rp ${(Number(res.total)||0).toLocaleString('id-ID')}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-weight:600; color:#475569; font-size:0.95rem; margin-bottom:6px; border-bottom:1px dashed #fca5a5; padding-bottom:6px;">
+              <span>Sub Total Cashbox Teller (B):</span>
+              <span>Rp ${(Number(res.totalTeller)||0).toLocaleString('id-ID')}</span>
+            </div>
             <div style="display:flex; justify-content:space-between; align-items:center; font-weight:800; color:#b91c1c; font-size:1.1rem;">
-              <span>GRAND TOTAL PENGELUARAN KHASANAH:</span>
+              <span>GRAND TOTAL PENGELUARAN (A + B):</span>
               <span>Rp ${grandTotalPengeluaran.toLocaleString('id-ID')}</span>
             </div>
             <div style="font-size:0.85rem; font-style:italic; text-align:right; color:#991b1b; margin-top:4px; font-weight:600;">
