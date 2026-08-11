@@ -46,10 +46,9 @@ let transQ = supabase
   .from("bon_setor")
   .select("tanggal")
   .gte("tanggal", startDate)
-  .lte("tanggal", endDate)
-  .limit(500000);
+  .lte("tanggal", endDate);
 if (kodeWilayah !== "ALL") transQ = transQ.eq("kode_wilayah", kodeWilayah);
-const { data: transData } = await transQ;
+const transData = await fetchAll(transQ); // paginated — bypass 1000-row Supabase limit
 
 const tanggalAdaTransaksi = new Set<string>();
 for (const row of (transData || [])) {
@@ -57,6 +56,8 @@ for (const row of (transData || [])) {
   if (tgl) tanggalAdaTransaksi.add(tgl);
 }
 ```
+
+Catatan: gunakan `fetchAll()` dari `../_shared/supabase.ts` (helper pagination yang sudah ada), **bukan** `.limit(500000)` — Supabase PostgREST meng-hard-cap respons di 1000 baris, sehingga query `.limit(500000)` akan melewatkan tanggal transaksi di luar 1000 baris pertama.
 
 ### 2. Ubah post-processing
 

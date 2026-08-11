@@ -38,10 +38,9 @@ Setelah blok `liburSet` (baris 156-162), sebelum blok `rawSaldo` (baris 164), ta
         .from("bon_setor")
         .select("tanggal")
         .gte("tanggal", startDate)
-        .lte("tanggal", endDate)
-        .limit(500000);
+        .lte("tanggal", endDate);
       if (kodeWilayah !== "ALL") transQ = transQ.eq("kode_wilayah", kodeWilayah);
-      const { data: transData } = await transQ;
+      const transData = await fetchAll(transQ);
 
       const tanggalAdaTransaksi = new Set<string>();
       for (const row of (transData || [])) {
@@ -49,6 +48,8 @@ Setelah blok `liburSet` (baris 156-162), sebelum blok `rawSaldo` (baris 164), ta
         if (tgl) tanggalAdaTransaksi.add(tgl);
       }
 ```
+
+Catatan: import `fetchAll` dari `../_shared/supabase.ts` (helper pagination existing). **Jangan** pakai `.limit(500000)` — Supabase hard-cap 1000 baris sehingga tanggal transaksi di luar 1000 baris pertama tidak terdeteksi.
 
 - [ ] **Step 2: Ubah post-processing hari non-kerja**
 
