@@ -3,7 +3,7 @@
 // Akses: headteller, pbo
 
 import { corsHeaders, successResponse, errorResponse } from "../_shared/cors.ts";
-import { getSupabaseClient } from "../_shared/supabase.ts";
+import { getSupabaseClient, fetchAll } from "../_shared/supabase.ts";
 import { cleanStr, normalizeUnit } from "../_shared/utils.ts";
 
 Deno.serve(async (req: Request) => {
@@ -161,6 +161,21 @@ Deno.serve(async (req: Request) => {
         if (tgl && tgl !== "-") liburSet.add(tgl);
       }
 
+      // Detect dates that have any transaction (lembur) — used for weekend/holiday days
+      let transQ = supabase
+        .from("bon_setor")
+        .select("tanggal")
+        .gte("tanggal", startDate)
+        .lte("tanggal", endDate);
+      if (kodeWilayah !== "ALL") transQ = transQ.eq("kode_wilayah", kodeWilayah);
+      const transData = await fetchAll(transQ);
+
+      const tanggalAdaTransaksi = new Set<string>();
+      for (const row of (transData || [])) {
+        const tgl = String(row.tanggal).substring(0, 10);
+        if (tgl) tanggalAdaTransaksi.add(tgl);
+      }
+
       // Fetch grandTotal from laporan-ht for each day (parallel batch 5, with warm-up)
       const rawSaldo: Record<string, number> = {};
 
@@ -222,6 +237,10 @@ Deno.serve(async (req: Request) => {
         const isLibur = liburSet.has(tgl);
 
         if (isWeekend || isLibur) {
+          const hasTrx = tanggalAdaTransaksi.has(tgl) && (rawSaldo[tgl] || 0) > 0;
+          if (hasTrx) {
+            lastWorkingDaySaldo = rawSaldo[tgl];
+          }
           saldoPerTanggal[tgl] = lastWorkingDaySaldo;
         } else {
           // Use laporan-ht value; if 0, keep last known good saldo
