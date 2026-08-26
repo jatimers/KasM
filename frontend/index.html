@@ -802,21 +802,21 @@
           <table>
             <!-- DATA KAS TELLER (ESTIM) -->
             <tr style="background:#ede9fe;"><td colspan="2" style="padding:10px 12px; font-weight:700; color:#7c3aed; font-size:0.95rem;">📊 Data Kas Teller (Estim)</td></tr>
-            <tr><td>Mutasi Debet</td><td><input type="text" id="pk-estim-debet" style="width:100%; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#0284c7; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></td></tr>
-            <tr><td>Mutasi Kredit</td><td><input type="text" id="pk-estim-kredit" style="width:100%; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#dc2626; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></td></tr>
+            <tr><td>Mutasi Debet</td><td><input type="text" id="pk-estim-debet" style="width:100%; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#0284c7; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0" oninput="formatRupiahPosisi(this)" onblur="formatRupiahPosisiBlur(this)" placeholder="0"></td></tr>
+            <tr><td>Mutasi Kredit</td><td><input type="text" id="pk-estim-kredit" style="width:100%; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#dc2626; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0" oninput="formatRupiahPosisi(this)" onblur="formatRupiahPosisiBlur(this)" placeholder="0"></td></tr>
 
             <!-- MUTASI DEBET -->
             <tr style="background:#e0f2fe;"><td colspan="2" style="padding:10px 12px; font-weight:700; color:#0369a1; font-size:0.95rem;">📥 MUTASI DEBET</td></tr>
             <tr><td style="color:var(--text-muted);">Bon Pagi (Saldo Awal)</td><td><input type="text" id="pk-bonpagi" readonly onfocus="this.blur()" style="width:100%; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#0284c7; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0"></td></tr>
             <tr id="tr-bontambahan"><td style="color:var(--text-muted);">Bon Tambahan</td><td><input type="text" id="pk-bontambahan" readonly onfocus="this.blur()" style="width:100%; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#0284c7; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0"></td></tr>
             <tr><td>Penerimaan Kas (Debet)</td><td><input type="text" id="pk-penerimaandebet" readonly onfocus="this.blur()" style="width:100%; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#0284c7; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0"></td></tr>
-            <tr><td>Antar Teller (Debet)</td><td><input type="text" id="pk-penerimaanantar" style="width:100%; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#0284c7; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></td></tr>
+            <tr><td>Antar Teller (Debet)</td><td><input type="text" id="pk-penerimaanantar" style="width:100%; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#0284c7; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0" oninput="formatRupiahPosisi(this)" onblur="formatRupiahPosisiBlur(this)" placeholder="0"></td></tr>
 
             <!-- MUTASI KREDIT -->
             <tr style="background:#fce4ec;"><td colspan="2" style="padding:10px 12px; font-weight:700; color:#b91c1c; font-size:0.95rem;">📤 MUTASI KREDIT</td></tr>
             <tr><td>Pembayaran Kas (Kredit)</td><td><input type="text" id="pk-pembayarankredit" readonly onfocus="this.blur()" style="width:100%; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#dc2626; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0"></td></tr>
             <tr id="tr-setortambahan"><td style="color:var(--text-muted);">Setor Tambahan</td><td><input type="text" id="pk-setortambahan" readonly onfocus="this.blur()" style="width:100%; background:#f1f5f9; border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#dc2626; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0"></td></tr>
-            <tr><td>Antar Teller (Kredit)</td><td><input type="text" id="pk-pembayaranantar" style="width:100%; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#dc2626; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0" oninput="formatRupiahPosisi(this)" placeholder="0"></td></tr>
+            <tr><td>Antar Teller (Kredit)</td><td><input type="text" id="pk-pembayaranantar" style="width:100%; background:var(--input-yellow); border:1px solid var(--border-color); border-radius:6px; outline:none; font-weight:700; color:#dc2626; text-align:right; padding:12px 8px; box-sizing:border-box;" data-val="0" oninput="formatRupiahPosisi(this)" onblur="formatRupiahPosisiBlur(this)" placeholder="0"></td></tr>
 
             <!-- HASIL KALKULASI -->
             <tr style="background:#fefce8;"><td colspan="2" style="padding:10px 12px; font-weight:700; color:#92400e; font-size:0.95rem;">🔢 HASIL KALKULASI</td></tr>
@@ -3380,23 +3380,52 @@ function formatTglIndo(dateStr) {
     } 
    
 function formatRupiahPosisi(el) {
-  // Simpel & proven: seperti Setor Sore, hanya izinkan angka + satu koma desimal
-  let val = el.value.replace(/[^0-9,]/g, '');
+  // Fix desimal: incremental typing tanpa paksa pad 00, support koma dan titik
+  let raw = el.value;
+  let val = raw.replace(/[^0-9,\.]/g, '');
+  if (val.indexOf(',') !== -1 && val.indexOf('.') !== -1) {
+    val = val.replace(/\./g, '');
+  } else if (val.indexOf(',') === -1 && val.indexOf('.') !== -1) {
+    let lastDot = val.lastIndexOf('.');
+    let after = val.substring(lastDot + 1);
+    if (after.length <= 2 && /^\d+$/.test(after)) {
+      val = val.substring(0, lastDot) + ',' + after;
+      val = val.replace(/\./g, '');
+    } else {
+      val = val.replace(/\./g, '');
+    }
+  }
   let commaIdx = val.indexOf(',');
   if (commaIdx >= 0) {
-    // Ada koma: integer sebelum koma, maks 2 digit desimal setelah koma
-    let intPart = val.substring(0, commaIdx).replace(/\D/g, '') || '0';
+    let intPart = val.substring(0, commaIdx).replace(/\D/g, '').replace(/^0+(?=\d)/,'') || '0';
     let decPart = val.substring(commaIdx + 1).replace(/\D/g, '').substring(0, 2);
     let num = parseInt(intPart, 10) || 0;
-    let dec = parseInt(decPart.padEnd(2, '0'), 10) || 0;
-    el.setAttribute('data-val', num + (dec / 100));
-    el.value = num.toLocaleString('id-ID') + ',' + decPart.padEnd(2, '0');
+    let dataVal;
+    if (decPart.length === 0) dataVal = num;
+    else if (decPart.length === 1) dataVal = num + parseInt(decPart, 10) / 10;
+    else dataVal = num + parseInt(decPart, 10) / 100;
+    el.setAttribute('data-val', dataVal);
+    // Saat ketik desimal, JANGAN format ribuan (titik) agar caret tidak loncat — cukup intPart + ',' + decPart
+    el.value = intPart + ',' + decPart;
   } else {
-    // Tidak ada koma: integer biasa seperti Setor Sore
-    let raw = val.replace(/\D/g, '');
-    el.setAttribute('data-val', raw || '0');
-    el.value = raw ? parseInt(raw, 10).toLocaleString('id-ID') : '';
+    let rawDigits = val.replace(/\D/g, '').replace(/^0+(?=\d)/,'');
+    el.setAttribute('data-val', rawDigits || '0');
+    el.value = rawDigits ? parseInt(rawDigits, 10).toLocaleString('id-ID') : '';
   }
+  calcPosisi();
+}
+function formatRupiahPosisiBlur(el) {
+  let v = parseFloat(el.getAttribute('data-val')) || 0;
+  if (el.value === '' || (v === 0 && el.value === '')) { el.value = ''; return; }
+  // Hanya format 2 desimal jika user memang pakai koma (desimal). Jika integer murni, biarkan tanpa ,00 agar tidak kaget.
+  if (el.value.indexOf(',') === -1) {
+    el.setAttribute('data-val', v);
+    el.value = v ? v.toLocaleString('id-ID') : '';
+    calcPosisi();
+    return;
+  }
+  el.setAttribute('data-val', v);
+  el.value = v.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   calcPosisi();
 }
 
