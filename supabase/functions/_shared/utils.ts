@@ -123,3 +123,20 @@ export interface User {
   user_estim: string;
   password: string;
 }
+
+// WIB (GMT+7) menit sejak 00:00 — independen dari timezone server
+export function getWIBMinutes(): number {
+  const wib = new Date(Date.now() + 7 * 60 * 60 * 1000);
+  return wib.getUTCHours() * 60 + wib.getUTCMinutes();
+}
+
+// Parse "HH:MM" menjadi menit; fallback 12:00 (720) bila invalid
+export function cutoffToMinutes(val: unknown): number {
+  const str = cleanStr(val);
+  const match = /^(\d{1,2}):(\d{2})/.exec(str);
+  if (!match) return 12 * 60;
+  const h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  if (isNaN(h) || isNaN(m)) return 12 * 60;
+  return h * 60 + m;
+}
