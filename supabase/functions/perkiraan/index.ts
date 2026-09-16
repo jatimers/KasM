@@ -154,27 +154,37 @@ Deno.serve(async (req: Request) => {
       // Enforcement cutoff input Bon (WIB)
       let bonLocked = false;
       try {
-        const { data: setting } = await supabase
+        const { data: settingRows, error: settingErr } = await supabase
           .from("setting_perkiraan")
           .select("cutoff_enabled, cutoff_time")
           .order("id")
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
 
-        const cutoffEnabled = !setting || setting.cutoff_enabled !== false;
-        const cutoffMenit = cutoffToMinutes(setting?.cutoff_time);
+        if (settingErr) {
+          console.warn("[perkiraan] Gagal baca setting cutoff, lewati pembatasan:", settingErr.message);
+        } else {
+          const setting = (settingRows && settingRows.length > 0) ? settingRows[0] : null;
+          const cutoffEnabled = !setting || setting.cutoff_enabled !== false;
+          const cutoffMenit = cutoffToMinutes(setting?.cutoff_time);
 
-        if (cutoffEnabled && getWIBMinutes() >= cutoffMenit) {
-          const { data: existing } = await supabase
-            .from("perkiraan_bon_setor")
-            .select("p100k_bon, p50k_bon")
-            .eq("tanggal", record.tanggal)
-            .eq("user_estim", record.user_estim)
-            .maybeSingle();
+          if (cutoffEnabled && getWIBMinutes() >= cutoffMenit) {
+            const { data: existingRows, error: existingErr } = await supabase
+              .from("perkiraan_bon_setor")
+              .select("p100k_bon, p50k_bon")
+              .eq("tanggal", record.tanggal)
+              .eq("user_estim", record.user_estim)
+              .order("id")
+              .limit(1);
 
-          record.p100k_bon = parseInt(String(existing?.p100k_bon)) || 0;
-          record.p50k_bon = parseInt(String(existing?.p50k_bon)) || 0;
-          bonLocked = true;
+            if (existingErr) {
+              console.warn("[perkiraan] Gagal baca Bon lama, lewati pembatasan:", existingErr.message);
+            } else {
+              const existing = (existingRows && existingRows.length > 0) ? existingRows[0] : null;
+              record.p100k_bon = parseInt(String(existing?.p100k_bon)) || 0;
+              record.p50k_bon = parseInt(String(existing?.p50k_bon)) || 0;
+              bonLocked = true;
+            }
+          }
         }
       } catch (e) {
         console.warn("[perkiraan] Gagal cek setting cutoff, lewati pembatasan:", e);

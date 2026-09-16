@@ -21,15 +21,15 @@ Deno.serve(async (req: Request) => {
         .from("setting_perkiraan")
         .select("*")
         .order("id")
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
 
       if (error) throw error;
-      if (!data) return successResponse({ cutoffEnabled: true, cutoffTime: DEFAULT_TIME });
+      const row = (data && data.length > 0) ? data[0] : null;
+      if (!row) return successResponse({ cutoffEnabled: true, cutoffTime: DEFAULT_TIME });
 
       return successResponse({
-        cutoffEnabled: data.cutoff_enabled !== false,
-        cutoffTime: cleanStr(data.cutoff_time) || DEFAULT_TIME,
+        cutoffEnabled: row.cutoff_enabled !== false,
+        cutoffTime: cleanStr(row.cutoff_time) || DEFAULT_TIME,
       });
     }
 
@@ -37,14 +37,21 @@ Deno.serve(async (req: Request) => {
     if (req.method === "POST") {
       const obj = await req.json();
 
-      const record = {
-        cutoff_enabled: obj.cutoffEnabled !== undefined ? !!obj.cutoffEnabled : true,
-        cutoff_time: cleanStr(obj.cutoffTime) || DEFAULT_TIME,
+      const record: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       };
 
+      if (obj.cutoffEnabled !== undefined) {
+        record.cutoff_enabled = !!obj.cutoffEnabled;
+      }
+
+      if (obj.cutoffTime !== undefined) {
+        const t = cleanStr(obj.cutoffTime);
+        record.cutoff_time = /^([01]\d|2[0-3]):([0-5]\d)$/.test(t) ? t : DEFAULT_TIME;
+      }
+
       const { data: existing } = await supabase
-        .from("setting_perkiraan").select("id").order("id");
+        .from("setting_perkiraan").select("id").order("id").limit(1);
 
       if (existing && existing.length > 0) {
         await supabase.from("setting_perkiraan").update(record).eq("id", existing[0].id);

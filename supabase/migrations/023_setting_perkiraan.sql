@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS setting_perkiraan (
 );
 
 ALTER TABLE setting_perkiraan ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow authenticated access" ON setting_perkiraan;
 CREATE POLICY "Allow authenticated access" ON setting_perkiraan
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
