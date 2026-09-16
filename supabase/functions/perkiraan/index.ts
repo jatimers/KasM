@@ -4,7 +4,7 @@
 
 import { corsHeaders, successResponse, errorResponse } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase.ts";
-import { cleanStr, normalizeUnit, formatSafeString, getWIBISOString } from "../_shared/utils.ts";
+import { cleanStr, normalizeUnit, formatSafeString, getWIBISOString, getWIBMinutes, cutoffToMinutes } from "../_shared/utils.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -151,6 +151,35 @@ Deno.serve(async (req: Request) => {
         waktu_input: getWIBISOString(),
       };
 
+      // Enforcement cutoff input Bon (WIB)
+      let bonLocked = false;
+      try {
+        const { data: setting } = await supabase
+          .from("setting_perkiraan")
+          .select("cutoff_enabled, cutoff_time")
+          .order("id")
+          .limit(1)
+          .maybeSingle();
+
+        const cutoffEnabled = !setting || setting.cutoff_enabled !== false;
+        const cutoffMenit = cutoffToMinutes(setting?.cutoff_time);
+
+        if (cutoffEnabled && getWIBMinutes() >= cutoffMenit) {
+          const { data: existing } = await supabase
+            .from("perkiraan_bon_setor")
+            .select("p100k_bon, p50k_bon")
+            .eq("tanggal", record.tanggal)
+            .eq("user_estim", record.user_estim)
+            .maybeSingle();
+
+          record.p100k_bon = parseInt(String(existing?.p100k_bon)) || 0;
+          record.p50k_bon = parseInt(String(existing?.p50k_bon)) || 0;
+          bonLocked = true;
+        }
+      } catch (e) {
+        console.warn("[perkiraan] Gagal cek setting cutoff, lewati pembatasan:", e);
+      }
+
       const { error } = await supabase
         .from("perkiraan_bon_setor")
         .upsert(record, { onConflict: "tanggal, user_estim" });
@@ -178,7 +207,7 @@ Deno.serve(async (req: Request) => {
         console.warn("[perkiraan] Gagal trigger notif TUKAB:", e);
       }
 
-      return successResponse("Saved");
+      return successResponse({ message: "Saved", bonLocked });
     }
 
     return errorResponse("Method not allowed", 405);
