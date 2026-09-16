@@ -237,6 +237,7 @@
       <div class="menu-item" onclick="nav('setelan-libur', this); loadHariLibur();">📅 Setelan Hari Libur</div>
       <div class="menu-item" onclick="nav('setting-wa-gateway', this); loadWAGatewaySettings();">⚙️ Notifikasi WA</div>
       <div class="menu-item" onclick="nav('setting-email', this); loadSettingEmail();">✉️ Tujuan Email Laporan</div>
+      <div class="menu-item" onclick="nav('setting-perkiraan', this); loadSettingPerkiraan();">🕛 Pengaturan Perkiraan</div>
     </div>
 
     <div class="role-menu menu-ht">
@@ -506,6 +507,29 @@
         </div>
         <div style="display:flex; gap:15px; flex-wrap:wrap; margin-top:25px;">
           <button class="btn-refresh" style="flex:2; font-size:1.1rem; padding:15px; margin:0;" onclick="simpanSettingEmail()">💾 SIMPAN PENGATURAN</button>
+        </div>
+      </div>
+
+      <div id="setting-perkiraan" class="page role-page-admin">
+        <div class="header-page"><h3>Pengaturan Perkiraan Bon / Setor</h3></div>
+
+        <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px; padding:15px; background:#f8fafc; border-radius:8px; border:1px solid var(--border-color);">
+          <div>
+            <b style="font-size:1.1rem;">🕛 Pembatasan Input Bon</b>
+            <p style="margin:4px 0 0 0; color:var(--text-muted); font-size:0.85rem;">Jika AKTIF, seluruh user tidak dapat menginput Perkiraan Bon setelah jam cutoff. Matikan saat ada kondisi urgent. Form Setor tetap dapat diisi.</p>
+          </div>
+          <label style="margin-left:auto; display:flex; align-items:center; cursor:pointer;">
+            <input type="checkbox" id="sp-cutoff-enabled" onchange="onTogglePerkiraanCutoff()" style="width:48px; height:24px; accent-color:#059669; transform:scale(1.3); cursor:pointer;">
+            <span style="margin-left:8px; font-weight:700;" id="sp-cutoff-label">AKTIF</span>
+          </label>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group"><label>Jam Cutoff (WIB)</label><input type="time" id="sp-cutoff-time" value="12:00" style="background:var(--input-yellow);"></div>
+        </div>
+
+        <div style="display:flex; gap:15px; flex-wrap:wrap; margin-top:25px;">
+          <button class="btn-refresh" style="flex:1; font-size:1.1rem; padding:15px; margin:0;" onclick="simpanSettingPerkiraan()">💾 SIMPAN PENGATURAN</button>
         </div>
       </div>
 
@@ -1306,6 +1330,8 @@
       saveSettingWAGateway:       ['POST','/setting-wa-gateway'],
       getSettingEmail:            ['GET','/setting-email'],
       saveSettingEmail:           ['POST','/setting-email'],
+      getSettingPerkiraan:        ['GET','/setting-perkiraan'],
+      saveSettingPerkiraan:       ['POST','/setting-perkiraan'],
       getPerkiraanTeller:         ['GET','/perkiraan','?action=teller','tanggal','userEstim'],
       savePerkiraanTeller:        ['POST','/perkiraan'],
       getRekapPerkiraanHT:        ['GET','/perkiraan','?action=rekap','tanggal','kodeWilayah','tglHariIni'],
@@ -1651,6 +1677,8 @@
     }
 
     let currentUser = {}; let globalHistoryData = []; let allUsersData = []; let globalPosisiHT = []; let globalHistoryPosisi = [];
+    let perkiraanCutoffSetting = { cutoffEnabled: true, cutoffTime: '12:00' };
+    let perkiraanCutoffAlertShown = false;
     let currentRekapFisik = { bonPagi: 0, bonTambahan: 0, setorTambahan: 0, setorSore: 0, penerimaanDebet: 0, pembayaranKredit: 0, penerimaanAntar: 0, pembayaranAntar: 0, estimDebet: 0, estimKredit: 0 };
     window.currentLapMutasiType = 'SETOR';
     
@@ -3802,6 +3830,91 @@ function onToggleNotif() {
   lbl.innerText = enabled ? 'AKTIF' : 'NONAKTIF';
   lbl.style.color = enabled ? '#059669' : '#dc2626';
 }
+
+    function loadSettingPerkiraan() {
+      showLoader(true, "Memuat setelan perkiraan...");
+      google.script.run.withSuccessHandler((res) => {
+        showLoader(false);
+        let enabled = (res && res.cutoffEnabled !== undefined) ? res.cutoffEnabled : true;
+        let waktu = (res && res.cutoffTime) ? res.cutoffTime : '12:00';
+        document.getElementById('sp-cutoff-enabled').checked = enabled;
+        document.getElementById('sp-cutoff-time').value = waktu;
+        onTogglePerkiraanCutoff();
+      }).withFailureHandler((err) => {
+        showLoader(false);
+        alert("Gagal memuat setelan perkiraan: " + err.message);
+      }).getSettingPerkiraan();
+    }
+
+    function onTogglePerkiraanCutoff() {
+      let enabled = document.getElementById('sp-cutoff-enabled').checked;
+      let lbl = document.getElementById('sp-cutoff-label');
+      lbl.innerText = enabled ? 'AKTIF' : 'NONAKTIF';
+      lbl.style.color = enabled ? '#059669' : '#dc2626';
+    }
+
+    function simpanSettingPerkiraan() {
+      let obj = {
+        cutoffEnabled: document.getElementById('sp-cutoff-enabled').checked,
+        cutoffTime: document.getElementById('sp-cutoff-time').value || '12:00'
+      };
+      showLoader(true, "Menyimpan setelan...");
+      google.script.run.withSuccessHandler(() => {
+        showLoader(false); showToast(false); alert("Pengaturan Perkiraan berhasil disimpan.");
+      }).withFailureHandler((err) => {
+        showLoader(false); alert("Gagal menyimpan: " + err.message);
+      }).saveSettingPerkiraan(obj);
+    }
+
+    function loadSettingPerkiraanCache() {
+      google.script.run.withSuccessHandler((res) => {
+        perkiraanCutoffSetting = {
+          cutoffEnabled: (res && res.cutoffEnabled !== undefined) ? res.cutoffEnabled : true,
+          cutoffTime: (res && res.cutoffTime) ? res.cutoffTime : '12:00'
+        };
+        applyPerkiraanCutoffState();
+      }).withFailureHandler(() => {
+        perkiraanCutoffSetting = { cutoffEnabled: true, cutoffTime: '12:00' };
+        applyPerkiraanCutoffState();
+      }).getSettingPerkiraan();
+    }
+
+    function getWIBMinutesClient() {
+      let wib = new Date(Date.now() + 7 * 60 * 60 * 1000);
+      return wib.getUTCHours() * 60 + wib.getUTCMinutes();
+    }
+
+    function cutoffToMinutesClient(str) {
+      if (!str || typeof str !== 'string' || str.indexOf(':') === -1) return 720;
+      let parts = str.split(':');
+      let h = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+      if (isNaN(h) || isNaN(m)) return 720;
+      return h * 60 + m;
+    }
+
+    function isPerkiraanBonLocked() {
+      if (!perkiraanCutoffSetting.cutoffEnabled) return false;
+      return getWIBMinutesClient() >= cutoffToMinutesClient(perkiraanCutoffSetting.cutoffTime);
+    }
+
+    function applyPerkiraanCutoffState() {
+      let locked = isPerkiraanBonLocked();
+      let bon100 = document.getElementById('pt-100-bon');
+      let bon50 = document.getElementById('pt-50-bon');
+      let banner = document.getElementById('pt-cutoff-banner');
+      let waktu = (perkiraanCutoffSetting.cutoffTime || '12:00').replace(':', '.');
+      let pesan = "Mohon maaf input bon tidak bisa dilakukan diatas jam " + waktu + " WIB";
+      if (bon100) bon100.disabled = locked;
+      if (bon50) bon50.disabled = locked;
+      if (banner) {
+        banner.style.display = locked ? 'block' : 'none';
+        banner.innerText = "⚠️ " + pesan + " Form Setor tetap dapat diisi.";
+      }
+      if (locked && !perkiraanCutoffAlertShown) {
+        perkiraanCutoffAlertShown = true;
+        alert(pesan);
+      }
+    }
 
     function loadSettingEmail() {
       showLoader(true);
