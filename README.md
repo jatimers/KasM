@@ -152,6 +152,7 @@ const CONFIG = {
 | GET/POST | `/api/perkiraan` | Perkiraan bon/setor |
 | GET/POST | `/api/setting-fonnte` | Setting notifikasi WA |
 | GET/POST | `/api/setting-email` | Setting tujuan email laporan (Resend) |
+| GET/POST | `/api/setting-perkiraan` | Pengaturan cutoff input Perkiraan Bon (jam + toggle) |
 | POST | `/api/kirim-laporan-harian` | Kirim email Laporan Akhir Hari (PDF dibuat di frontend via html2pdf) |
 | GET/POST | `/api/pejabat-ht` | Data pejabat HT |
 | GET | `/api/next-working-day` | Hari kerja berikutnya |
